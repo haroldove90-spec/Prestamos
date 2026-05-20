@@ -4,9 +4,28 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom palette generated precisely from the shared mockup image */
+  --color-slate-950: #051b21; /* Deep dark teal canvas background */
+  --color-slate-900: #0a3a46; /* Dense teal card and list background */
+  --color-slate-850: #0c4350; /* Mid-density teal background */
+  --color-slate-800: #0d4654; /* Light teal card borders and dividers */
+  --color-slate-700: #105769; /* Interactive hover teal borders */
+  --color-slate-600: #13677b; /* Accent borders */
+  
+  /* Primary Lime Green Accents from the mock top header */
+  --color-indigo-950: #051b21;
+  --color-indigo-900: #082d36;
+  --color-indigo-800: #0a3a46;
+  --color-indigo-600: #a3c90e; /* Selected active states map to beautiful lime green */
+  --color-indigo-505: #a3c90e;
+  --color-indigo-500: #a3c90e;
+  --color-indigo-400: #acd113; /* Bright lime highlight */
+  --color-indigo-300: #bce11a;
+  --color-indigo-200: #dafb20;
 }
 
-/* Custom scrollbar patterns for tables */
+/* Custom scrollbar patterns in deep teal color palette */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -15,10 +34,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #105769;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #13677b;
 }
-

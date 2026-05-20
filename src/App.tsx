@@ -17,7 +17,7 @@ import {
   INITIAL_RISK_PARAMS,
   getBureauStatusByScore 
 } from './data';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu } from 'lucide-react';
 
 export default function App() {
   // State initialization with localStorage fallback
@@ -54,6 +54,13 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<'admin_harold' | 'asesor_juan' | 'cajera_lucia'>('admin_harold');
 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics'>('portfolio');
+
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  // Automatically close sidebar when tab changes
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [activeTab]);
 
   const handleUserChange = (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia') => {
     setCurrentUser(user);
@@ -326,6 +333,7 @@ export default function App() {
         currentUser={currentUser} 
         onUserChange={handleUserChange} 
         onResetData={handleResetData} 
+        onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
       />
 
       {/* Main Layout Container */}
@@ -375,8 +383,239 @@ export default function App() {
         {/* BOTTOM SECTION LAYOUT WITH SIDEBAR + MAIN MODULE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* NAVIGATION SIDEBAR (MODULES SELECTOR) */}
-          <nav className="lg:col-span-3 space-y-2">
+          {/* MOBILE NAVIGATION SIDEBAR (SLIDE OUT FROM LEFT OVERLAY DRAWER) */}
+          {isMobileSidebarOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden" id="mobile-sidebar-drawer">
+              {/* Backdrop blur effect */}
+              <div 
+                className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300"
+                onClick={() => setIsMobileSidebarOpen(false)}
+              />
+              
+              {/* Drawer layout container sliding in from left */}
+              <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-slate-900 border-r border-slate-800 p-5 shadow-2xl flex flex-col gap-4 overflow-y-auto text-left z-55">
+                <div className="flex justify-between items-center pb-3.5 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    <span className="font-bold text-white text-xs font-mono tracking-wide uppercase">Menú de Navegación</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
+                    title="Cerrar menú"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <nav className="space-y-2">
+                  <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
+                    Módulos Disponibles
+                  </span>
+
+                  {/* TAB OPTION 0: ADVISOR CONSOLE (ONLY FOR ASESOR) */}
+                  {currentUser === 'asesor_juan' && (
+                    <button
+                      id="mobile-tab-asesor-dashboard"
+                      onClick={() => setActiveTab('asesor_dashboard')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'asesor_dashboard'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Star className={`w-4 h-4 ${activeTab === 'asesor_dashboard' ? 'text-white' : 'text-yellow-400 animate-pulse'}`} />
+                        <span className="text-xs font-semibold">Consola del Asesor (VIP)</span>
+                      </div>
+                      <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/25 px-1.5 py-0.5 rounded font-mono font-black">
+                        OPERATIVO
+                      </span>
+                    </button>
+                  )}
+
+                  {/* TAB OPTION 0.5: CAJERA DASHBOARD (ONLY FOR CAJERA/SUPER ADMIN) */}
+                  {(currentUser === 'cajera_lucia' || currentUser === 'admin_harold') && (
+                    <button
+                      id="mobile-tab-cajera-dashboard"
+                      onClick={() => setActiveTab('cajera_dashboard')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'cajera_dashboard'
+                          ? 'bg-blue-600 font-bold border-blue-400 shadow-lg shadow-blue-500/20 text-white'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <DollarSign className={`w-4 h-4 ${activeTab === 'cajera_dashboard' ? 'text-white' : 'text-blue-400 animate-pulse'}`} />
+                        <span className="text-xs font-semibold">Módulo de Pagos (Caja)</span>
+                      </div>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
+                        activeTab === 'cajera_dashboard'
+                          ? 'bg-slate-950 text-blue-400 border-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20 font-bold'
+                      }`}>
+                        RECAUDACIÓN
+                      </span>
+                    </button>
+                  )}
+
+                  {/* TAB OPTION 1: PORTFOLIO */}
+                  <button
+                    id="mobile-tab-portfolio-management"
+                    onClick={() => setActiveTab('portfolio')}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'portfolio'
+                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                        : 'bg-slate-955 bg-slate-905 bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold">Gestión de Cartera</span>
+                    </div>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                      activeTab === 'portfolio' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-slate-400'
+                    }`}>
+                      {clients.length}
+                    </span>
+                  </button>
+
+                  {/* TAB OPTION 2: BUREAU INTEL & STRESS (SUPERVISOR RESTRICTED ACCORDING TO ROLE) */}
+                  <button
+                    id="mobile-tab-bureau-lookup"
+                    onClick={() => {
+                      if (currentUser !== 'admin_harold') {
+                        alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
+                      }
+                      setActiveTab('bureau');
+                    }}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'bureau'
+                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold">Buró de Inteligencia</span>
+                    </div>
+                    <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
+                      activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
+                    }`}>
+                      {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
+                    </span>
+                  </button>
+
+                  {/* TAB OPTION 3: REQUESTS PIPELINE */}
+                  <button
+                    id="mobile-tab-requests-pipeline"
+                    onClick={() => setActiveTab('requests')}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'requests'
+                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
+                      <span className="text-xs font-semibold">Pipeline Aprobaciones</span>
+                    </div>
+                    <div className="flex gap-1.5 items-center">
+                      {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
+                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                      )}
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        activeTab === 'requests' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-amber-500/10 text-amber-400 font-bold'
+                      }`}>
+                        {requests.filter(r => r.status === 'PENDIENTE').length} pnd
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
+                  <button
+                    id="mobile-tab-memberships-management"
+                    onClick={() => {
+                      if (currentUser !== 'admin_harold') {
+                        alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
+                      }
+                      setActiveTab('memberships');
+                    }}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'memberships'
+                        ? 'bg-amber-500 text-slate-950 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-950 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
+                      <span className="text-xs font-semibold">Módulo de Membresías</span>
+                    </div>
+                    <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
+                      activeTab === 'memberships' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                    }`}>
+                      VIP ACTIVO
+                    </span>
+                  </button>
+
+                  {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-security-audit"
+                      onClick={() => setActiveTab('security_center')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'security_center'
+                          ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-lg shadow-rose-600/10'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <ShieldAlert className={`w-4 h-4 ${activeTab === 'security_center' ? 'text-white' : 'text-rose-450'}`} />
+                        <span className="text-xs font-semibold">Auditoría de Seguridad</span>
+                      </div>
+                      {securityAlerts.some(a => a.status === 'PENDIENTE') ? (
+                        <span className="bg-rose-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse font-mono tracking-tighter">
+                          ALERTA ROJA
+                        </span>
+                      ) : (
+                        <span className="bg-slate-950 text-slate-500 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded">
+                          SISTEMA OK
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  {/* TAB OPTION 6: FINANCIAL METRICS */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-financial-metrics"
+                      onClick={() => setActiveTab('financial_metrics')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'financial_metrics'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-lg shadow-indigo-600/15'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
+                        <span className="text-xs font-semibold">Informes & Cierre de Mes</span>
+                      </div>
+                      <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                        Finanzas
+                      </span>
+                    </button>
+                  )}
+                </nav>
+
+                <div className="mt-auto p-4 bg-slate-950 border border-slate-850 rounded-2xl text-[10px] text-slate-500 font-mono tracking-tight text-center">
+                  Consola Buró Seguro • v1.2.0
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DESKTOP NAVIGATION SIDEBAR (MODULES SELECTOR - PERMANENT ON THE LEFT) */}
+          <nav className="hidden lg:block lg:col-span-3 space-y-2" id="desktop-sidebar-nav">
             <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
               Módulos Disponibles
             </span>
@@ -516,7 +755,7 @@ export default function App() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-950 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
+                <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-955 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
                 <span className="text-xs font-semibold">Módulo de Membresías</span>
               </div>
               <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
@@ -568,7 +807,7 @@ export default function App() {
                   <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
                   <span className="text-xs font-semibold">Informes & Cierre de Mes</span>
                 </div>
-                <span className="bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
                   Finanzas
                 </span>
               </button>
