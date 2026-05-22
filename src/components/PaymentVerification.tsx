@@ -199,6 +199,17 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
                     </p>
                   </div>
 
+                  {activePayment.reference === activePayment.clientId && (
+                    <div className="bg-[#a3c90e]/10 border border-[#a3c90e]/25 rounded-xl p-3 space-y-1 text-[10px] transition-all">
+                      <span className="font-bold text-[#a3c90e] uppercase tracking-wider flex items-center gap-1.5">
+                        ✨ Conciliación Única de Registro
+                      </span>
+                      <p className="text-slate-350 font-sans leading-normal">
+                        El depósito se identificó bajo el registro unificado <code className="text-white font-mono bg-slate-900 border border-slate-800 px-1 py-0.2 rounded font-bold">{activePayment.reference}</code>, asociándolo en un solo paso al expediente del acreditado y su saldo de deudor del préstamo.
+                      </p>
+                    </div>
+                  )}
+
                   {activePayment.status !== 'PENDIENTE' && (
                     <div className={`p-3 rounded-xl border text-center font-bold ${
                       activePayment.status === 'PAGO_REALIZADO' 

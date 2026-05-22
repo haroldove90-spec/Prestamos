@@ -224,7 +224,8 @@ export default function App() {
 
   // ADD NEW CLIENT
   const handleAddClient = (newClientData: Omit<Client, 'id' | 'joinDate'>) => {
-    const newId = `CLI-0${Math.floor(250 + Math.random() * 700)}`;
+    // Generate unique unified registration number (ID de Cliente, ID de Préstamo e Identificador de Pago)
+    const newId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
     const newClient: Client = {
       ...newClientData,
       id: newId,
@@ -240,14 +241,15 @@ export default function App() {
       queriedClientName: newClientData.name,
       requestedBy: 'admin_harold',
       scoreFound: newClientData.creditScore,
-      resolution: `Alta de expediente exitoso en Cartera. Estatus buró establecido en: ${newClientData.bureauStatus}`
+      resolution: `Alta de expediente exitoso en Cartera. Registro Unificado Único generado: ${newId}. ID Cliente: ${newId}, Contrato de Préstamo ID: ${newId}, Referencia de Pago Asociada: ${newId}.`
     };
     setQueries(prev => [newQueryLog, ...prev]);
   };
 
   // ADD SIMULATED CREDIT REQUEST
   const handleAddRequest = (newReqData: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => {
-    const newId = `REQ-${Math.floor(4510 + Math.random() * 500)}`;
+    // Generate unique unified registration number representing the loan contract right from the start
+    const newId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
     const newRequest: CreditRequest = {
       ...newReqData,
       id: newId,
@@ -270,8 +272,9 @@ export default function App() {
     const rfcBase = (requestItem.clientName.slice(0, 4).toUpperCase().padEnd(4, 'X') + '850101TS2').replace(/\s+/g, 'A');
 
     // 3. Create active Client card and append to portfolio
+    // The client ID matches the loan request ID EXACTLY (Unified Registration Identifier System!)
     const simulatedClient: Client = {
-      id: `CLI-0${Math.floor(300 + Math.random() * 500)}`,
+      id: requestItem.id, // ID de Cliente es ID de Préstamo
       name: requestItem.clientName,
       rfc: rfcBase,
       email: `${requestItem.clientName.toLowerCase().replace(/[^a-z0-9]/g, '')}@financiero.mx`,
@@ -309,7 +312,7 @@ export default function App() {
       queriedClientName: requestItem.clientName,
       requestedBy: 'admin_harold',
       scoreFound: requestItem.score,
-      resolution: `SOLICITUD ${id} APROBADA POR HAROLD. Alta automática en Cartera Activa por monto de $${requestItem.requestedAmount.toLocaleString('es-MX')} MXN.`
+      resolution: `SOLICITUD Y PRÉSTAMO ${id} APROBADOS POR HAROLD. Alta automática en Cartera Activa con ID unificado para el Cliente, Contrato de Préstamo y Referencia de Pagos: ${requestItem.id} por un monto de $${requestItem.requestedAmount.toLocaleString('es-MX')} MXN.`
     };
     setQueries(prev => [newLog, ...prev]);
   };

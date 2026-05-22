@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight } from 'lucide-react';
+import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight, Sparkles } from 'lucide-react';
 import { CreditRequest } from '../types';
 
 interface RequestPipelineProps {
@@ -84,7 +84,15 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
         </div>
 
         {isSimulatingReq && (
-          <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-5 transition-all duration-300">
+          <div className="space-y-4 pt-5 transition-all duration-300">
+            <div className="bg-slate-950/60 border border-indigo-500/25 rounded-xl p-3.5 text-xs text-indigo-300 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <span className="font-bold text-white">Auto-Generador de Referencia Unificada:</span> Al enviar este prerregistro, se reservará un número de identificación único (p. ej., <code className="text-[#a3c90e] bg-[#a3c90e]/10 px-1 py-0.5 rounded font-mono font-bold">PM-XXXXXX</code>) para la solicitud de crédito. Cuando Harold autorice este financiamiento, el expediente del cliente adoptará <strong>el mismo número</strong>. Al realizar abonos, este número servirá también como el número correlativo para la conciliación de su pago de muestra.
+              </div>
+            </div>
+            
+            <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-slate-400 mb-1">Nombre del Solicitante *</label>
               <input
@@ -167,6 +175,7 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
               </button>
             </div>
           </form>
+          </div>
         )}
       </div>
 

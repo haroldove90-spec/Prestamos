@@ -70,13 +70,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   useEffect(() => {
     if (activeClient) {
       setAmount(Math.min(activeClient.balanceOwed, 25000).toString());
-      setReference(`MARIN-${Math.floor(100000 + Math.random() * 900000)}`);
+      setReference(activeClient.id); // Defaulting reference to the UNIFIED registration number (ID)!
       setCapturedImage(null);
       setUploadedFileName(null);
       setSelectedTemplateIndex(null);
       setJustSubmittedId(null);
     }
-  }, [selectedClientId]);
+  }, [selectedClientId, activeClient]);
 
   // Launch camera
   const startCamera = async () => {
@@ -166,7 +166,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     
     // Generate a unique reference based on selection
     const tmpl = MOCK_RECEIPT_TEMPLATES[index];
-    setReference(`${tmpl.refPrefix}-${Math.floor(100000 + Math.random() * 900000)}`);
+    setReference(activeClient ? activeClient.id : `${tmpl.refPrefix}-${Math.floor(100000 + Math.random() * 900000)}`);
     setCapturedImage(tmpl.img);
   };
 
@@ -392,6 +392,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       onChange={(e) => setReference(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-[#a3c90e] font-mono"
                     />
+                    {activeClient && reference === activeClient.id && (
+                      <div className="mt-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-[9px] font-mono text-emerald-400 leading-normal animate-pulse">
+                        ⚡ VINCULACIÓN UNIFICADA DETECTADA: Tu referencia de pago coincide con tu número de registro unificado <strong className="font-bold">{activeClient.id}</strong>. Al aprobarse, el abono se liquidará automáticamente de tu préstamo.
+                      </div>
+                    )}
                   </div>
 
                   <div>

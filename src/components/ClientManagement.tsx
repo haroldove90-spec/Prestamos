@@ -200,13 +200,20 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
       {/* MODAL INLINE-FORM TO ADD A CLIENT */}
       {isAdding && (
         <div className="p-6 bg-slate-950/40 border-b border-slate-800 transition-all duration-300">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-1">
             <h3 className="text-sm font-bold text-white uppercase tracking-wide font-mono flex items-center gap-1.5 text-indigo-400">
               <UserPlus className="w-4 h-4" /> Alta de Cliente en Cartera Activa
             </h3>
             <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
               <X className="w-5 h-5" />
             </button>
+          </div>
+
+          <div className="mb-4 bg-slate-900 border border-[#a3c90e]/30 rounded-xl p-3 text-xs text-[#a3c90e] flex items-start gap-2.5">
+            <Sparkles className="w-5 h-5 text-[#a3c90e] shrink-0 mt-0.5 animate-pulse" />
+            <div>
+              <span className="font-bold">Fideicomiso Integrado de Registro (PM-XXXXXX):</span> Al dar de alta este cliente, el sistema generará automáticamente una clave de registro unificada. Esta clave servirá simultáneamente como <strong>ID del Cliente</strong>, <strong>Número de Contrato de su Préstamo</strong>, e <strong>Identificador para su Pago</strong> (Referencia Bancaria/SPEI/Oxxo), permitiendo una conciliación del 100% en tiempo real.
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
