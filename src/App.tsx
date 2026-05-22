@@ -9,7 +9,9 @@ import { AsesorDashboard } from './components/AsesorDashboard';
 import { CajeraDashboard } from './components/CajeraDashboard';
 import { SecurityAuditModule, SecurityIncident } from './components/SecurityAuditModule';
 import { FinancialMetricsModule } from './components/FinancialMetricsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters } from './types';
+import { ClientPortal } from './components/ClientPortal';
+import { PaymentVerification } from './components/PaymentVerification';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment } from './types';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
@@ -17,7 +19,7 @@ import {
   INITIAL_RISK_PARAMS,
   getBureauStatusByScore 
 } from './data';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2 } from 'lucide-react';
 
 export default function App() {
   // State initialization with localStorage fallback
@@ -51,9 +53,38 @@ export default function App() {
     return local ? JSON.parse(local) : [];
   });
 
-  const [currentUser, setCurrentUser] = useState<'admin_harold' | 'asesor_juan' | 'cajera_lucia'>('admin_harold');
+  const [currentUser, setCurrentUser] = useState<'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza'>('admin_harold');
 
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification'>('portfolio');
+
+  const [clientPayments, setClientPayments] = useState<ClientPayment[]>(() => {
+    const local = localStorage.getItem('buro_client_payments');
+    if (local) return JSON.parse(local);
+    return [
+      {
+        id: 'PAG-4621',
+        clientId: 'CLI-001',
+        clientName: 'Carlos Mendoza',
+        amount: 15000,
+        date: '2026-05-20',
+        evidenceImage: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=400&auto=format&fit=crop&q=80',
+        status: 'PENDIENTE',
+        notes: 'Abono realizado vía SPEI. Adjunto comprobante original de la app de BBVA.',
+        reference: 'SPEI-BBVA-901235'
+      },
+      {
+        id: 'PAG-3801',
+        clientId: 'CLI-002',
+        clientName: 'Ana Laura Gómez',
+        amount: 8500,
+        date: '2026-05-18',
+        evidenceImage: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&auto=format&fit=crop&q=80',
+        status: 'PAGO_REALIZADO',
+        notes: 'Pago extraordinario en sucursal de Oxxo. Ticket de depósito adjunto.',
+        reference: 'OXXO-SAFE-882103'
+      }
+    ];
+  });
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
@@ -62,16 +93,19 @@ export default function App() {
     setIsMobileSidebarOpen(false);
   }, [activeTab]);
 
-  const handleUserChange = (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia') => {
+  const handleUserChange = (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza') => {
     setCurrentUser(user);
     if (user === 'asesor_juan') {
       setActiveTab('asesor_dashboard');
     } else if (user === 'cajera_lucia') {
       setActiveTab('cajera_dashboard');
+    } else if (user === 'cliente_esperanza') {
+      setActiveTab('client_portal');
     } else {
       setActiveTab('portfolio');
     }
   };
+
 
   // Push updates to localStorage
   useEffect(() => {
@@ -97,6 +131,83 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('buro_security_alerts', JSON.stringify(securityAlerts));
   }, [securityAlerts]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
+  }, [clientPayments]);
+
+  // REGISTER CLIENT ACTIVE PAYMENT ACTIVITY
+  const handleRegisterClientPayment = (newPayment: ClientPayment) => {
+    setClientPayments(prev => [newPayment, ...prev]);
+
+    // Add general transaction query log for real-time compliance review
+    const newLog: BureauQueryLog = {
+      id: `Q-${Math.floor(1005 + Math.random() * 8900)}`,
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: newPayment.clientName,
+      requestedBy: 'cliente_portal',
+      scoreFound: 700,
+      resolution: `📥 REGISTRO ABONO: El acreditado reportó un abono de $${newPayment.amount.toLocaleString('es-MX')} MXN (Folio: ${newPayment.id}). En espera de validación administrativa.`
+    };
+    setQueries(prev => [newLog, ...prev]);
+  };
+
+  // VERIFY/APPROVE/REJECT RECEIVED EVIDENCE IMAGES MANUALLY
+  const handleVerifyPayment = (paymentId: string, newStatus: 'PAGO_REALIZADO' | 'RECHAZADO') => {
+    setClientPayments(prev => prev.map(p => {
+      if (p.id === paymentId) {
+        return { ...p, status: newStatus };
+      }
+      return p;
+    }));
+
+    // Find the payment object
+    const payment = clientPayments.find(p => p.id === paymentId);
+    if (!payment) return;
+
+    if (newStatus === 'PAGO_REALIZADO') {
+      // Apply payment deduction from balanceOwed
+      setClients(prev => prev.map(c => {
+        if (c.id === payment.clientId) {
+          const newBalance = Math.max(0, c.balanceOwed - payment.amount);
+          
+          // Auto-calculate if they fully settled their delinquency
+          const newDelinquency = newBalance === 0 ? 0 : c.delinquencyDays;
+          const newStatusVal = newBalance === 0 ? 'EXCELENTE' : c.bureauStatus;
+          
+          return {
+            ...c,
+            balanceOwed: newBalance,
+            delinquencyDays: newDelinquency,
+            bureauStatus: newStatusVal
+          };
+        }
+        return c;
+      }));
+
+      // Create transaction audit log
+      const auditLog: BureauQueryLog = {
+        id: `Q-${Math.floor(1003 + Math.random() * 8990)}`,
+        timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        queriedClientName: payment.clientName,
+        requestedBy: currentUser,
+        scoreFound: 720,
+        resolution: `✓ COMPROBANTE APROBADO: Abono de $${payment.amount.toLocaleString('es-MX')} aplicado al saldo del expediente ${payment.clientId} por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'}.`
+      };
+      setQueries(prev => [auditLog, ...prev]);
+    } else {
+      // Cancelled log
+      const auditLog: BureauQueryLog = {
+        id: `Q-${Math.floor(1003 + Math.random() * 8990)}`,
+        timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        queriedClientName: payment.clientName,
+        requestedBy: currentUser,
+        scoreFound: 350,
+        resolution: `🚫 COMPROBANTE MARCADO COMO RECHAZADO: Ficha de abono ${paymentId} cancelada por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'} (Comprobante inválido o ilegible).`
+      };
+      setQueries(prev => [auditLog, ...prev]);
+    }
+  };
 
   // RESET DATABASE ACTION
   const handleResetData = () => {
@@ -605,6 +716,51 @@ export default function App() {
                       </span>
                     </button>
                   )}
+
+                  {/* PORTAL DE CLIENTES (DEMO) */}
+                  <button
+                    id="mobile-tab-client-portal"
+                    onClick={() => setActiveTab('client_portal')}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'client_portal'
+                        ? 'bg-emerald-600 font-bold border-emerald-400 shadow-lg text-white'
+                        : 'bg-slate-950 text-[#a3c90e] border-[#a3c90e]/25 hover:text-white font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
+                      <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
+                      CLIENTE
+                    </span>
+                  </button>
+
+                  {/* VERIFICACION DE PAGOS CON COMPROBANTE */}
+                  {(currentUser === 'admin_harold' || currentUser === 'cajera_lucia') && (
+                    <button
+                      id="mobile-tab-payment-verification"
+                      onClick={() => setActiveTab('payment_verification')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'payment_verification'
+                          ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/25'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileCheck2 className={`w-4 h-4 ${activeTab === 'payment_verification' ? 'text-slate-950' : 'text-amber-400 animate-bounce'}`} />
+                        <span className="text-xs font-semibold">Validación de Abonos</span>
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        {clientPayments.filter(p => p.status === 'PENDIENTE').length > 0 && (
+                          <span className="h-2 w-2 rounded-full bg-red-400 animate-ping" />
+                        )}
+                        <span className="text-[9px] bg-red-500/15 text-red-400 border border-red-500/20 px-1.5 font-bold rounded">
+                          {clientPayments.filter(p => p.status === 'PENDIENTE').length} pnd
+                        </span>
+                      </div>
+                    </button>
+                  )}
                 </nav>
 
                 <div className="mt-auto p-4 bg-slate-950 border border-slate-850 rounded-2xl text-[10px] text-slate-500 font-mono tracking-tight text-center">
@@ -813,6 +969,51 @@ export default function App() {
               </button>
             )}
 
+            {/* TAB OPTION: PORTAL CLIENTES (DEMO) */}
+            <button
+              id="tab-client-portal"
+              onClick={() => setActiveTab('client_portal')}
+              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                activeTab === 'client_portal'
+                  ? 'bg-emerald-650 bg-emerald-600 text-white font-bold border-emerald-400 shadow-lg shadow-emerald-500/10'
+                  : 'bg-slate-900 hover:bg-slate-850/80 text-[#a3c90e] border-[#a3c90e]/25 font-bold'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+              </div>
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
+                CLIENTE
+              </span>
+            </button>
+
+            {/* TAB OPTION: VERIFICACION DE PAGOS CON COMPROBANTE */}
+            {(currentUser === 'admin_harold' || currentUser === 'cajera_lucia') && (
+              <button
+                id="tab-payment-verification"
+                onClick={() => setActiveTab('payment_verification')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'payment_verification'
+                    ? 'bg-amber-500 text-slate-955 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/25'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <FileCheck2 className={`w-4 h-4 ${activeTab === 'payment_verification' ? 'text-slate-950' : 'text-amber-400 animate-bounce'}`} />
+                  <span className="text-xs font-semibold">Validación de Abonos</span>
+                </div>
+                <div className="flex gap-1 items-center">
+                  {clientPayments.filter(p => p.status === 'PENDIENTE').length > 0 && (
+                    <span className="h-2 w-2 rounded-full bg-red-400 animate-ping" />
+                  )}
+                  <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 font-bold rounded">
+                    {clientPayments.filter(p => p.status === 'PENDIENTE').length} pnd
+                  </span>
+                </div>
+              </button>
+            )}
+
             {/* MOCK ADVICE TILE IN SIDEBAR */}
             <div className="p-5 bg-slate-900 rounded-3xl border border-slate-800 space-y-2 mt-4 hidden lg:block shadow-md">
               <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 font-mono">
@@ -969,6 +1170,22 @@ export default function App() {
                     clients={clients}
                     setClients={setClients}
                     onAddQueryLog={handleAddQueryLog}
+                  />
+                )}
+
+                {activeTab === 'client_portal' && (
+                  <ClientPortal 
+                    clients={clients} 
+                    payments={clientPayments} 
+                    onRegisterPayment={handleRegisterClientPayment} 
+                  />
+                )}
+
+                {activeTab === 'payment_verification' && (
+                  <PaymentVerification 
+                    payments={clientPayments} 
+                    onVerifyPayment={handleVerifyPayment} 
+                    currentUser={currentUser}
                   />
                 )}
               </>

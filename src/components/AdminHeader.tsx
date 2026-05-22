@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ShieldCheck, User, LogOut, Calendar, Database, RefreshCw, Key, Menu, ChevronDown, Award } from 'lucide-react';
+import { ShieldCheck, User, LogOut, Calendar, Database, RefreshCw, Key, Menu, ChevronDown, Award, Smartphone } from 'lucide-react';
 
 interface AdminHeaderProps {
-  currentUser: 'admin_harold' | 'asesor_juan' | 'cajera_lucia';
-  onUserChange: (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia') => void;
+  currentUser: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza';
+  onUserChange: (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza') => void;
   onResetData: () => void;
   onToggleSidebar?: () => void;
 }
@@ -15,7 +15,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
   const getRoleName = (user: string) => {
     if (user === 'admin_harold') return 'SUPER ADMIN';
     if (user === 'asesor_juan') return 'ASESOR VIP';
-    return 'CAJERA EXPRESS';
+    if (user === 'cajera_lucia') return 'CAJERA EXPRESS';
+    return 'PORTAL CLIENTE';
   };
 
   return (
@@ -44,10 +45,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
             <h1 className="text-xs sm:text-base md:text-lg font-extrabold tracking-tight text-white flex items-center gap-1 sm:gap-1.5 font-sans">
               Prestamos Marín
               <span className="text-[8px] sm:text-[9px] font-bold font-mono px-1 sm:px-1.5 py-0 rounded-full bg-slate-950/40 text-white uppercase border border-white/10 shrink-0">
-                {currentUser === 'admin_harold' ? 'SD' : currentUser === 'asesor_juan' ? 'VIP' : 'CAJA'}
+                {currentUser === 'admin_harold' ? 'SD' : currentUser === 'asesor_juan' ? 'VIP' : currentUser === 'cajera_lucia' ? 'CAJA' : 'CLIENTE'}
               </span>
             </h1>
-            <p className="hidden md:block text-[11px] text-white/80 font-mono tracking-tight">
+            <p className="hidden md:block text-[11px] text-white/85 font-mono tracking-tight">
               Consola Administrativa de Riesgo y Cartera
             </p>
           </div>
@@ -68,7 +69,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
         {/* Right Side: Compact controls / Dropdown selector */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Quick Access Switcher (Desktop Only) */}
-          <div className="hidden md:flex gap-1 bg-[#0a3a46]/10 p-1 rounded-xl border border-white/15">
+          <div className="hidden xl:flex gap-1 bg-[#0a3a46]/10 p-1 rounded-xl border border-white/15">
             <button
               onClick={() => onUserChange('admin_harold')}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1 cursor-pointer ${
@@ -102,6 +103,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
               <LogOut className="w-3 h-3 rotate-180 text-orange-400" />
               @lucia
             </button>
+            <button
+              onClick={() => onUserChange('cliente_esperanza')}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                currentUser === 'cliente_esperanza'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Smartphone className="w-3 h-3 text-[#a3c90e]" />
+              @cliente
+            </button>
           </div>
 
           {/* Quick Reset Demo button (Elegant & small) */}
@@ -122,7 +134,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
             >
               {/* White Circle with Deep Teal border - matches the mock visual element precisely */}
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white bg-[#0a3a46] text-[#a3c90e] font-extrabold flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95 transition-all duration-150 text-[10px] sm:text-xs md:text-sm">
-                {currentUser === 'admin_harold' ? 'AH' : currentUser === 'asesor_juan' ? 'AJ' : 'CL'}
+                {currentUser === 'admin_harold' ? 'AH' : currentUser === 'asesor_juan' ? 'AJ' : currentUser === 'cajera_lucia' ? 'CL' : 'CE'}
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-white hidden sm:block" />
             </button>
@@ -193,6 +205,24 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
                     <div className="text-left">
                       <div className="font-bold text-[11px]">@cajera_lucia</div>
                       <div className="text-[8px] opacity-80 font-sans">Cajera Express</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onUserChange('cliente_esperanza');
+                      setShowDropdown(false);
+                    }}
+                    className={`w-full px-3 py-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer ${
+                      currentUser === 'cliente_esperanza' 
+                        ? 'bg-[#a3c90e] text-[#0a3a46] font-bold shadow-md' 
+                        : 'hover:bg-white/10 text-white'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">CE</div>
+                    <div className="text-left">
+                      <div className="font-bold text-[11px]">@cliente_esperanza</div>
+                      <div className="text-[8px] opacity-80 font-sans">Portal Cliente</div>
                     </div>
                   </button>
                 </div>

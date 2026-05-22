@@ -46,3 +46,16 @@ export interface RiskParameters {
   maxDelinquencyDaysAllowed: number;
   baseInterestRate: number;
 }
+
+export interface ClientPayment {
+  id: string;
+  clientId: string;
+  clientName: string;
+  amount: number;
+  date: string;
+  evidenceImage: string; // Base64 or mock visual resource URL
+  status: 'PENDIENTE' | 'PAGO_REALIZADO' | 'RECHAZADO';
+  notes?: string;
+  reference?: string;
+}
+
