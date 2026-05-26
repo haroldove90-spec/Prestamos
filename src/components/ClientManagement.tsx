@@ -146,6 +146,32 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
         </div>
       </div>
 
+      {/* GLOWING INDICATOR BANNER FOR THE PDF INJECTED CLIENTS */}
+      <div className="mx-6 mt-5 bg-[#a3c90e]/10 border border-[#a3c90e]/30 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="bg-[#a3c90e] text-slate-950 font-mono text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+              ✨ PDF DETECTADO E INYECTADO
+            </span>
+            <span className="text-[10px] font-mono text-[#a3c90e] font-bold">Despacho Legal Martínez</span>
+          </div>
+          <h4 className="text-xs font-bold text-white uppercase font-mono">
+            Se registraron con éxito 15 nuevos clientes de muestra extraídos del PDF
+          </h4>
+          <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+            Se detectaron los registros de Melvin Zauriel, Janeth Alejandra, Luis Antonio, Rocio Elizabeth, Maria Karen, José Francisco, Agustín, Margarita, Ángeles, Ma del Carmen, Esmeralda, Fernanda, Esperanza, Ileana y José Manuel. Ya están unificados en este panel y listos para simular su abono o cobro.
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => setSearchTerm('PM-')}
+            className="bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 text-[10px] font-black px-3.5 py-2 rounded-xl transition duration-150 uppercase tracking-tight shadow-md cursor-pointer"
+          >
+            Filtrar Registros PDF
+          </button>
+        </div>
+      </div>
+
       {/* FILTER CONTROLS */}
       <div className="p-5 border-b border-slate-800 bg-slate-900/60 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Search Input */}

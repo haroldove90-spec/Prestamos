@@ -25,7 +25,18 @@ export default function App() {
   // State initialization with localStorage fallback
   const [clients, setClients] = useState<Client[]>(() => {
     const local = localStorage.getItem('buro_clients');
-    return local ? JSON.parse(local) : INITIAL_CLIENTS;
+    if (local) {
+      try {
+        const parsed = JSON.parse(local) as Client[];
+        const hasPdfClients = parsed.some(c => c.id.startsWith('PM-'));
+        if (hasPdfClients) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_CLIENTS;
   });
 
   const [requests, setRequests] = useState<CreditRequest[]>(() => {
@@ -59,7 +70,17 @@ export default function App() {
 
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>(() => {
     const local = localStorage.getItem('buro_client_payments');
-    if (local) return JSON.parse(local);
+    if (local) {
+      try {
+        const parsed = JSON.parse(local) as ClientPayment[];
+        const hasPmPayment = parsed.some(p => p.clientId.startsWith('PM-'));
+        if (hasPmPayment) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
     return [
       {
         id: 'PAG-4621',
