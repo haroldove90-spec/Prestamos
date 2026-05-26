@@ -63,6 +63,17 @@ export default function App() {
     return [
       {
         id: 'PAG-4621',
+        clientId: 'PM-820399',
+        clientName: 'Melvin Zauriel Hernández Pérez',
+        amount: 1250,
+        date: '2026-05-22',
+        evidenceImage: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=400&auto=format&fit=crop&q=80',
+        status: 'PENDIENTE',
+        notes: 'Abono de Cuota Semanal/Mensual #6. Referencia unificada establecida.',
+        reference: 'PM-820399'
+      },
+      {
+        id: 'PAG-4622',
         clientId: 'CLI-001',
         clientName: 'Carlos Mendoza',
         amount: 15000,

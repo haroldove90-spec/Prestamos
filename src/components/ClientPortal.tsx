@@ -40,9 +40,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 }) => {
   // Filter clients who have pending balances, default to the first one
   const clientsWithBalance = clients.filter(c => c.balanceOwed > 0);
-  const [selectedClientId, setSelectedClientId] = useState<string>(
-    clientsWithBalance[0]?.id || clients[0]?.id || ''
-  );
+  const [selectedClientId, setSelectedClientId] = useState<string>(() => {
+    const hasEsperanza = clients.some(c => c.id === 'PM-327072' && c.balanceOwed > 0);
+    if (hasEsperanza) return 'PM-327072';
+    return clientsWithBalance[0]?.id || clients[0]?.id || '';
+  });
   
   const activeClient = clients.find(c => c.id === selectedClientId);
 
