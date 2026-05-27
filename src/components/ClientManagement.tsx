@@ -1,18 +1,27 @@
-import React, { useState } from 'react';
-import { Search, UserPlus, FileText, CheckCircle, AlertTriangle, HelpCircle, X, ShieldAlert, Plus, Layers, Crown, Award, User, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, UserPlus, FileText, CheckCircle, AlertTriangle, HelpCircle, X, ShieldAlert, Plus, Layers, Crown, Award, User, Sparkles, Upload } from 'lucide-react';
 import { Client, BureauStatus } from '../types';
 
 interface ClientManagementProps {
   clients: Client[];
   onAddClient: (newClient: Omit<Client, 'id' | 'joinDate'>) => void;
+  onImportClients?: (newClients: Client[]) => void;
 }
 
-export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClient }) => {
+export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClient, onImportClients }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<BureauStatus | 'ALL'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isAdding, setIsAdding] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+
+  // CSV Import State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedClients, setImportedClients] = useState<any[]>([]);
+  const [showImportReview, setShowImportReview] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [importStats, setImportStats] = useState({ total: 0, valid: 0, dups: 0 });
 
   // Form State
   const [newName, setNewName] = useState('');
@@ -99,6 +108,272 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
     }).format(val);
   };
 
+  // CSV Import and Template Operations
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const parseCSV = (text: string) => {
+    // Detect delimiters (comma vs semicolon)
+    const firstLine = text.split('\n')[0] || '';
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    const delimiter = semicolonCount > commaCount ? ';' : ',';
+
+    const lines: string[][] = [];
+    let row: string[] = [];
+    let inQuotes = false;
+    let currentToken = '';
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          currentToken += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        row.push(currentToken.trim());
+        currentToken = '';
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i++;
+        }
+        row.push(currentToken.trim());
+        if (row.length > 1 || (row.length === 1 && row[0] !== '')) {
+          lines.push(row);
+        }
+        row = [];
+        currentToken = '';
+      } else {
+        currentToken += char;
+      }
+    }
+    if (currentToken !== '' || row.length > 0) {
+      row.push(currentToken.trim());
+      if (row.length > 1 || (row.length === 1 && row[0] !== '')) {
+        lines.push(row);
+      }
+    }
+    return lines;
+  };
+
+  const normalizeHeader = (raw: string) => {
+    return raw
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9_]/g, '')
+      .trim();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const fileText = event.target?.result as string;
+        if (!fileText) {
+          setImportError('No se pudo leer el contenido del archivo.');
+          return;
+        }
+
+        const parsedLines = parseCSV(fileText);
+        if (parsedLines.length < 2) {
+          setImportError('El archivo CSV está vacío o carece de registros de datos.');
+          return;
+        }
+
+        const headers = parsedLines[0].map(normalizeHeader);
+        
+        // Find indices with key-agnostic aliases
+        const findIndex = (aliases: string[]) => {
+          return headers.findIndex(h => aliases.includes(h));
+        };
+
+        const idIdx = findIndex(['id', 'clave', 'idcliente', 'clientid', 'contrato', 'codigo']);
+        const nameIdx = findIndex(['nombre', 'name', 'razonsocial', 'nombrecompleto', 'cliente', 'expediente']);
+        const rfcIdx = findIndex(['rfc', 'cverfc', 'taxid', 'tax_id']);
+        const emailIdx = findIndex(['email', 'correo', 'correoelectronico', 'mail']);
+        const phoneIdx = findIndex(['telefono', 'phone', 'celular', 'tel', 'cell']);
+        const scoreIdx = findIndex(['creditscore', 'score', 'buro', 'puntos', 'calificacion', 'internal_score', 'scores', 'bureau_score']);
+        const statusIdx = findIndex(['bureaustatus', 'status', 'estatus', 'riesgo', 'estatusburo', 'estatus_buro']);
+        const creditIdx = findIndex(['totalcreditgranted', 'credito', 'totalcredito', 'limite', 'montocredito', 'monto_cupo', 'creditgranted']);
+        const owedIdx = findIndex(['balanceowed', 'saldo', 'saldoinsoluto', 'deuda', 'montodeuda', 'balance', 'adeudo', 'saldo_deudor']);
+        const delIdx = findIndex(['delinquencydays', 'retraso', 'diasretraso', 'retrasos', 'mora', 'diasmora', 'dias_retraso', 'dias_mora']);
+        const catIdx = findIndex(['category', 'categoria', 'tipo', 'segmento', 'clase']);
+        const memIdx = findIndex(['membership', 'membresia', 'suscripcion', 'plan']);
+        const joinIdx = findIndex(['joindate', 'fecha', 'fechaalta', 'alta', 'ingreso', 'registro']);
+
+        if (nameIdx === -1) {
+          setImportError('Encabezado de columna obligatorio omitido: Nombre / Razón Social. Asegúrate de incluir una columna llamada "Nombre" o "Cliente".');
+          return;
+        }
+
+        const existingIds = new Set(clients.map(c => c.id));
+        const existingRfcs = new Set(clients.map(c => c.rfc.toUpperCase()));
+
+        const imported: any[] = [];
+        let dupCount = 0;
+        let validCount = 0;
+
+        for (let i = 1; i < parsedLines.length; i++) {
+          const row = parsedLines[i];
+          if (row.length < 2 || (row.length === 1 && row[0] === '')) continue;
+
+          const rawId = idIdx >= 0 && row[idIdx] ? row[idIdx].trim() : '';
+          const rawName = nameIdx >= 0 && row[nameIdx] ? row[nameIdx].trim() : '';
+          const rawRfc = rfcIdx >= 0 && row[rfcIdx] ? row[rfcIdx].trim() : '';
+          const rawEmail = emailIdx >= 0 && row[emailIdx] ? row[emailIdx].trim() : '';
+          const rawPhone = phoneIdx >= 0 && row[phoneIdx] ? row[phoneIdx].trim() : '';
+          
+          let parsedScore = 650;
+          if (scoreIdx >= 0 && row[scoreIdx]) {
+            const sc = parseInt(row[scoreIdx].toString().replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(sc)) parsedScore = sc;
+          }
+          
+          const rawStatus = statusIdx >= 0 && row[statusIdx] ? row[statusIdx].trim().toUpperCase() : '';
+          
+          let parsedCredit = 150000;
+          if (creditIdx >= 0 && row[creditIdx]) {
+            const cr = parseFloat(row[creditIdx].toString().replace(/[^0-9.]/g, ''));
+            if (!isNaN(cr)) parsedCredit = cr;
+          }
+
+          let parsedOwed = 0;
+          if (owedIdx >= 0 && row[owedIdx]) {
+            const ow = parseFloat(row[owedIdx].toString().replace(/[^0-9.]/g, ''));
+            if (!isNaN(ow)) parsedOwed = ow;
+          }
+
+          let parsedDel = 0;
+          if (delIdx >= 0 && row[delIdx]) {
+            const dl = parseInt(row[delIdx].toString().replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(dl)) parsedDel = dl;
+          }
+
+          const rawCat = catIdx >= 0 && row[catIdx] ? row[catIdx].trim() : '';
+          const rawMem = memIdx >= 0 && row[memIdx] ? row[memIdx].trim() : '';
+          const rawJoin = joinIdx >= 0 && row[joinIdx] ? row[joinIdx].trim() : '';
+
+          if (!rawName) continue;
+
+          // Check for collision with existing DB
+          const isDup = existingIds.has(rawId) || (rawRfc && existingRfcs.has(rawRfc.toUpperCase()));
+          if (isDup) {
+            dupCount++;
+          } else {
+            validCount++;
+          }
+
+          // Generate adaptive evaluation status
+          let finalStatus: BureauStatus = 'REGULAR';
+          if (['EXCELENTE', 'BUENO', 'REGULAR', 'ALERTA'].includes(rawStatus)) {
+            finalStatus = rawStatus as BureauStatus;
+          } else {
+            if (parsedDel > 30) finalStatus = 'ALERTA';
+            else if (parsedScore >= 720) finalStatus = 'EXCELENTE';
+            else if (parsedScore >= 650) finalStatus = 'BUENO';
+            else if (parsedScore >= 580) finalStatus = 'REGULAR';
+            else finalStatus = 'ALERTA';
+          }
+
+          let finalCat: 'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario' = 'Personal';
+          const catL = rawCat.toLowerCase();
+          if (catL.includes('comercial') || catL.includes('corp')) finalCat = 'Comercial';
+          else if (catL.includes('pyme') || catL.includes('negocio')) finalCat = 'Pyme';
+          else if (catL.includes('hipo')) finalCat = 'Hipotecario';
+
+          let finalMem: 'Ninguna' | 'Básica' | 'Premium' = 'Ninguna';
+          const memL = rawMem.toLowerCase();
+          if (memL.includes('pre') || memL.includes('vip')) finalMem = 'Premium';
+          else if (memL.includes('bas')) finalMem = 'Básica';
+
+          imported.push({
+            id: rawId || `PM-${Math.floor(100000 + Math.random() * 900000)}`,
+            name: rawName,
+            rfc: rawRfc ? rawRfc.toUpperCase() : `XAXX010101${Math.floor(100 + Math.random() * 900)}`,
+            email: rawEmail || `${rawName.toLowerCase().replace(/[^a-z0-9]/g, '')}@financiero.mx`,
+            phone: rawPhone || `55-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9999)}`,
+            creditScore: parsedScore,
+            bureauStatus: finalStatus,
+            totalCreditGranted: parsedCredit,
+            balanceOwed: parsedOwed,
+            delinquencyDays: parsedDel,
+            category: finalCat,
+            membership: finalMem,
+            joinDate: rawJoin || new Date().toISOString().slice(0, 10),
+            isDuplicate: isDup
+          });
+        }
+
+        if (imported.length === 0) {
+          setImportError('No se hallaron expedientes legibles o estructurados en el archivo.');
+          return;
+        }
+
+        setImportStats({
+          total: imported.length,
+          valid: validCount,
+          dups: dupCount
+        });
+        setImportedClients(imported);
+        setShowImportReview(true);
+        setImportError(null);
+      } catch (err) {
+        console.error(err);
+        setImportError('Error fatal durante la decodificación del archivo CSV.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const executeCSVImport = () => {
+    if (!onImportClients) {
+      alert('La función de importación masiva no está inicializada.');
+      return;
+    }
+
+    const validOnly = importedClients.filter(c => !c.isDuplicate);
+    if (validOnly.length === 0) {
+      alert('Imposible finalizar importación: Ningún expediente es apto para adición debido a duplicidad de RFC/ID.');
+      return;
+    }
+
+    onImportClients(validOnly);
+    setImportSuccess(`Importación completada con éxito. Se añadieron ${validOnly.length} nuevos expedientes de clientes.`);
+    setShowImportReview(false);
+    setImportedClients([]);
+    
+    setTimeout(() => {
+      setImportSuccess(null);
+    }, 5000);
+  };
+
+  const downloadCSVTemplate = () => {
+    const headers = 'ID,Nombre,RFC,Email,Telefono,Score,Estatus Buro,Credito Otorgado,Saldo Insoluto,Dias Retraso,Categoria,Membresia\n';
+    const sampleRecord = 'PM-562091,"Armando Ruiz González",RUGA820512T83,armando.ruiz@ejemplo.mx,55-4921-3910,740,EXCELENTE,250000,45000,0,Pyme,Premium\n';
+    const sampleRecord2 = 'PM-912543,"Laura Esthela Rocha",ROSL941102HM4,laura.rocha@ejemplo.mx,55-1490-5821,630,REGULAR,30000,28500,12,Personal,Ninguna\n';
+    
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + sampleRecord + sampleRecord2);
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', 'plantilla_cartera_clientes.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const exportToCSV = () => {
     // Generate simple CSV content and mock download
     const headers = 'ID,Nombre,RFC,Email,Score,Estatus Buro,Credito Otorgado,Saldo Insoluto,Dias Retraso,Categoria\n';
@@ -118,7 +393,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
   return (
     <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden">
       {/* Title block */}
-      <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/40">
+      <div className="p-6 border-b border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-slate-950/40">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-indigo-400" />
@@ -127,24 +402,84 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
           <p className="text-xs text-slate-400">Expedientes consolidados, control de saldos y evaluación de riesgo comercial/personal.</p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-indigo-600 hover:bg-indigo-505 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-indigo-500/50"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-indigo-500/50 shrink-0"
           >
             <UserPlus className="w-4 h-4" />
             Nuevo Alta Cliente
           </button>
+
+          {/* Hidden File Input for CSV Import */}
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            ref={fileInputRef}
+            className="hidden"
+          />
+
+          <button
+            onClick={triggerFileInput}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-emerald-500/50 shrink-0"
+            title="Importar un archivo CSV con múltiples clientes a la vez"
+          >
+            <Upload className="w-4 h-4" />
+            Importar CSV
+          </button>
           
           <button
             onClick={exportToCSV}
-            className="border border-slate-750 hover:border-slate-605 bg-slate-800 hover:bg-slate-755 hover:bg-slate-700 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 cursor-pointer border border-slate-700"
+            className="border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 cursor-pointer shrink-0"
           >
             <FileText className="w-4 h-4 text-slate-400" />
             Exportar CSV
           </button>
         </div>
       </div>
+
+      {/* CSV IMPORT SUCCESS BANNER */}
+      {importSuccess && (
+        <div className="mx-6 mt-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3 text-left">
+          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-white uppercase font-mono">
+              Proceso de Importación Completado
+            </h4>
+            <p className="text-[11px] text-slate-300 leading-relaxed font-sans font-medium">
+              {importSuccess} Todos los registros se han incorporado con éxito a la base de datos de la cartera activa.
+            </p>
+          </div>
+          <button onClick={() => setImportSuccess(null)} className="ml-auto text-slate-400 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* CSV IMPORT ERROR BANNER */}
+      {importError && (
+        <div className="mx-6 mt-5 bg-rose-500/10 border border-rose-500/25 rounded-2xl p-4 flex items-start gap-3 text-left">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5 animate-bounce" />
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-white uppercase font-mono text-rose-400">
+              Error de Estructura de Importación
+            </h4>
+            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+              {importError} Asegúrate de utilizar los formatos correctos para tu documento.
+            </p>
+            <button
+              onClick={downloadCSVTemplate}
+              className="text-[10px] text-indigo-400 hover:text-indigo-350 underline font-mono font-bold block pt-1 cursor-pointer"
+            >
+              📥 Descargar Plantilla Oficial CSV (.csv)
+            </button>
+          </div>
+          <button onClick={() => setImportError(null)} className="ml-auto text-slate-450 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* GLOWING INDICATOR BANNER FOR THE PDF INJECTED CLIENTS */}
       <div className="mx-6 mt-5 bg-[#a3c90e]/10 border border-[#a3c90e]/30 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left">
@@ -642,6 +977,157 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
               >
                 Cerrar Expediente
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REVIEW DIALOG MODAL FOR CSV IMPORT */}
+      {showImportReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-4xl w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] text-left">
+            <div className="absolute -top-32 -left-32 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl animate-pulse-slow" />
+            
+            <div className="flex justify-between items-start border-b border-slate-800 pb-4 mb-5 shrink-0">
+              <div>
+                <h3 className="text-xs font-bold font-mono text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 mb-1 bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1 rounded-lg w-fit">
+                  <Upload className="w-3.5 h-3.5" /> Vista Previa de Importación Masiva
+                </h3>
+                <h4 className="text-xl font-bold text-white leading-tight">Análisis del Archivo de Clientes</h4>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowImportReview(false);
+                  setImportedClients([]);
+                }}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer border border-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Metrics and Warnings banner */}
+            <div className="grid grid-cols-3 gap-3 mb-4 shrink-0 font-mono">
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                <span className="text-[9px] text-slate-400 uppercase block tracking-wider font-semibold">Total Evaluados</span>
+                <span className="text-lg sm:text-2xl font-black text-white block mt-0.5">{importStats.total}</span>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                <span className="text-[9px] text-slate-455 text-slate-400 uppercase block tracking-wider font-semibold">Aptos (Nuevos)</span>
+                <span className="text-lg sm:text-2xl font-black text-emerald-400 block mt-0.5">{importStats.valid}</span>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-center">
+                <span className="text-[9px] text-slate-455 text-slate-400 uppercase block tracking-wider font-semibold">Duplicados</span>
+                <span className="text-lg sm:text-2xl font-black text-amber-500 block mt-0.5">{importStats.dups}</span>
+              </div>
+            </div>
+
+            {importStats.dups > 0 && (
+              <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] p-3 rounded-xl flex items-start gap-2.5 shrink-0 leading-normal font-sans">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Aviso de Conciliación Normativa:</strong> Se detectaron {importStats.dups} expedientes cuyos RFCs o IDs ya existen en la cartera de Harold. Para cumplir con las directrices de auditoría, el sistema omitirá estos duplicados e inyectará los {importStats.valid} registros nuevos de forma segura.
+                </div>
+              </div>
+            )}
+
+            {/* Table / List scrollable of parsed records */}
+            <div className="overflow-y-auto flex-1 border border-slate-800 rounded-2xl bg-slate-950 mb-5 max-h-[40vh]">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-900/60 text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider sticky top-0 z-10">
+                    <th className="py-2.5 px-4 bg-slate-950">ID / RFC</th>
+                    <th className="py-2.5 px-4 bg-slate-950">Nombre / Contacto</th>
+                    <th className="py-2.5 px-4 bg-slate-950">Segmento</th>
+                    <th className="py-2.5 px-4 bg-slate-950 text-center">Score</th>
+                    <th className="py-2.5 px-4 bg-slate-950 text-right">Crédito</th>
+                    <th className="py-2.5 px-4 bg-slate-950 text-right">Saldo</th>
+                    <th className="py-2.5 px-4 bg-slate-950 text-center font-bold">Estatus</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850 text-[11px]">
+                  {importedClients.map((c, index) => (
+                    <tr 
+                      key={index} 
+                      className={`hover:bg-slate-900/40 transition duration-105 ${
+                        c.isDuplicate ? 'opacity-40 bg-amber-500/[0.02]' : ''
+                      }`}
+                    >
+                      <td className="py-2.5 px-4 font-mono font-medium">
+                        <div className="text-white font-bold">{c.id}</div>
+                        <div className="text-[9px] text-slate-500 uppercase">{c.rfc}</div>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <div className="font-semibold text-slate-200">{c.name}</div>
+                        <div className="text-[9px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <span>{c.email}</span>
+                          <span>•</span>
+                          <span>{c.phone}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-semibold font-mono">{c.category}</span>
+                      </td>
+                      <td className="py-2.5 px-4 text-center font-mono font-bold text-slate-300">
+                        {c.creditScore}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono text-slate-305">
+                        {formatMXN(c.totalCreditGranted)}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono text-rose-350">
+                        {formatMXN(c.balanceOwed)}
+                      </td>
+                      <td className="py-2.5 px-4 text-center">
+                        {c.isDuplicate ? (
+                          <span className="bg-amber-500/15 text-amber-500 border border-amber-500/30 text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                            Duplicado
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                            Listo
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Actions for review */}
+            <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0 font-sans">
+              <button
+                type="button"
+                onClick={downloadCSVTemplate}
+                className="text-indigo-400 hover:text-indigo-350 text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                📥 Descargar Plantilla Guía (.csv)
+              </button>
+
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportReview(false);
+                    setImportedClients([]);
+                  }}
+                  className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer border border-slate-700 mr-2"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={executeCSVImport}
+                  disabled={importStats.valid === 0}
+                  className={`w-full sm:w-auto font-black text-xs px-6 py-2.5 rounded-xl transition cursor-pointer text-center text-slate-950 ${
+                    importStats.valid === 0
+                      ? 'bg-slate-850 text-slate-500 cursor-not-allowed border border-slate-750'
+                      : 'bg-emerald-400 hover:bg-emerald-350 shadow-lg shadow-emerald-500/10 font-bold'
+                  }`}
+                >
+                  Confirmar e Inyectar ({importStats.valid})
+                </button>
+              </div>
             </div>
           </div>
         </div>

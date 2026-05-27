@@ -278,6 +278,59 @@ export default function App() {
     setQueries(prev => [newQueryLog, ...prev]);
   };
 
+  // IMPORT BATCH OF CLIENTS FROM CSV
+  const handleImportClients = (newClients: Client[]) => {
+    setClients(prev => {
+      // Filter out duplicate clients by checking if ID or RFC already exists in prev
+      const existingIds = new Set(prev.map(c => c.id));
+      const existingRfcs = new Set(prev.map(c => c.rfc.toUpperCase()));
+      
+      const uniqueNewClients = newClients.map(c => {
+        // If the imported client does not have a proper ID starting with CLI- or PM-, generate one
+        let cleanId = c.id;
+        if (!cleanId || (!cleanId.startsWith('PM-') && !cleanId.startsWith('CLI-'))) {
+          cleanId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+        }
+        
+        // Ensure ID is unique
+        while (existingIds.has(cleanId)) {
+          cleanId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+        }
+        
+        existingIds.add(cleanId);
+        
+        return {
+          ...c,
+          id: cleanId,
+          rfc: c.rfc.toUpperCase(),
+          joinDate: c.joinDate || new Date().toISOString().slice(0, 10),
+          membership: c.membership || 'Ninguna'
+        };
+      }).filter(c => {
+        // Double check RFC uniqueness: don't double import existing RFCs
+        const rfcUpper = c.rfc.toUpperCase();
+        if (existingRfcs.has(rfcUpper)) {
+          return false;
+        }
+        existingRfcs.add(rfcUpper);
+        return true;
+      });
+
+      return [...uniqueNewClients, ...prev];
+    });
+
+    // Create a batch query log
+    const batchLog: BureauQueryLog = {
+      id: `Q-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: `Lote de ${newClients.length} Clientes`,
+      requestedBy: 'admin_harold',
+      scoreFound: 750,
+      resolution: `✓ IMPORTACIÓN MASIVA EXITOSA: Se añadieron ${newClients.length} expedientes de cartera de clientes unificados desde un archivo CSV.`
+    };
+    setQueries(prev => [batchLog, ...prev]);
+  };
+
   // ADD SIMULATED CREDIT REQUEST
   const handleAddRequest = (newReqData: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => {
     // Generate unique unified registration number representing the loan contract right from the start
@@ -1139,6 +1192,7 @@ export default function App() {
                   <ClientManagement 
                     clients={clients} 
                     onAddClient={handleAddClient} 
+                    onImportClients={handleImportClients}
                   />
                 )}
 
