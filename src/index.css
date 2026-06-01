@@ -40,3 +40,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #13677b;
 }
+
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-progress-infinite {
+  animation: progress 2.2s ease-in-out infinite;
+}
+

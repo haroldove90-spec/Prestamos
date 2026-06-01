@@ -231,7 +231,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             Registrar Abono y Evidencias de Pago
           </h2>
           <p className="text-xs text-slate-300 mt-1.5 leading-relaxed max-w-2xl">
-            Desde este portal, los clientes de <strong>Préstamos Marín</strong> pueden reportar un depósito bancario, transferencia o pago en efectivo. 
+            Desde este portal, los clientes de <strong>Salda App</strong> pueden reportar un depósito bancario, transferencia o pago en efectivo. 
             Es requisito cargar una fotografía legible o captura de pantalla como evidencia que el equipo administrativo validará en tiempo real.
           </p>
         </div>

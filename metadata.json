@@ -1,5 +1,5 @@
 {
-  "name": "Prestamos Marín",
+  "name": "Salda App",
   "description": "Consola de control y administración de cartera de clientes, buró interno de crédito y análisis de riesgo para el usuario admin_harold.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

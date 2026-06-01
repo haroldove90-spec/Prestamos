@@ -19,9 +19,83 @@ import {
   INITIAL_RISK_PARAMS,
   getBureauStatusByScore 
 } from './data';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2 } from 'lucide-react';
+import { 
+  verifyTablesExist,
+  fetchClientsCloud,
+  bulkInsertClientsCloud,
+  fetchRequestsCloud,
+  bulkInsertRequestsCloud,
+  fetchQueriesCloud,
+  bulkInsertQueriesCloud,
+  fetchRiskParamsCloud,
+  saveRiskParamsCloud,
+  fetchSecurityAlertsCloud,
+  bulkInsertSecurityAlertsCloud,
+  clearSecurityAlertsCloud,
+  fetchPaymentsCloud,
+  bulkInsertPaymentsCloud
+} from './supabase';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download } from 'lucide-react';
 
 export default function App() {
+  // PWA & Splash Screen States
+  const [showSplash, setShowSplash] = useState<boolean>(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
+  const [showIosInstruction, setShowIosInstruction] = useState<boolean>(false);
+
+  // Splash screen timing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Beforeinstallprompt & installer triggers
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsStandalone(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+      console.log('Salda App instalada exitosamente.');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`Resultado de instalación: ${outcome}`);
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIos) {
+        setShowIosInstruction(true);
+      } else {
+        alert('Para instalar Salda App en tu dispositivo móvil, puedes añadirla como aplicación de inicio rápido desde el menú de opciones de tu navegador o pulsar el botón de Instalación rápida en la barra lateral.');
+      }
+    }
+  };
+
   // State initialization with localStorage fallback
   const [clients, setClients] = useState<Client[]>(() => {
     const local = localStorage.getItem('buro_clients');
@@ -167,6 +241,138 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
   }, [clientPayments]);
+
+  // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
+  const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
+  const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
+
+  // Sincronización Inicial (Mount)
+  useEffect(() => {
+    async function initSupabaseSync() {
+      try {
+        setSupabaseStatus('LOADING');
+        
+        // 1. Verificar existencia de las tablas
+        const ok = await verifyTablesExist();
+        if (!ok) {
+          setSupabaseStatus('ERROR_NO_TABLES');
+          return;
+        }
+
+        setIsCloudSyncInProgress(true);
+
+        // 2. Sincronizar clientes
+        const cloudClients = await fetchClientsCloud();
+        if (cloudClients !== null) {
+          if (cloudClients.length === 0) {
+            await bulkInsertClientsCloud(clients);
+          } else {
+            setClients(cloudClients);
+          }
+        }
+
+        // 3. Sincronizar solicitudes de crédito
+        const cloudRequests = await fetchRequestsCloud();
+        if (cloudRequests !== null) {
+          if (cloudRequests.length === 0) {
+            await bulkInsertRequestsCloud(requests);
+          } else {
+            setRequests(cloudRequests);
+          }
+        }
+
+        // 4. Sincronizar consultas de buró
+        const cloudQueries = await fetchQueriesCloud();
+        if (cloudQueries !== null) {
+          if (cloudQueries.length === 0) {
+            await bulkInsertQueriesCloud(queries);
+          } else {
+            setQueries(cloudQueries);
+          }
+        }
+
+        // 5. Sincronizar parámetros de riesgo
+        const cloudParams = await fetchRiskParamsCloud();
+        if (cloudParams !== null) {
+          setRiskParams(cloudParams);
+        } else {
+          await saveRiskParamsCloud(riskParams);
+        }
+
+        // 6. Sincronizar alertas forenses de seguridad
+        const cloudAlerts = await fetchSecurityAlertsCloud();
+        if (cloudAlerts !== null) {
+          if (cloudAlerts.length === 0 && securityAlerts.length > 0) {
+            await bulkInsertSecurityAlertsCloud(securityAlerts);
+          } else {
+            setSecurityAlerts(cloudAlerts);
+          }
+        }
+
+        // 7. Sincronizar evidencias de abono/pagos
+        const cloudPayments = await fetchPaymentsCloud();
+        if (cloudPayments !== null) {
+          if (cloudPayments.length === 0) {
+            await bulkInsertPaymentsCloud(clientPayments);
+          } else {
+            setClientPayments(cloudPayments);
+          }
+        }
+
+        setSupabaseStatus('CONNECTED');
+      } catch (err: any) {
+        console.error('Supabase Setup error:', err);
+        setSupabaseStatus('OFFLINE');
+        setSyncErrorMessage(err?.message || 'Error de red / RLS');
+      } finally {
+        setIsCloudSyncInProgress(false);
+      }
+    }
+
+    initSupabaseSync();
+  }, []);
+
+  // Incremental sync effects
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED' && clients.length > 0) {
+      bulkInsertClientsCloud(clients);
+    }
+  }, [clients, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED' && requests.length > 0) {
+      bulkInsertRequestsCloud(requests);
+    }
+  }, [requests, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED' && queries.length > 0) {
+      bulkInsertQueriesCloud(queries);
+    }
+  }, [queries, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED') {
+      saveRiskParamsCloud(riskParams);
+    }
+  }, [riskParams, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED') {
+      if (securityAlerts.length === 0) {
+        clearSecurityAlertsCloud();
+      } else {
+        bulkInsertSecurityAlertsCloud(securityAlerts);
+      }
+    }
+  }, [securityAlerts, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED' && clientPayments.length > 0) {
+      bulkInsertPaymentsCloud(clientPayments);
+    }
+  }, [clientPayments, supabaseStatus]);
 
   // REGISTER CLIENT ACTIVE PAYMENT ACTIVITY
   const handleRegisterClientPayment = (newPayment: ClientPayment) => {
@@ -527,6 +733,83 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
+      {/* IMMERSIVE UNENCAPSULATED SPLASH SCREEN */}
+      {showSplash && (
+        <div 
+          onClick={() => setShowSplash(false)}
+          className="fixed inset-0 z-50 bg-[#051b21] flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer"
+          title="Toca en cualquier parte para ingresar de inmediato"
+        >
+          <div className="max-w-md w-full flex flex-col items-center gap-6" onClick={(e) => e.stopPropagation()}>
+            {/* Splash image - Unencapsulated to display completely */}
+            <img 
+              src="https://cossma.com.mx/saldaappsplash.png" 
+              alt="Salda App Splash" 
+              className="w-full max-h-[45vh] object-contain block" 
+              referrerPolicy="no-referrer"
+            />
+            
+            <div className="space-y-2 mt-2">
+              <h1 className="text-3xl font-black text-white tracking-widest uppercase font-sans">
+                Salda App
+              </h1>
+              <p className="text-xs font-mono text-[#a3c90e] uppercase tracking-wider font-bold">
+                Consola General de Cartera y Buró Seguro
+              </p>
+            </div>
+
+            {/* Glowing progress line */}
+            <div className="w-56 h-1 bg-slate-800 rounded-full overflow-hidden mt-4 relative">
+              <div className="absolute inset-y-0 w-full bg-gradient-to-r from-emerald-400 via-[#a3c90e] to-indigo-500 rounded-full animate-progress-infinite" />
+            </div>
+            
+            <p className="text-[10px] text-slate-400 font-mono tracking-wider mt-2 uppercase">
+              Estableciendo túnel cifrado CNBV • Harold Salazar_
+            </p>
+            <p className="text-[9px] text-slate-500 mt-2 font-sans opacity-75">
+              (Haz clic en cualquier lado para saltar inmediatamente)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* iOS INSTALLATION MANUAL MODAL */}
+      {showIosInstruction && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md text-left">
+          <div className="bg-slate-900 border border-slate-850 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
+              <Smartphone className="w-5 h-5 text-[#a3c90e]" /> ¡Instalar en tu iPhone!
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed mb-5">
+              Para tener acceso instantáneo en tu iPhone o iPad sin barra de navegación del explorador:
+            </p>
+            <ol className="space-y-3.5 text-xs text-slate-400 font-medium">
+              <li className="flex items-start gap-2.5">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] font-mono font-bold text-[10px] shrink-0 mt-0.5">1</span>
+                <span>Pulsa el botón de <strong>Compartir</strong> (un cuadrado con flecha hacia arriba) en la parte inferior de Safari.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] font-mono font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                <span>Desplázate y selecciona <strong>Añadir a la pantalla de inicio</strong>.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] font-mono font-bold text-[10px] shrink-0 mt-0.5">3</span>
+                <span>Nombra la app como <strong className="text-white">Salda App</strong> y presiona <strong>Añadir</strong> en la esquina superior derecha.</span>
+              </li>
+            </ol>
+            <div className="mt-6">
+              <button
+                onClick={() => setShowIosInstruction(false)}
+                className="w-full bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-extrabold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Header */}
       <AdminHeader 
         currentUser={currentUser} 
@@ -593,18 +876,46 @@ export default function App() {
               
               {/* Drawer layout container sliding in from left */}
               <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-slate-900 border-r border-slate-800 p-5 shadow-2xl flex flex-col gap-4 overflow-y-auto text-left z-55">
-                <div className="flex justify-between items-center pb-3.5 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                    <span className="font-bold text-white text-xs font-mono tracking-wide uppercase">Menú de Navegación</span>
+                <div className="flex flex-col gap-3 pb-3.5 border-b border-slate-800 animate-fadeIn bg-slate-900">
+                  <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src="https://cossma.com.mx/saldaapplogo.png" 
+                        alt="Salda App Logo"
+                        className="h-7 w-auto object-contain block"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
+                      title="Cerrar menú"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setIsMobileSidebarOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
-                    title="Cerrar menú"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+
+                  {/* Compact Mobile Cloud Status Indicator */}
+                  <div className="flex items-center gap-2 px-1 py-1 rounded bg-slate-950/50 justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        supabaseStatus === 'CONNECTED' ? 'bg-[#a3c90e] animate-pulse' :
+                        supabaseStatus === 'LOADING' ? 'bg-amber-400 animate-ping' :
+                        supabaseStatus === 'ERROR_NO_TABLES' ? 'bg-orange-500' : 'bg-slate-600'
+                      }`} />
+                      <span className="text-[9px] font-mono font-bold uppercase text-slate-400">
+                        {supabaseStatus === 'CONNECTED' ? 'NUBE ACTIVA' :
+                         supabaseStatus === 'LOADING' ? 'CARGANDO...' :
+                         supabaseStatus === 'ERROR_NO_TABLES' ? 'TABLAS EXTRAVIADAS' : 'NUBE OFFLINE'}
+                      </span>
+                    </div>
+                    {supabaseStatus === 'ERROR_NO_TABLES' && (
+                      <span className="text-[8px] font-sans text-orange-400 font-bold">Requiere SQL</span>
+                    )}
+                    {supabaseStatus === 'CONNECTED' && (
+                      <span className="text-[8px] font-mono text-[#a3c90e] font-bold">OK</span>
+                    )}
+                  </div>
                 </div>
 
                 <nav className="space-y-2">
@@ -851,6 +1162,31 @@ export default function App() {
                   )}
                 </nav>
 
+                {/* PWA INSTALLATION WIDGET (MOBILE DRAWER) */}
+                <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left space-y-2 mt-2">
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src="https://cossma.com.mx/saldaappicono.png" 
+                      alt="Salda App" 
+                      className="w-5 h-5 rounded-lg object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="text-[9px] font-mono font-bold text-emerald-400 block uppercase tracking-wider">
+                      Aplicación Móvil
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
+                    Lleva la Consola de Riesgo y Cartera de Salda App instalada nativamente en tu smartphone.
+                  </p>
+                  <button
+                    onClick={handleInstallApp}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-slate-950 hover:text-white rounded-xl text-[10px] font-black tracking-tight uppercase transition cursor-pointer flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10 active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5 shrink-0" />
+                    Instalar Salda App
+                  </button>
+                </div>
+
                 <div className="mt-auto p-4 bg-slate-950 border border-slate-850 rounded-2xl text-[10px] text-slate-500 font-mono tracking-tight text-center">
                   Consola Buró Seguro • v1.2.0
                 </div>
@@ -860,6 +1196,52 @@ export default function App() {
 
           {/* DESKTOP NAVIGATION SIDEBAR (MODULES SELECTOR - PERMANENT ON THE LEFT) */}
           <nav className="hidden lg:block lg:col-span-3 space-y-2" id="desktop-sidebar-nav">
+            {/* UNENCAPSULATED DESKTOP BRAND LOGO & SUPABASE SYNC STATUS */}
+            <div className="p-4 mb-3 bg-slate-900/40 rounded-3xl border border-slate-800/80 flex flex-col items-center justify-center gap-3 animate-fadeIn">
+              <img 
+                src="https://cossma.com.mx/saldaapplogo.png" 
+                alt="Salda App Logo" 
+                className="h-10 w-auto object-contain block" 
+                referrerPolicy="no-referrer"
+              />
+              
+              {/* Supabase Dynamic Cloud Sync Indicator */}
+              <div className="w-full pt-2.5 border-t border-slate-800/60 flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${
+                    supabaseStatus === 'CONNECTED' ? 'bg-[#a3c90e] animate-pulse' :
+                    supabaseStatus === 'LOADING' ? 'bg-amber-400 animate-ping' :
+                    supabaseStatus === 'ERROR_NO_TABLES' ? 'bg-orange-500' : 'bg-slate-600'
+                  }`} />
+                  <span className="text-[10px] font-mono font-bold tracking-tight uppercase text-slate-300">
+                    {supabaseStatus === 'CONNECTED' ? 'Nube Supabase' :
+                     supabaseStatus === 'LOADING' ? 'Conectando...' :
+                     supabaseStatus === 'ERROR_NO_TABLES' ? 'Tablas Faltantes' : 'Nube Offline'}
+                  </span>
+                </div>
+                
+                {supabaseStatus === 'CONNECTED' && (
+                  <p className="text-[8px] text-[#a3c90e] font-mono text-center leading-none uppercase font-black tracking-wider">
+                    ¡Conexión Activa!
+                  </p>
+                )}
+                {supabaseStatus === 'LOADING' && (
+                  <p className="text-[8px] text-amber-400 font-mono text-center leading-none">
+                    Comprobando estado...
+                  </p>
+                )}
+                {supabaseStatus === 'ERROR_NO_TABLES' && (
+                  <p className="text-[8px] text-orange-400 font-sans text-center leading-normal">
+                    Falta ejecutar el script <strong className="text-white font-mono bg-slate-950 px-1 py-0.5 rounded">supabase-schema.sql</strong> para activar la base de datos remota.
+                  </p>
+                )}
+                {supabaseStatus === 'OFFLINE' && (
+                  <p className="text-[8px] text-slate-500 font-mono text-center leading-none">
+                    Modo Local Seguro (Offline)
+                  </p>
+                )}
+              </div>
+            </div>
             <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
               Módulos Disponibles
             </span>
@@ -1110,6 +1492,32 @@ export default function App() {
               <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
                 El motor evalúa automáticamente las propuestas de crédito contra el score buró mínimo histórico y los días tolerados de mora.
               </p>
+            </div>
+
+            {/* PWA INSTALLATION WIDGET (DESKTOP SIDEBAR) */}
+            <div className="p-5 bg-slate-900 border border-slate-800 rounded-3xl mt-4 hidden lg:block shadow-md relative overflow-hidden text-left">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#a3c90e]/5 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-2 mb-2">
+                <img 
+                  src="https://cossma.com.mx/saldaappicono.png" 
+                  alt="Icono Salda App" 
+                  className="w-5 h-5 rounded-lg object-contain"
+                  referrerPolicy="no-referrer"
+                />
+                <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-wider block">
+                  Instalación Rápida
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed mb-3">
+                Agrega Salda App a tu pantalla de inicio para disfrutar de accesibilidad inmediata de grado nativo.
+              </p>
+              <button
+                onClick={handleInstallApp}
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-emerald-500 via-[#a3c90e] to-indigo-650 text-slate-950 font-black tracking-tight uppercase hover:text-white rounded-xl text-[10px] transition cursor-pointer shadow-md shadow-[#a3c90e]/10 active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5 shrink-0" />
+                Instalar Salda App
+              </button>
             </div>
           </nav>
 

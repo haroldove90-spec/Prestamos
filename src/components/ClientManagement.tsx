@@ -488,7 +488,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onA
             <span className="bg-[#a3c90e] text-slate-950 font-mono text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
               ✨ PDF DETECTADO E INYECTADO
             </span>
-            <span className="text-[10px] font-mono text-[#a3c90e] font-bold">Despacho Legal Martínez</span>
+            <span className="text-[10px] font-mono text-[#a3c90e] font-bold">Consola Salda App</span>
           </div>
           <h4 className="text-xs font-bold text-white uppercase font-mono">
             Se registraron con éxito 15 nuevos clientes de muestra extraídos del PDF

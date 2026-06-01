@@ -1,0 +1,22 @@
+{
+  "short_name": "Salda App",
+  "name": "Salda App",
+  "description": "Consola de control y administración de cartera de clientes, buró interno de crédito y análisis de riesgo.",
+  "icons": [
+    {
+      "src": "https://cossma.com.mx/saldaappicono.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cossma.com.mx/saldaappicono.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}

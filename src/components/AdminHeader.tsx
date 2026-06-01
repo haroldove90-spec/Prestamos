@@ -35,22 +35,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
             </button>
           )}
 
-          {/* Icon Badge */}
-          <div className="hidden sm:flex p-1.5 rounded-xl bg-white/15 text-white border border-white/10 shrink-0">
-            <ShieldCheck className="w-4.5 h-4.5" />
-          </div>
-
-          {/* Titles */}
-          <div className="text-left leading-none md:leading-tight">
-            <h1 className="text-xs sm:text-base md:text-lg font-extrabold tracking-tight text-white flex items-center gap-1 sm:gap-1.5 font-sans">
-              Prestamos Marín
-              <span className="text-[8px] sm:text-[9px] font-bold font-mono px-1 sm:px-1.5 py-0 rounded-full bg-slate-950/40 text-white uppercase border border-white/10 shrink-0">
-                {currentUser === 'admin_harold' ? 'SD' : currentUser === 'asesor_juan' ? 'VIP' : currentUser === 'cajera_lucia' ? 'CAJA' : 'CLIENTE'}
-              </span>
-            </h1>
-            <p className="hidden md:block text-[11px] text-white/85 font-mono tracking-tight">
-              Consola Administrativa de Riesgo y Cartera
-            </p>
+          {/* Logo / Brand container - Unencapsulated to display completely */}
+          <div className="flex items-center gap-2">
+            <img 
+              src="https://cossma.com.mx/saldaapplogo.png" 
+              alt="Salda App" 
+              className="h-8 md:h-10 w-auto object-contain block" 
+              referrerPolicy="no-referrer"
+            />
+            <span className="text-[8px] sm:text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-full bg-slate-950/40 text-white uppercase border border-white/10 shrink-0">
+              {currentUser === 'admin_harold' ? 'SD' : currentUser === 'asesor_juan' ? 'VIP' : currentUser === 'cajera_lucia' ? 'CAJA' : 'CLIENTE'}
+            </span>
           </div>
         </div>
 
