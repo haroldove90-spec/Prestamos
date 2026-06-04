@@ -37,9 +37,12 @@ import {
   bulkInsertPaymentsCloud,
   fetchDossiersCloud,
   saveDossierCloud,
-  bulkInsertDossiersCloud
+  bulkInsertDossiersCloud,
+  fetchSystemNotificationsCloud,
+  bulkInsertSystemNotificationsCloud,
+  DbSystemNotification
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX } from 'lucide-react';
 
 export default function App() {
   // PWA & Splash Screen States
@@ -224,6 +227,184 @@ export default function App() {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
+  // ---------------------------------------------------------
+  // NOTIFICATIONS & PROGRAMMATIC AUDIO SYNTHESIZER
+  // ---------------------------------------------------------
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('buro_sound_enabled') !== 'false';
+  });
+
+  const [systemNotifications, setSystemNotifications] = useState<any[]>(() => {
+    const local = localStorage.getItem('buro_notifications');
+    if (local) {
+      try { return JSON.parse(local); } catch(e) { console.error(e); }
+    }
+    return [
+      {
+        id: 'NOT-001',
+        title: '📥 Ficha de Pago Entrante',
+        message: 'Melvin Zauriel Pérez reportó evidencia de abono por $1,250 MXN.',
+        type: 'info',
+        targetRoles: 'admin_harold,cajera_lucia,asesor_juan',
+        timestamp: new Date().toISOString(),
+        readBy: '',
+        soundPlayed: true
+      },
+      {
+        id: 'NOT-002',
+        title: '📝 Expediente en Revisión',
+        message: 'Esperanza Escobedo Guzman cargó documentos para su línea de crédito EXP-8801 por $25,000.',
+        type: 'warning',
+        targetRoles: 'admin_harold,asesor_juan',
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        readBy: '',
+        soundPlayed: true
+      }
+    ];
+  });
+
+  // Active floating alert overlay modal for real-time notifications
+  const [activePopupAlert, setActivePopupAlert] = useState<{
+    id: string;
+    title: string;
+    message: string;
+    soundType: 'success' | 'warning' | 'alert' | 'submit';
+    type: 'success' | 'warning' | 'info';
+    actionText?: string;
+    actionTab?: string;
+  } | null>(null);
+
+  const [isNotificationTrayOpen, setIsNotificationTrayOpen] = useState<boolean>(false);
+
+  // Synthesize custom wave audio chimes programmatically without download lag
+  const playSynthesizedSound = (type: 'success' | 'warning' | 'alert' | 'submit') => {
+    if (!isSoundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      if (type === 'success') {
+        // High-glowing positive chime arpeggio
+        const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+        frequencies.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+          gainNode.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.08);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.35);
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          osc.start(ctx.currentTime + idx * 0.08);
+          osc.stop(ctx.currentTime + idx * 0.08 + 0.40);
+        });
+      } else if (type === 'warning') {
+        // Low double buzz for rejections / failures
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(145, ctx.currentTime);
+        osc2.frequency.setValueAtTime(142, ctx.currentTime); // detuned buzz
+        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc1.start();
+        osc2.start();
+        osc1.stop(ctx.currentTime + 0.5);
+        osc2.stop(ctx.currentTime + 0.5);
+      } else if (type === 'submit') {
+        // Upward frequency swipe for uploads
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.35);
+        gainNode.gain.setValueAtTime(0.12, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } else {
+        // Crisp high bell ding
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      }
+    } catch (e) {
+      console.warn("Audio Context audio playback blocked or not allowed yet:", e);
+    }
+  };
+
+  const addNotificationAndPopup = (
+    title: string,
+    message: string,
+    type: 'success' | 'warning' | 'info',
+    soundType: 'success' | 'warning' | 'alert' | 'submit',
+    rolesCsv: string,
+    showPopupForCurrentUser: boolean,
+    actionButton?: { text: string; tab: string }
+  ) => {
+    const freshId = 'NOT-' + Math.floor(1005 + Math.random() * 8990);
+    const newNotif = {
+      id: freshId,
+      title,
+      message,
+      type,
+      targetRoles: rolesCsv,
+      timestamp: new Date().toISOString(),
+      readBy: '',
+      soundPlayed: true
+    };
+
+    setSystemNotifications(prev => [newNotif, ...prev]);
+
+    // Show popup overlay modal immediately for matching roles
+    if (showPopupForCurrentUser) {
+      setActivePopupAlert({
+        id: freshId,
+        title,
+        message,
+        soundType,
+        type,
+        actionText: actionButton?.text,
+        actionTab: actionButton?.tab
+      });
+    }
+
+    playSynthesizedSound(soundType);
+  };
+
+  const toggleSoundSettings = () => {
+    setIsSoundEnabled(prev => {
+      const newVal = !prev;
+      localStorage.setItem('buro_sound_enabled', String(newVal));
+      return newVal;
+    });
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    setSystemNotifications(prev => prev.map(n => {
+      const readArray = n.readBy ? n.readBy.split(',').filter(Boolean) : [];
+      if (!readArray.includes(currentUser)) {
+        readArray.push(currentUser);
+      }
+      return { ...n, readBy: readArray.join(',') };
+    }));
+  };
+
   // Automatically close sidebar when tab changes
   useEffect(() => {
     setIsMobileSidebarOpen(false);
@@ -272,14 +453,31 @@ export default function App() {
     localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
   }, [clientPayments]);
 
-  useEffect(() => {
-    localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
-  }, [dossiers]);
-
   // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
   const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
   const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
   const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
+
+  useEffect(() => {
+    localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
+  }, [dossiers]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_notifications', JSON.stringify(systemNotifications));
+    if (supabaseStatus === 'CONNECTED' && systemNotifications.length > 0) {
+      const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        targetRoles: n.targetRoles || '',
+        timestamp: n.timestamp,
+        readBy: n.readBy || '',
+        soundPlayed: n.soundPlayed ?? true
+      }));
+      bulkInsertSystemNotificationsCloud(dbNotifs);
+    }
+  }, [systemNotifications, supabaseStatus]);
 
   // Sincronización Inicial (Mount)
   useEffect(() => {
@@ -364,6 +562,37 @@ export default function App() {
           }
         }
 
+        // 9. Sincronizar notificaciones en tiempo real
+        const cloudNotifications = await fetchSystemNotificationsCloud();
+        if (cloudNotifications !== null) {
+          if (cloudNotifications.length === 0) {
+            const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: n.type,
+              targetRoles: n.targetRoles || '',
+              timestamp: n.timestamp,
+              readBy: n.readBy || '',
+              soundPlayed: n.soundPlayed ?? true
+            }));
+            await bulkInsertSystemNotificationsCloud(dbNotifs);
+          } else {
+            // Remap database string format back to react state schema
+            const decodedNotifs = cloudNotifications.map(n => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: n.type,
+              targetRoles: n.targetRoles,
+              timestamp: n.timestamp,
+              readBy: n.readBy,
+              soundPlayed: n.soundPlayed
+            }));
+            setSystemNotifications(decodedNotifs);
+          }
+        }
+
         setSupabaseStatus('CONNECTED');
       } catch (err: any) {
         console.error('Supabase Setup error:', err);
@@ -438,6 +667,20 @@ export default function App() {
       resolution: `📥 REGISTRO ABONO: El acreditado reportó un abono de $${newPayment.amount.toLocaleString('es-MX')} MXN (Folio: ${newPayment.id}). En espera de validación administrativa.`
     };
     setQueries(prev => [newLog, ...prev]);
+
+    // Dispatch system notifications and matching popup modals
+    const isClient = currentUser === 'cliente_esperanza';
+    addNotificationAndPopup(
+      isClient ? `📝 Comprobante Enviado Correctamente` : `💸 Comprobante Recibido (Folio: ${newPayment.id})`,
+      isClient 
+        ? `Tus documentos de abono por $${newPayment.amount.toLocaleString('es-MX')} MXN fueron enviados correctamente a recepción. Por favor, espera tu autorización.`
+        : `El acreditado ${newPayment.clientName} ha reportado una ficha de abono por $${newPayment.amount.toLocaleString('es-MX')} MXN (ID: ${newPayment.id}) para validar administrativamente.`,
+      'info',
+      'alert',
+      'admin_harold,cajera_lucia,asesor_juan,cliente_esperanza',
+      true, // Show modal popup immediately to the submitter / receiver
+      isClient ? undefined : { text: 'Validar en Caja', tab: 'cajera_dashboard' }
+    );
   };
 
   // VERIFY/APPROVE/REJECT RECEIVED EVIDENCE IMAGES MANUALLY
@@ -483,6 +726,17 @@ export default function App() {
         resolution: `✓ COMPROBANTE APROBADO: Abono de $${payment.amount.toLocaleString('es-MX')} aplicado al saldo del expediente ${payment.clientId} por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'}.`
       };
       setQueries(prev => [auditLog, ...prev]);
+
+      // Notify globally with nice success chime chord
+      addNotificationAndPopup(
+        `🎉 ¡Abono Liquidado y Validado!`,
+        `El pago por $${payment.amount.toLocaleString('es-MX')} MXN de ${payment.clientName} (Folio: ${payment.id}) ha sido verificado con éxito y restado del saldo insoluto de inmediato.`,
+        'success',
+        'success',
+        'admin_harold,cajera_lucia,asesor_juan,cliente_esperanza',
+        true,
+        { text: 'Ir a mi Portal', tab: 'client_portal' }
+      );
     } else {
       // Cancelled log
       const auditLog: BureauQueryLog = {
@@ -494,6 +748,17 @@ export default function App() {
         resolution: `🚫 COMPROBANTE MARCADO COMO RECHAZADO: Ficha de abono ${paymentId} cancelada por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'} (Comprobante inválido o ilegible).`
       };
       setQueries(prev => [auditLog, ...prev]);
+
+      // Notify rejection globally with dissonant buzz
+      addNotificationAndPopup(
+        `⚠️ Comprobante Declinado por Cajera`,
+        `El comprobante adjunto por $${payment.amount.toLocaleString('es-MX')} MXN para ${payment.clientName} fue rechazado por invalidez, duplicidad o ilegibilidad del ticket de depósito.`,
+        'warning',
+        'warning',
+        'admin_harold,cajera_lucia,asesor_juan,cliente_esperanza',
+        true,
+        { text: 'Verificar Estatus', tab: 'client_portal' }
+      );
     }
   };
 
@@ -511,10 +776,43 @@ export default function App() {
       resolution: `📥 SOLICITUD DE EXPEDIENTE: ${newDossier.id} de $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN ingresada en fase de COTEJO. En espera de verificación de documentos.`
     };
     setQueries(prev => [newLog, ...prev]);
+
+    // Push notifications with popup sound confirming submission successfully
+    const isClient = currentUser === 'cliente_esperanza';
+    addNotificationAndPopup(
+      isClient ? `📄 Documentos Enviados Correctamente` : `🚨 Nueva Solicitud de Crédito (${newDossier.id})`,
+      isClient
+        ? `Tus documentos e identificaciones han sido enviados correctamente. Tu expediente por $${newDossier.requestedAmount.toLocaleString('es-MX')} está siendo analizado por el comité de crédito.`
+        : `El cliente ${newDossier.clientName} ha enviado identificaciones y comprobantes para solicitar una línea de crédito de $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN.`,
+      'info',
+      'submit',
+      'admin_harold,asesor_juan,cliente_esperanza',
+      true, // Show popup for either client or committee instantly
+      isClient ? undefined : { text: 'Cotejar en Expedientes', tab: 'bureau' }
+    );
   };
 
   const handleUpdateDossier = (dossierId: string, updates: Partial<ClientDossier>) => {
-    setDossiers(prev => prev.map(d => d.id === dossierId ? { ...d, ...updates } : d));
+    setDossiers(prev => prev.map(d => {
+      if (d.id === dossierId) {
+        const updatedDossier = { ...d, ...updates };
+
+        // Real-time notify if dossier has been declined
+        if (updates.status === 'RECHAZADO') {
+          addNotificationAndPopup(
+            `🚫 Expediente Declinado por el Admin`,
+            `El expediente ${d.id} de ${d.clientName} por $${d.requestedAmount.toLocaleString('es-MX')} fue rechazado tras el cotejo documental por inconsistencia en comprobantes.`,
+            'warning',
+            'warning',
+            'admin_harold,asesor_juan,cliente_esperanza',
+            true,
+            { text: 'Ver Expediente', tab: 'client_portal' }
+          );
+        }
+        return updatedDossier;
+      }
+      return d;
+    }));
   };
 
   const handleApproveDossier = (dossier: ClientDossier) => {
@@ -604,6 +902,17 @@ export default function App() {
       notes: `El usuario ${isLocalUser} autorizó y desembolsó exitosamente $${dossier.requestedAmount.toLocaleString('es-MX')} del expediente unificado ${dossier.id}.`
     };
     setSecurityAlerts(prev => [alertItem, ...prev]);
+
+    // Dispatch real-time authorized loan notification with positive chiming sounds
+    addNotificationAndPopup(
+      `🌟 ¡PRÉSTAMO AUTORIZADO! ($${dossier.requestedAmount.toLocaleString('es-MX')})`,
+      `Buenas noticias: El expediente ${dossier.id} de ${dossier.clientName} fue autorizado y activado en el sistema por el comité central. ¡Habilitado comercialmente!`,
+      'success',
+      'success',
+      'admin_harold,asesor_juan,cajera_lucia,cliente_esperanza',
+      true, // Show modal popup immediately
+      { text: 'Ver Portal de Crédito', tab: 'client_portal' }
+    );
   };
 
   // RESET DATABASE ACTION
@@ -890,6 +1199,13 @@ export default function App() {
     setIsAsesorSuspended(false);
   };
 
+  // Compute unread notifications count for the active logged-in user
+  const unreadCount = systemNotifications.filter(n => {
+    const roles = n.targetRoles ? n.targetRoles.split(',').map((r: string) => r.trim()) : [];
+    const readUsers = n.readBy ? n.readBy.split(',').map((u: string) => u.trim()) : [];
+    return roles.includes(currentUser) && !readUsers.includes(currentUser);
+  }).length;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
       {/* IMMERSIVE UNENCAPSULATED SPLASH SCREEN */}
@@ -975,6 +1291,10 @@ export default function App() {
         onUserChange={handleUserChange} 
         onResetData={handleResetData} 
         onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+        unreadNotificationsCount={unreadCount}
+        onOpenNotifications={() => setIsNotificationTrayOpen(true)}
+        isSoundEnabled={isSoundEnabled}
+        onToggleSound={toggleSoundSettings}
       />
 
       {/* Main Layout Container */}
@@ -1913,6 +2233,221 @@ export default function App() {
 
         </div>
       </div>
+
+      {/* --------------------------------------------------------- */}
+      {/* VENTANA EMERGENTE DE NOTIFICACIÓN EN TIEMPO REAL (POPUP MODAL) */}
+      {/* --------------------------------------------------------- */}
+      {activePopupAlert && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" id="notification-popup-modal">
+          <div className="bg-slate-900 border-2 border-[#a3c90e]/40 rounded-3xl p-6 max-w-sm sm:max-w-md w-full shadow-2xl relative overflow-hidden transform scale-105 transition-all duration-300">
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#a3c90e]/10 rounded-full blur-3xl -z-10" />
+            
+            <div className="flex flex-col items-center text-center gap-4">
+              {/* Header Icon Indicator */}
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${
+                activePopupAlert.type === 'success' 
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                  : activePopupAlert.type === 'warning' 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+              }`}>
+                {activePopupAlert.type === 'success' ? (
+                  <CheckCircle2 className="w-8 h-8" />
+                ) : activePopupAlert.type === 'warning' ? (
+                  <AlertCircle className="w-8 h-8 animate-pulse" />
+                ) : (
+                  <Bell className="w-8 h-8" />
+                )}
+              </div>
+
+              {/* Title & Body */}
+              <h3 className="text-lg font-bold text-white tracking-tight leading-snug">{activePopupAlert.title}</h3>
+              <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">{activePopupAlert.message}</p>
+              
+              {/* Indicator status notice */}
+              <div className="mt-1 bg-slate-950/40 border border-white/5 py-1.5 px-3 rounded-xl text-[9px] font-mono text-slate-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#a3c90e] animate-ping"></span>
+                <span>Expediente digital verificado en base de datos cloud</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full mt-3">
+                {activePopupAlert.actionText && activePopupAlert.actionTab && (
+                  <button
+                    onClick={() => {
+                      setActiveTab(activePopupAlert.actionTab);
+                      setActivePopupAlert(null);
+                    }}
+                    className="flex-1 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-extrabold py-2 px-3 rounded-xl transition cursor-pointer text-xs"
+                  >
+                    {activePopupAlert.actionText}
+                  </button>
+                )}
+                <button
+                  onClick={() => setActivePopupAlert(null)}
+                  className="flex-1 bg-white/10 hover:bg-white/15 text-white font-semibold py-2 px-3 rounded-xl transition cursor-pointer text-xs border border-white/5"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --------------------------------------------------------- */}
+      {/* DESPLEGABLE DESLIZABLE (DRAWER TRAY) DE HISTORIAL DE NOTIFICACIONES */}
+      {/* --------------------------------------------------------- */}
+      {isNotificationTrayOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end" id="notification-tray-backdrop">
+          {/* Backdrop dismiss */}
+          <div 
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setIsNotificationTrayOpen(false)}
+          />
+          
+          {/* Drawer Body panel */}
+          <div className="relative w-full max-w-sm sm:max-w-md bg-slate-900 border-l border-white/10 h-full flex flex-col shadow-2xl z-10 animate-slide-in">
+            {/* Drawer Header */}
+            <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#a3c90e]/10 text-[#a3c90e]">
+                  <Bell className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Bitácora de Eventos</h2>
+                  <p className="text-[10px] text-slate-400 font-mono">Movimientos de cartera en tiempo real</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsNotificationTrayOpen(false)}
+                className="p-1 px-1.5 rounded-lg hover:bg-white/10 transition text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick config settings inside Drawer (Sound toggle & clear) */}
+            <div className="p-3 bg-slate-950/20 border-b border-white/5 flex items-center justify-between gap-2 text-xs">
+              <button
+                onClick={toggleSoundSettings}
+                className="flex items-center gap-1.5 text-slate-350 hover:text-white transition bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5 cursor-pointer"
+              >
+                {isSoundEnabled ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                    <span className="font-mono text-[9px]">Chimes: SÍ</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="font-mono text-[9px]">Chimes: NO</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleMarkAllNotificationsAsRead}
+                className="text-[10px] sm:text-xs font-semibold text-[#a3c90e] hover:text-[#b8e014] transition bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5 cursor-pointer"
+              >
+                Marcar todas leídas
+              </button>
+            </div>
+
+            {/* Scrollable Notifications list */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 font-sans">
+              {systemNotifications.length === 0 ? (
+                <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                    <Bell className="w-6 h-6 opacity-30" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-400">Sin notificaciones nuevas</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Los movimientos se reflejarán de inmediato.</p>
+                  </div>
+                </div>
+              ) : (
+                systemNotifications.map((notif) => {
+                  const rolesList = notif.targetRoles ? notif.targetRoles.split(',').map((r: string) => r.trim()) : [];
+                  const readList = notif.readBy ? notif.readBy.split(',').map((u: string) => u.trim()) : [];
+                  
+                  const isTargetForUser = rolesList.includes(currentUser);
+                  const isUnread = isTargetForUser && !readList.includes(currentUser);
+                  
+                  // Handle manual mark single item as read
+                  const handleMarkAsRead = () => {
+                    if (isUnread) {
+                      setSystemNotifications(prev => prev.map(n => {
+                        if (n.id === notif.id) {
+                          const rList = n.readBy ? n.readBy.split(',').filter(Boolean) : [];
+                          if (!rList.includes(currentUser)) rList.push(currentUser);
+                          return { ...n, readBy: rList.join(',') };
+                        }
+                        return n;
+                      }));
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={handleMarkAsRead}
+                      className={`p-3 rounded-2xl border transition-all duration-250 relative group flex gap-3 cursor-pointer ${
+                        isUnread 
+                          ? 'bg-slate-800 border-white/20 shadow-md' 
+                          : 'bg-slate-950/35 border-white/5 opacity-60 hover:opacity-100 hover:border-white/10'
+                      }`}
+                    >
+                      {/* Active glowing green dot if unread */}
+                      {isUnread && (
+                        <span className="absolute top-3.5 right-3.5 h-1.5 w-1.5 rounded-full bg-[#a3c90e] animate-ping" />
+                      )}
+
+                      {/* Notif Badge indicator color icon */}
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${
+                        notif.type === 'success' 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10' 
+                          : notif.type === 'warning' 
+                          ? 'bg-red-500/10 text-red-400 border-red-500/10' 
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/10'
+                      }`}>
+                        {notif.type === 'success' ? (
+                          <CheckCircle2 className="w-4 h-4 animate-bounce" />
+                        ) : notif.type === 'warning' ? (
+                          <AlertCircle className="w-4 h-4 animate-pulse" />
+                        ) : (
+                          <FileText className="w-4 h-4" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-bold text-white leading-tight block truncate pr-3">{notif.title}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-350 leading-relaxed mt-1 font-sans break-words">{notif.message}</p>
+                        
+                        <div className="flex items-center gap-2 mt-2 text-[8px] font-mono text-slate-400">
+                          <span>{notif.id}</span>
+                          <span>•</span>
+                          <span>{new Date(notif.timestamp).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Bottom active roles guide lines */}
+            <div className="p-4 bg-slate-950/40 border-t border-white/10 text-[9px] font-mono text-slate-300 flex flex-col gap-1">
+              <span>Filtro de Seguridad: <strong className="text-[#a3c90e] font-bold">Activo</strong></span>
+              <span>Visualizando alertas para: <strong className="text-white font-semibold">{currentUser === 'admin_harold' ? 'Harold Salazar (Super Admin)' : currentUser === 'asesor_juan' ? 'Juan Orozco (Asesor VIP)' : currentUser === 'cajera_lucia' ? 'Lucía Lara (Cajera Express)' : 'Portal del Cliente'}</strong></span>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

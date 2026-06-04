@@ -307,3 +307,46 @@ export async function bulkInsertDossiersCloud(dossiers: ClientDossier[]): Promis
   }
 }
 
+// SYSTEM NOTIFICATIONS
+export interface DbSystemNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  targetRoles: string;
+  timestamp: string;
+  readBy: string;
+  soundPlayed: boolean;
+}
+
+export async function fetchSystemNotificationsCloud(): Promise<DbSystemNotification[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('system_notifications')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    if (error) {
+      console.warn('Error fetching notifications from Supabase:', error);
+      return null;
+    }
+    return data as DbSystemNotification[];
+  } catch (err) {
+    console.error('Supabase fetchSystemNotifications exception:', err);
+    return null;
+  }
+}
+
+export async function bulkInsertSystemNotificationsCloud(notifications: DbSystemNotification[]): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('system_notifications')
+      .upsert(notifications);
+    if (error) console.error('Error bulk saving notifications in Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase exception bulk saving notifications:', err);
+    return false;
+  }
+}
+
+

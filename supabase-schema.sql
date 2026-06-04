@@ -92,6 +92,18 @@ CREATE TABLE IF NOT EXISTS public.dossiers (
   "notificationDismissed" BOOLEAN NOT NULL DEFAULT false
 );
 
+-- 8. TABLA: system_notifications
+CREATE TABLE IF NOT EXISTS public.system_notifications (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL, -- 'success', 'info', 'warning', 'error'
+  "targetRoles" TEXT NOT NULL, -- list of roles separated by commas
+  timestamp TEXT NOT NULL,
+  "readBy" TEXT NOT NULL, -- list of users who have read the notification separated by commas
+  "soundPlayed" BOOLEAN NOT NULL DEFAULT false
+);
+
 -- Configuración de políticas de seguridad fáciles para el cliente (Anon Key Access)
 -- Desactivar RLS o habilitar libre escritura y lectura para que la app cliente funcione de inmediato:
 ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
@@ -101,6 +113,7 @@ ALTER TABLE public.risk_params DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_alerts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dossiers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_notifications DISABLE ROW LEVEL SECURITY;
 
 -- En caso de tener RLS activado por defecto globalmente, creamos políticas permisivas para anon:
 DO $$
@@ -138,6 +151,11 @@ BEGIN
     -- DOSSIERS
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'dossiers' AND policyname = 'Allow dynamic anon access') THEN
         CREATE POLICY "Allow dynamic anon access" ON public.dossiers FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+
+    -- SYSTEM NOTIFICATIONS
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_notifications' AND policyname = 'Allow dynamic anon access') THEN
+        CREATE POLICY "Allow dynamic anon access" ON public.system_notifications FOR ALL USING (true) WITH CHECK (true);
     END IF;
 END
 $$;

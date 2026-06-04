@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
-import { ShieldCheck, User, LogOut, Calendar, Database, RefreshCw, Key, Menu, ChevronDown, Award, Smartphone } from 'lucide-react';
+import { ShieldCheck, User, LogOut, Calendar, Database, RefreshCw, Key, Menu, ChevronDown, Award, Smartphone, Volume2, VolumeX, Bell } from 'lucide-react';
 
 interface AdminHeaderProps {
   currentUser: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza';
   onUserChange: (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza') => void;
   onResetData: () => void;
   onToggleSidebar?: () => void;
+  unreadNotificationsCount?: number;
+  onOpenNotifications?: () => void;
+  isSoundEnabled?: boolean;
+  onToggleSound?: () => void;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserChange, onResetData, onToggleSidebar }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ 
+  currentUser, 
+  onUserChange, 
+  onResetData, 
+  onToggleSidebar,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
+  isSoundEnabled = true,
+  onToggleSound
+}) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Convert role name to human readable
@@ -119,6 +132,46 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ currentUser, onUserCha
           >
             Reset
           </button>
+
+          {/* AUDIO SYNTHESIZER SOUNDS TOGGLE */}
+          {onToggleSound && (
+            <button
+              onClick={onToggleSound}
+              title={isSoundEnabled ? "Silenciar alertas con sonido" : "Activar alertas con sonido"}
+              className={`p-1.5 sm:p-2 rounded-xl border transition-all duration-150 cursor-pointer text-white relative active:scale-90 flex items-center justify-center shrink-0 ${
+                isSoundEnabled 
+                  ? 'bg-slate-900/60 border-white/20 hover:bg-slate-900/80 hover:border-white/30 text-emerald-400' 
+                  : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/40'
+              }`}
+            >
+              {isSoundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white animate-pulse" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              )}
+            </button>
+          )}
+
+          {/* REAL-TIME NOTIFICATION BELL */}
+          {onOpenNotifications && (
+            <button
+              onClick={onOpenNotifications}
+              title="Ver notificaciones en tiempo real"
+              className={`p-1.5 sm:p-2 rounded-xl border transition-all duration-150 cursor-pointer relative active:scale-90 flex items-center justify-center shrink-0 ${
+                unreadNotificationsCount > 0 
+                  ? 'bg-slate-900 border-white text-white shadow-lg animate-bounce' 
+                  : 'bg-white/10 border-white/10 hover:bg-white/20 text-white'
+              }`}
+            >
+              <Bell className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${unreadNotificationsCount > 0 ? 'animate-pulse text-[#a3c90e]' : ''}`} />
+              
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] sm:text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center border border-white shadow-md font-mono animate-pulse">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Active Profile Circle Avatar with Dropdown Trigger */}
           <div className="relative shrink-0">
