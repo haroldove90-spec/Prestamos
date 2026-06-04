@@ -4,12 +4,13 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon
 } from 'lucide-react';
-import { Client, ClientPayment } from '../types';
+import { Client, ClientPayment, ClientDossier } from '../types';
 
 interface ClientPortalProps {
   clients: Client[];
   onRegisterPayment: (payment: ClientPayment) => void;
   activeClientPayment?: ClientPayment | null;
+  dossiers?: ClientDossier[];
 }
 
 // Pre-designed mockup receipt URLs
@@ -36,7 +37,8 @@ const MOCK_RECEIPT_TEMPLATES = [
 
 export const ClientPortal: React.FC<ClientPortalProps> = ({ 
   clients, 
-  onRegisterPayment 
+  onRegisterPayment,
+  dossiers
 }) => {
   // Filter clients who have pending balances, default to the first one
   const clientsWithBalance = clients.filter(c => c.balanceOwed > 0);
@@ -236,6 +238,53 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
           </p>
         </div>
       </div>
+
+      {/* NOTIFICACIÓN DE EXPEDIENTE ACTIVO / COMISIÓN */}
+      {dossiers && dossiers.length > 0 && (() => {
+        // Find if they have dossiers
+        const myDossier = dossiers.find(d => 
+          d.clientName.toLowerCase().includes('esperanza') || 
+          d.clientName.toLowerCase() === activeClient?.name.toLowerCase()
+        );
+        if (!myDossier) return null;
+        return (
+          <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 text-left ${
+            myDossier.status === 'ANALIZANDO' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' :
+            myDossier.status === 'APROBADO' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 animate-bounce' :
+            'bg-red-500/10 border-red-500/20 text-red-300'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-slate-950 rounded-xl shrink-0 border border-slate-800">
+                {myDossier.status === 'ANALIZANDO' ? (
+                  <span className="flex h-5 w-5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <RefreshCw className="w-5 h-5 text-amber-400 animate-spin relative inline-flex" />
+                  </span>
+                ) : myDossier.status === 'APROBADO' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                )}
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[9px] font-mono font-black uppercase tracking-widest block text-[#a3c90e]">SISTEMA DE EXPEDIENTES</span>
+                <h4 className="text-xs font-black text-white">
+                  Expediente {myDossier.id}: Estatus <strong className={myDossier.status === 'ANALIZANDO' ? 'text-amber-400' : myDossier.status === 'APROBADO' ? 'text-emerald-400' : 'text-red-400'}>{myDossier.status}</strong>
+                </h4>
+                <p className="text-[11px] text-slate-300 font-sans leading-normal">
+                  {myDossier.status === 'ANALIZANDO' && `Tu expediente está siendo analizado por nuestro comité de riesgos. Por favor espera la autorización para tu préstamo por un total de ${formatMXN(myDossier.requestedAmount)}.`}
+                  {myDossier.status === 'APROBADO' && `¡Felicidades! Tu préstamo de ${formatMXN(myDossier.requestedAmount)} fue autorizado exitosamente. Los fondos ya fueron desembolsados y añadidos a tus saldos.`}
+                  {myDossier.status === 'RECHAZADO' && `Tu solicitud de préstamo ha sido rechazada por inconsistencias. Comentarios: "${myDossier.adminNotes || 'No especificados'}".`}
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-[9px] font-mono text-slate-400 bg-slate-950/70 border border-slate-850 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+              {myDossier.createdAt}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
         {/* Left Side: Client Selector & Account Status */}

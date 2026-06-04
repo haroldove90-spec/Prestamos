@@ -11,7 +11,8 @@ import { SecurityAuditModule, SecurityIncident } from './components/SecurityAudi
 import { FinancialMetricsModule } from './components/FinancialMetricsModule';
 import { ClientPortal } from './components/ClientPortal';
 import { PaymentVerification } from './components/PaymentVerification';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment } from './types';
+import { ExpedientesModule } from './components/ExpedientesModule';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
@@ -33,9 +34,12 @@ import {
   bulkInsertSecurityAlertsCloud,
   clearSecurityAlertsCloud,
   fetchPaymentsCloud,
-  bulkInsertPaymentsCloud
+  bulkInsertPaymentsCloud,
+  fetchDossiersCloud,
+  saveDossierCloud,
+  bulkInsertDossiersCloud
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText } from 'lucide-react';
 
 export default function App() {
   // PWA & Splash Screen States
@@ -140,7 +144,33 @@ export default function App() {
 
   const [currentUser, setCurrentUser] = useState<'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza'>('admin_harold');
 
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers'>('portfolio');
+
+  const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
+    const local = localStorage.getItem('buro_dossiers');
+    if (local) {
+      try {
+        return JSON.parse(local) as ClientDossier[];
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'EXP-8801',
+        clientName: 'Esperanza Escobedo Guzman',
+        address: 'Av. Constelaciones 402, Col. Satélite, Monterrey, N.L.',
+        birthDate: '1984-05-01',
+        ineFront: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=800&auto=format&fit=crop&q=80',
+        ineBack: 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80',
+        proofOfAddress: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80',
+        requestedAmount: 25000,
+        status: 'ANALIZANDO',
+        createdAt: '2026-05-20',
+        notificationDismissed: false
+      }
+    ];
+  });
 
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>(() => {
     const local = localStorage.getItem('buro_client_payments');
@@ -242,6 +272,10 @@ export default function App() {
     localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
   }, [clientPayments]);
 
+  useEffect(() => {
+    localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
+  }, [dossiers]);
+
   // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
   const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
   const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
@@ -320,6 +354,16 @@ export default function App() {
           }
         }
 
+        // 8. Sincronizar expedientes (dossiers)
+        const cloudDossiers = await fetchDossiersCloud();
+        if (cloudDossiers !== null) {
+          if (cloudDossiers.length === 0) {
+            await bulkInsertDossiersCloud(dossiers);
+          } else {
+            setDossiers(cloudDossiers);
+          }
+        }
+
         setSupabaseStatus('CONNECTED');
       } catch (err: any) {
         console.error('Supabase Setup error:', err);
@@ -373,6 +417,12 @@ export default function App() {
       bulkInsertPaymentsCloud(clientPayments);
     }
   }, [clientPayments, supabaseStatus]);
+
+  useEffect(() => {
+    if (supabaseStatus === 'CONNECTED' && dossiers.length > 0) {
+      bulkInsertDossiersCloud(dossiers);
+    }
+  }, [dossiers, supabaseStatus]);
 
   // REGISTER CLIENT ACTIVE PAYMENT ACTIVITY
   const handleRegisterClientPayment = (newPayment: ClientPayment) => {
@@ -445,6 +495,115 @@ export default function App() {
       };
       setQueries(prev => [auditLog, ...prev]);
     }
+  };
+
+  // EXPEDIENTES (DOSSIERS) ACTIONS AND PIPELINE MUTATIONS
+  const handleAddDossier = (newDossier: ClientDossier) => {
+    setDossiers(prev => [newDossier, ...prev]);
+
+    // Create a transaction query log entry indicating receipt/analyzing status
+    const newLog: BureauQueryLog = {
+      id: `Q-${Math.floor(1005 + Math.random() * 8900)}`,
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: newDossier.clientName,
+      requestedBy: 'cliente_portal',
+      scoreFound: 680,
+      resolution: `📥 SOLICITUD DE EXPEDIENTE: ${newDossier.id} de $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN ingresada en fase de COTEJO. En espera de verificación de documentos.`
+    };
+    setQueries(prev => [newLog, ...prev]);
+  };
+
+  const handleUpdateDossier = (dossierId: string, updates: Partial<ClientDossier>) => {
+    setDossiers(prev => prev.map(d => d.id === dossierId ? { ...d, ...updates } : d));
+  };
+
+  const handleApproveDossier = (dossier: ClientDossier) => {
+    // 1. Update dossier status to APROBADO
+    setDossiers(prev => prev.map(d => d.id === dossier.id ? { ...d, status: 'APROBADO', adminNotes: dossier.adminNotes } : d));
+
+    // 2. Create an authorized credit request in requests pipeline
+    const newRequest: CreditRequest = {
+      id: 'REQ-' + Math.floor(10000 + Math.random() * 90000),
+      clientName: dossier.clientName,
+      requestedAmount: dossier.requestedAmount,
+      purpose: 'Préstamo vía Expediente Digital Autorizado',
+      score: 710,
+      category: 'Personal',
+      dateSubmitted: dossier.createdAt,
+      status: 'APROBADO'
+    };
+    setRequests(prev => [newRequest, ...prev]);
+
+    // 3. Register client if they don't already exist under this exact name
+    const existingClientIndex = clients.findIndex(c => c.name.toLowerCase() === dossier.clientName.toLowerCase());
+    
+    // Format MXN helper
+    const formatCurrency = (val: number) => {
+      return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+    };
+
+    if (existingClientIndex === -1) {
+      // Create new client in app pool
+      const newClientId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+      const newClient: Client = {
+        id: newClientId,
+        name: dossier.clientName,
+        rfc: 'XAXX010101000',
+        email: `${dossier.clientName.replaceAll(' ', '').trim().toLowerCase()}@saldaapp.com`,
+        phone: '811' + Math.floor(1000000 + Math.random() * 9000000),
+        creditScore: 710,
+        bureauStatus: 'EXCELENTE',
+        totalCreditGranted: dossier.requestedAmount,
+        balanceOwed: dossier.requestedAmount,
+        delinquencyDays: 0,
+        category: 'Personal',
+        joinDate: dossier.createdAt,
+        membership: 'Ninguna'
+      };
+      setClients(prev => [newClient, ...prev]);
+
+      const auditLog: BureauQueryLog = {
+        id: `Q-${Math.floor(1003 + Math.random() * 8990)}`,
+        timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        queriedClientName: dossier.clientName,
+        requestedBy: currentUser,
+        scoreFound: 710,
+        resolution: `✓ ALTA POR EXPEDIENTE: Nuevo cliente ${newClientId} creado con crédito otorgado de ${formatCurrency(dossier.requestedAmount)}.`
+      };
+      setQueries(prev => [auditLog, ...prev]);
+    } else {
+      // Update existing client balance and limits
+      setClients(prev => prev.map((c, idx) => idx === existingClientIndex ? {
+        ...c,
+        totalCreditGranted: Number(c.totalCreditGranted) + Number(dossier.requestedAmount),
+        balanceOwed: Number(c.balanceOwed) + Number(dossier.requestedAmount)
+      } : c));
+
+      const auditLog: BureauQueryLog = {
+        id: `Q-${Math.floor(1003 + Math.random() * 8990)}`,
+        timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        queriedClientName: dossier.clientName,
+        requestedBy: currentUser,
+        scoreFound: 710,
+        resolution: `✓ ACTUALIZACIÓN POR EXPEDIENTE: Crédito de ${formatCurrency(dossier.requestedAmount)} adicionado al saldo insoluto de ${dossier.clientName}.`
+      };
+      setQueries(prev => [auditLog, ...prev]);
+    }
+
+    // Register security alert forenses
+    const isLocalUser = currentUser || 'admin_harold';
+    const alertId = 'SEC-' + Math.floor(10000 + Math.random() * 90000);
+    const alertItem: SecurityIncident = {
+      id: alertId,
+      timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      device: 'Consola Central Cloud',
+      user: isLocalUser,
+      actionBlocked: 'APROBACION_DE_EXPEDIENTE',
+      targetClient: dossier.clientName,
+      status: 'PENDIENTE',
+      notes: `El usuario ${isLocalUser} autorizó y desembolsó exitosamente $${dossier.requestedAmount.toLocaleString('es-MX')} del expediente unificado ${dossier.id}.`
+    };
+    setSecurityAlerts(prev => [alertItem, ...prev]);
   };
 
   // RESET DATABASE ACTION
@@ -1116,6 +1275,25 @@ export default function App() {
                     </button>
                   )}
 
+                  {/* EXPEDIENTES (NUEVO MODULO) */}
+                  <button
+                    id="mobile-tab-dossiers"
+                    onClick={() => setActiveTab('dossiers')}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'dossiers'
+                        ? 'bg-indigo-650 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-550/20'
+                        : 'bg-slate-950 text-indigo-400 border-slate-800 hover:text-white font-bold'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-400'}`} />
+                      <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
+                    </div>
+                    <span className="text-[9px] bg-indigo-505 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
+                      NUEVO
+                    </span>
+                  </button>
+
                   {/* PORTAL DE CLIENTES (DEMO) */}
                   <button
                     id="mobile-tab-client-portal"
@@ -1439,6 +1617,25 @@ export default function App() {
               </button>
             )}
 
+            {/* TAB OPTION: EXPEDIENTES (NUEVO MODULO) */}
+            <button
+              id="tab-dossiers"
+              onClick={() => setActiveTab('dossiers')}
+              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                activeTab === 'dossiers'
+                  ? 'bg-indigo-600 font-bold border-indigo-450 shadow-lg text-white'
+                  : 'bg-slate-900 hover:bg-slate-850/80 text-indigo-400 hover:text-white border-slate-800 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-450'}`} />
+                <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
+              </div>
+              <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
+                NUEVO
+              </span>
+            </button>
+
             {/* TAB OPTION: PORTAL CLIENTES (DEMO) */}
             <button
               id="tab-client-portal"
@@ -1675,6 +1872,7 @@ export default function App() {
                     clients={clients} 
                     payments={clientPayments} 
                     onRegisterPayment={handleRegisterClientPayment} 
+                    dossiers={dossiers}
                   />
                 )}
 
@@ -1683,6 +1881,30 @@ export default function App() {
                     payments={clientPayments} 
                     onVerifyPayment={handleVerifyPayment} 
                     currentUser={currentUser}
+                  />
+                )}
+
+                {activeTab === 'dossiers' && (
+                  <ExpedientesModule 
+                    currentUser={currentUser}
+                    clients={clients}
+                    dossiers={dossiers}
+                    onAddDossier={handleAddDossier}
+                    onUpdateDossier={handleUpdateDossier}
+                    onApproveDossier={handleApproveDossier}
+                    onAddSystemAlert={(alert) => {
+                      const alertItem: SecurityIncident = {
+                        id: 'SEC-' + Math.floor(10000 + Math.random() * 90000),
+                        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                        device: 'Consola Central Cloud',
+                        user: currentUser,
+                        actionBlocked: alert.actionBlocked,
+                        targetClient: alert.targetClient,
+                        status: 'PENDIENTE',
+                        notes: alert.notes
+                      };
+                      setSecurityAlerts(prev => [alertItem, ...prev]);
+                    }}
                   />
                 )}
               </>

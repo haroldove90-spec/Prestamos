@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
 import { SecurityIncident } from './components/SecurityAuditModule';
 
 const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
@@ -28,7 +28,7 @@ async function checkTableAccessible(tableName: string): Promise<boolean> {
  * Checks if the required tables exist in Supabase.
  */
 export async function verifyTablesExist(): Promise<boolean> {
-  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments'];
+  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments', 'dossiers'];
   for (const table of essentialTables) {
     const ok = await checkTableAccessible(table);
     if (!ok) return false;
@@ -262,3 +262,48 @@ export async function bulkInsertPaymentsCloud(payments: ClientPayment[]): Promis
     return false;
   }
 }
+
+// DOSSIERS (EXPEDIENTES)
+export async function fetchDossiersCloud(): Promise<ClientDossier[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('dossiers')
+      .select('*')
+      .order('createdAt', { ascending: false });
+    if (error) {
+      console.warn('Error fetching dossiers from Supabase:', error);
+      return null;
+    }
+    return data as ClientDossier[];
+  } catch (err) {
+    console.error('Supabase fetchDossiers exception:', err);
+    return null;
+  }
+}
+
+export async function saveDossierCloud(dossier: ClientDossier): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('dossiers')
+      .upsert(dossier);
+    if (error) console.error('Error saving dossier to Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase exception saving dossier:', err);
+    return false;
+  }
+}
+
+export async function bulkInsertDossiersCloud(dossiers: ClientDossier[]): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('dossiers')
+      .upsert(dossiers);
+    if (error) console.error('Error bulk saving dossiers in Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase exception bulk saving dossiers:', err);
+    return false;
+  }
+}
+

@@ -76,6 +76,22 @@ CREATE TABLE IF NOT EXISTS public.client_payments (
   reference TEXT
 );
 
+-- 7. TABLA: dossiers
+CREATE TABLE IF NOT EXISTS public.dossiers (
+  id TEXT PRIMARY KEY,
+  "clientName" TEXT NOT NULL,
+  address TEXT NOT NULL,
+  "birthDate" TEXT NOT NULL,
+  "ineFront" TEXT NOT NULL,
+  "ineBack" TEXT NOT NULL,
+  "proofOfAddress" TEXT NOT NULL,
+  "requestedAmount" NUMERIC NOT NULL,
+  status TEXT NOT NULL,
+  "createdAt" TEXT NOT NULL,
+  "adminNotes" TEXT,
+  "notificationDismissed" BOOLEAN NOT NULL DEFAULT false
+);
+
 -- Configuración de políticas de seguridad fáciles para el cliente (Anon Key Access)
 -- Desactivar RLS o habilitar libre escritura y lectura para que la app cliente funcione de inmediato:
 ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
@@ -84,6 +100,7 @@ ALTER TABLE public.queries DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.risk_params DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_alerts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dossiers DISABLE ROW LEVEL SECURITY;
 
 -- En caso de tener RLS activado por defecto globalmente, creamos políticas permisivas para anon:
 DO $$
@@ -116,6 +133,11 @@ BEGIN
     -- CLIENT PAYMENTS
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'client_payments' AND policyname = 'Allow dynamic anon access') THEN
         CREATE POLICY "Allow dynamic anon access" ON public.client_payments FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+
+    -- DOSSIERS
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'dossiers' AND policyname = 'Allow dynamic anon access') THEN
+        CREATE POLICY "Allow dynamic anon access" ON public.dossiers FOR ALL USING (true) WITH CHECK (true);
     END IF;
 END
 $$;

@@ -59,3 +59,19 @@ export interface ClientPayment {
   reference?: string;
 }
 
+export interface ClientDossier {
+  id: string;
+  clientName: string;
+  address: string;
+  birthDate: string;
+  ineFront: string;
+  ineBack: string;
+  proofOfAddress: string;
+  requestedAmount: number;
+  status: 'ANALIZANDO' | 'APROBADO' | 'RECHAZADO';
+  createdAt: string;
+  adminNotes?: string;
+  notificationDismissed: boolean;
+}
+
+
