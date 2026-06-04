@@ -250,7 +250,8 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
         {/* ==================================================================== */}
         {/* VIEW A: CLIENT FORM / SOLICITUD VIEW (Vistas para Cliente o para asesor que asiste) */}
         {/* ==================================================================== */}
-        <div className="xl:col-span-6 space-y-6">
+        {currentUser === 'cliente_esperanza' && (
+          <div className="xl:col-span-6 space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-5">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <div>
@@ -493,11 +494,13 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
             </form>
           </div>
         </div>
+        )}
 
         {/* ==================================================================== */}
         {/* VIEW B: INTEGRATED NOTIFICATION & STATUS PANEL (FOR ACTIVE SUBMITTER) */}
         {/* ==================================================================== */}
-        <div className="xl:col-span-6 space-y-6">
+        {currentUser === 'cliente_esperanza' && (
+          <div className="xl:col-span-6 space-y-6">
           
           {/* CLIENT NOTIFICATIONS & PROGRESS FEEDBACK */}
           {clientOwnDossier ? (
@@ -675,11 +678,14 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
               </p>
             </div>
           )}
+          </div>
+        )}
 
-          {/* ==================================================================== */}
-          {/* VIEW C: ADMIN COTEJAR GENERAL PANEL (Solo para administradores o asesores) */}
-          {/* ==================================================================== */}
-          {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+        {/* ==================================================================== */}
+        {/* VIEW C: ADMIN COTEJAR GENERAL PANEL (Solo para administradores o asesores) */}
+        {/* ==================================================================== */}
+        {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+          <div className="xl:col-span-12 space-y-6">
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
                 <div>
@@ -826,9 +832,8 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
                 </div>
               )}
             </div>
-          )}
-
-        </div>
+          </div>
+        )}
 
       </div>
 

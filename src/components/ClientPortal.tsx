@@ -11,6 +11,7 @@ interface ClientPortalProps {
   onRegisterPayment: (payment: ClientPayment) => void;
   activeClientPayment?: ClientPayment | null;
   dossiers?: ClientDossier[];
+  currentUser?: string;
 }
 
 // Pre-designed mockup receipt URLs
@@ -38,15 +39,34 @@ const MOCK_RECEIPT_TEMPLATES = [
 export const ClientPortal: React.FC<ClientPortalProps> = ({ 
   clients, 
   onRegisterPayment,
-  dossiers
+  dossiers,
+  currentUser = 'cliente_esperanza'
 }) => {
+  const isCustomUser = currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza';
+  const customTargetName = currentUser.replace('cliente_', '').replace(/_/g, ' ');
+
   // Filter clients who have pending balances, default to the first one
   const clientsWithBalance = clients.filter(c => c.balanceOwed > 0);
   const [selectedClientId, setSelectedClientId] = useState<string>(() => {
+    if (isCustomUser) {
+      const match = clients.find(c => c.name.toLowerCase() === customTargetName.toLowerCase());
+      if (match) return match.id;
+    }
     const hasEsperanza = clients.some(c => c.id === 'PM-327072' && c.balanceOwed > 0);
     if (hasEsperanza) return 'PM-327072';
     return clientsWithBalance[0]?.id || clients[0]?.id || '';
   });
+
+  // Force sync selection if currentUser changes
+  useEffect(() => {
+    if (isCustomUser) {
+      const match = clients.find(c => c.name.toLowerCase() === customTargetName.toLowerCase());
+      if (match) setSelectedClientId(match.id);
+    } else if (currentUser === 'cliente_esperanza') {
+      const match = clients.find(c => c.id === 'PM-327072');
+      if (match) setSelectedClientId(match.id);
+    }
+  }, [currentUser, clients]);
   
   const activeClient = clients.find(c => c.id === selectedClientId);
 
@@ -242,10 +262,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       {/* NOTIFICACIÓN DE EXPEDIENTE ACTIVO / COMISIÓN */}
       {dossiers && dossiers.length > 0 && (() => {
         // Find if they have dossiers
-        const myDossier = dossiers.find(d => 
-          d.clientName.toLowerCase().includes('esperanza') || 
-          d.clientName.toLowerCase() === activeClient?.name.toLowerCase()
-        );
+        const myDossier = dossiers.find(d => {
+          if (currentUser === 'cliente_esperanza') {
+            return d.clientName.toLowerCase().includes('esperanza');
+          }
+          if (isCustomUser) {
+            return d.clientName.toLowerCase() === customTargetName.toLowerCase();
+          }
+          return d.clientName.toLowerCase() === activeClient?.name.toLowerCase();
+        }) || dossiers.find(d => d.clientName.toLowerCase() === activeClient?.name.toLowerCase());
         if (!myDossier) return null;
         return (
           <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 text-left ${

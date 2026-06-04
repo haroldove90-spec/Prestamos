@@ -42,7 +42,7 @@ import {
   bulkInsertSystemNotificationsCloud,
   DbSystemNotification
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown } from 'lucide-react';
 
 export default function App() {
   // PWA & Splash Screen States
@@ -145,7 +145,19 @@ export default function App() {
     return local ? JSON.parse(local) : [];
   });
 
-  const [currentUser, setCurrentUser] = useState<'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza'>('admin_harold');
+  const [currentUser, setCurrentUser] = useState<string>('admin_harold');
+
+  const getUserDisplayName = (user: string) => {
+    if (user === 'admin_harold') return 'Harold Salazar';
+    if (user === 'asesor_juan') return 'Juan Orozco';
+    if (user === 'cajera_lucia') return 'Lucía Lara';
+    if (user === 'cliente_esperanza') return 'Esperanza Escobedo Guzman';
+    if (user.startsWith('cliente_')) {
+      const parts = user.replace('cliente_', '').split('_');
+      return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+    }
+    return user;
+  };
 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers'>('portfolio');
 
@@ -226,6 +238,25 @@ export default function App() {
   });
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [isHome, setIsHome] = useState<boolean>(true);
+  const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register'>('roles');
+
+  // Registration form states
+  const [regName, setRegName] = useState('');
+  const [regAddress, setRegAddress] = useState('');
+  const [regBirthDate, setRegBirthDate] = useState('');
+  const [regRequestedAmount, setRegRequestedAmount] = useState<number>(30000);
+  const [regIneFront, setRegIneFront] = useState('');
+  const [regIneBack, setRegIneBack] = useState('');
+  const [regProofOfAddress, setRegProofOfAddress] = useState('');
+  
+  const [regIneFrontName, setRegIneFrontName] = useState('');
+  const [regIneBackName, setRegIneBackName] = useState('');
+  const [regProofName, setRegProofName] = useState('');
+
+  const [dragActiveRegIneFront, setDragActiveRegIneFront] = useState(false);
+  const [dragActiveRegIneBack, setDragActiveRegIneBack] = useState(false);
+  const [dragActiveRegProof, setDragActiveRegProof] = useState(false);
 
   // ---------------------------------------------------------
   // NOTIFICATIONS & PROGRAMMATIC AUDIO SYNTHESIZER
@@ -1206,6 +1237,467 @@ export default function App() {
     return roles.includes(currentUser) && !readUsers.includes(currentUser);
   }).length;
 
+  if (isHome) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-12 font-sans relative overflow-hidden text-left" id="select-role-home-page">
+        {/* Decorative background glow rings to look extremely crafted and clean */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#a3c90e]/5 rounded-full blur-[120px] -z-10" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[120px] -z-10" />
+
+        <div className="max-w-4xl w-full flex flex-col items-center gap-6 text-center animate-fade-in relative z-10 py-6">
+          
+          <img 
+            src="https://cossma.com.mx/saldaapplogo.png" 
+            alt="Salda App" 
+            className="h-14 md:h-16 w-auto object-contain block hover:scale-105 transition-transform duration-300 pointer-events-none mb-2" 
+            referrerPolicy="no-referrer"
+          />
+
+          {homeSubView === 'roles' && (
+            <div className="space-y-6 w-full max-w-lg">
+              <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block">Seleccione su Rol de Acceso</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+                {/* ADMIN ACCESS CARD */}
+                <button
+                  onClick={() => {
+                    setCurrentUser('admin_harold');
+                    setActiveTab('portfolio');
+                    setIsHome(false);
+                    playSynthesizedSound('success');
+                  }}
+                  className="group relative bg-[#0a1f26]/60 hover:bg-[#0f2e38] border border-white/10 hover:border-[#a3c90e]/40 p-8 rounded-3xl flex flex-col items-center justify-center gap-5 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  id="role-box-admin"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#a3c90e]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <div className="w-16 h-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[#a3c90e] group-hover:bg-[#a3c90e]/10 group-hover:border-[#a3c90e]/20 transition-all duration-300 shadow-inner">
+                    <ShieldCheck className="w-8 h-8 group-hover:scale-110 transition-transform duration-305" />
+                  </div>
+
+                  <h2 className="text-lg font-bold text-white tracking-wide font-sans group-hover:text-[#a3c90e] transition-colors duration-200">
+                    Administrador
+                  </h2>
+                </button>
+
+                {/* CLIENT ACCESS CARD */}
+                <button
+                  onClick={() => {
+                    setHomeSubView('client_options');
+                    playSynthesizedSound('success');
+                  }}
+                  className="group relative bg-[#061019]/60 hover:bg-[#0c1c2b] border border-white/10 hover:border-indigo-500/40 p-8 rounded-3xl flex flex-col items-center justify-center gap-5 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  id="role-box-client"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="w-16 h-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-300 shadow-inner">
+                    <Smartphone className="w-8 h-8 group-hover:scale-110 transition-transform duration-305" />
+                  </div>
+
+                  <h2 className="text-lg font-bold text-white tracking-wide font-sans group-hover:text-indigo-400 transition-colors duration-200">
+                    Cliente
+                  </h2>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {homeSubView === 'client_options' && (
+            <div className="w-full max-w-lg bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6 animate-fade-in text-center">
+              <div className="text-center space-y-2">
+                <span className="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-widest block">Portal de Autoservicio</span>
+                <h4 className="text-lg font-black text-white">¿Cómo deseas ingresar?</h4>
+                <p className="text-xs text-slate-400">Selecciona si eres un cliente registrado con demostración de deuda o si deseas auto-registrarte para solicitar un nuevo préstamo.</p>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Option A: Demo Client */}
+                <button
+                  onClick={() => {
+                    setCurrentUser('cliente_esperanza');
+                    setActiveTab('client_portal');
+                    setIsHome(false);
+                    playSynthesizedSound('success');
+                  }}
+                  className="p-4 rounded-2xl bg-slate-950/65 border border-slate-800 hover:border-indigo-500 hover:bg-slate-950 hover:border-indigo-500/45 text-left transition duration-150 flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+                      CE
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-white group-hover:text-indigo-400 transition">Cliente Demo Esperanza (Con Deuda)</h4>
+                      <p className="text-[10px] text-slate-400">Ver saldos, reportar tickets SPEI/Oxxo y simular abonos.</p>
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-500 -rotate-90" />
+                </button>
+
+                {/* Option B: New Registration */}
+                <button
+                  onClick={() => {
+                    setHomeSubView('client_register');
+                    playSynthesizedSound('success');
+                  }}
+                  className="p-4 rounded-2xl bg-slate-950/65 border border-[#a3c90e]/15 hover:border-[#a3c90e] hover:bg-slate-950 text-left transition duration-150 flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                      +
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-white group-hover:text-[#a3c90e] transition">¡Auto-Registro de Nuevo Cliente!</h4>
+                      <p className="text-[10px] text-slate-400">Sube tu INE/identificación, comprobante y solicita préstamo hoy.</p>
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-500 -rotate-90" />
+                </button>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setHomeSubView('roles')}
+                  className="text-xs text-slate-400 hover:text-white font-mono underline cursor-pointer bg-transparent border-none"
+                  type="button"
+                >
+                  ← Regresar al Selector de Roles
+                </button>
+              </div>
+            </div>
+          )}
+
+          {homeSubView === 'client_register' && (
+            <div className="w-full max-w-xl bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[32px] space-y-6 text-left animate-fade-in relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#a3c90e]/5 rounded-full blur-2xl" />
+              
+              <div className="border-b border-slate-800 pb-4 text-center sm:text-left">
+                <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block">FORMULARIO DE EXPEDIENTE DIGITAL</span>
+                <h3 className="text-lg font-bold text-white mt-1">Alta de Cliente y Solicitud de Préstamo</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-normal">
+                  Rellena los campos para darte de alta y subir tu expediente en línea. Al finalizar, tu préstamo quedará activo y personalizado con tu nombre.
+                </p>
+              </div>
+
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!regName || !regAddress || !regBirthDate || !regRequestedAmount) {
+                    alert('Por favor, rellena los campos marcados con (*).');
+                    return;
+                  }
+                  
+                  const cleanUsername = regName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                  const dossierId = 'EXP-' + Math.floor(1000 + Math.random() * 9000);
+                  const finalIneFront = regIneFront || 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=800&auto=format&fit=crop&q=80';
+                  const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
+                  const finalProof = regProofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
+
+                  const newDossier: ClientDossier = {
+                    id: dossierId,
+                    clientName: regName,
+                    address: regAddress,
+                    birthDate: regBirthDate,
+                    ineFront: finalIneFront,
+                    ineBack: finalIneBack,
+                    proofOfAddress: finalProof,
+                    requestedAmount: regRequestedAmount,
+                    status: 'ANALIZANDO',
+                    createdAt: new Date().toISOString().split('T')[0],
+                    notificationDismissed: false
+                  };
+
+                  const newClientId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+                  const newClient: Client = {
+                    id: newClientId,
+                    name: regName,
+                    rfc: 'XAXX010101050',
+                    email: `${regName.replaceAll(' ', '').trim().toLowerCase()}@saldaapp.com`,
+                    phone: '811' + Math.floor(1000000 + Math.random() * 9000000),
+                    creditScore: 680,
+                    bureauStatus: 'REGULAR',
+                    totalCreditGranted: regRequestedAmount,
+                    balanceOwed: regRequestedAmount,
+                    delinquencyDays: 0,
+                    category: 'Personal',
+                    joinDate: new Date().toISOString().split('T')[0],
+                    membership: 'Ninguna'
+                  };
+
+                  setClients(prev => {
+                    const updated = [newClient, ...prev];
+                    bulkInsertClientsCloud([newClient]).catch(console.error);
+                    return updated;
+                  });
+
+                  setDossiers(prev => {
+                    const updated = [newDossier, ...prev];
+                    saveDossierCloud(newDossier).catch(console.error);
+                    return updated;
+                  });
+
+                  // Add bureau query log
+                  const newLog: BureauQueryLog = {
+                    id: `Q-${Math.floor(1005 + Math.random() * 8900)}`,
+                    timestamp: new Date().toISOString(),
+                    queriedClientName: regName,
+                    requestedBy: 'cliente_portal',
+                    scoreFound: 710,
+                    resolution: `📥 AUTO-REGISTRO EXITOSO: Expediente ${dossierId} de ${regName} por $${regRequestedAmount.toLocaleString('es-MX')} MXN ingresado en fase de validación.`
+                  };
+                  setQueries(prev => [newLog, ...prev]);
+
+                  // Security Incident
+                  const alertId = 'SEC-' + Math.floor(10000 + Math.random() * 90000);
+                  const alertItem: SecurityIncident = {
+                    id: alertId,
+                    timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    device: 'Plataforma Web',
+                    user: 'cliente_' + cleanUsername,
+                    actionBlocked: 'EXPEDIENTE_SOLICITADO',
+                    targetClient: regName,
+                    status: 'PENDIENTE',
+                    notes: `El nuevo cliente ${regName} ha completado exitosamente su registro de expediente y solicitado una línea de crédito comercial.`
+                  };
+                  setSecurityAlerts(prev => [alertItem, ...prev]);
+
+                  // Notify
+                  addNotificationAndPopup(
+                    `📄 Expediente Creado: ${regName}`,
+                    `Tu nuevo expediente digital ${dossierId} fue creado con estatus ANALIZANDO. Ya puedes operar en el Portal del Cliente.`,
+                    'info',
+                    'submit',
+                    'admin_harold,asesor_juan,cliente_esperanza',
+                    true
+                  );
+
+                  setCurrentUser('cliente_' + cleanUsername);
+                  setActiveTab('client_portal');
+                  setIsHome(false);
+                  playSynthesizedSound('success');
+
+                  // Clear
+                  setRegName('');
+                  setRegAddress('');
+                  setRegBirthDate('');
+                  setRegIneFront('');
+                  setRegIneBack('');
+                  setRegProofOfAddress('');
+                  setRegIneFrontName('');
+                  setRegIneBackName('');
+                  setRegProofName('');
+                  setHomeSubView('roles');
+                }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre Completo *:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Gregorio Marín"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Fecha de Nacimiento *:</label>
+                    <input
+                      type="date"
+                      required
+                      value={regBirthDate}
+                      onChange={(e) => setRegBirthDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Domicilio Completo *:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Calle, número, colonia, código postal, estado..."
+                    value={regAddress}
+                    onChange={(e) => setRegAddress(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto del Préstamo a Solicitar ($ MXN) *:</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
+                    <input
+                      type="number"
+                      required
+                      min="1000"
+                      max="150000"
+                      value={regRequestedAmount}
+                      onChange={(e) => setRegRequestedAmount(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-bold font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    />
+                  </div>
+                </div>
+
+                {/* Upload Documents row */}
+                <div className="space-y-3 bg-slate-950 p-4 border border-slate-900 rounded-2xl">
+                  <span className="text-[9px] font-mono text-slate-400 font-bold uppercase tracking-wider block">EXPEDIENTE DE DOCUMENTOS DIGITALES:</span>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* INE FRONT */}
+                    <div 
+                      className={`relative border-2 border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center transition ${
+                        dragActiveRegIneFront ? 'border-[#a3c90e] bg-[#a3c90e]/5' : 'border-slate-800 hover:border-slate-700 bg-slate-900/50'
+                      }`}
+                      onDragEnter={(e) => { e.preventDefault(); setDragActiveRegIneFront(true); }}
+                      onDragOver={(e) => { e.preventDefault(); setDragActiveRegIneFront(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setDragActiveRegIneFront(false); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragActiveRegIneFront(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          setRegIneFrontName(file.name);
+                          const r = new FileReader();
+                          r.onloadend = () => setRegIneFront(r.result as string);
+                          r.readAsDataURL(file);
+                        }
+                      }}
+                    >
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-white mb-1 shrink-0" />
+                      <span className="text-[9px] font-mono text-slate-300 font-bold">INE Frente</span>
+                      <span className="text-[8px] text-slate-500 font-sans mt-0.5 truncate max-w-full">
+                        {regIneFrontName ? `✓ ${regIneFrontName}` : 'Arrastra o pincha'}
+                      </span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="absolute inset-x-0 inset-y-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.type === 'change' ? (e.target as HTMLInputElement).files?.[0] : (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            setRegIneFrontName(file.name);
+                            const r = new FileReader();
+                            r.onloadend = () => setRegIneFront(r.result as string);
+                            r.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* INE BACK */}
+                    <div 
+                      className={`relative border-2 border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center transition ${
+                        dragActiveRegIneBack ? 'border-[#a3c90e] bg-[#a3c90e]/5' : 'border-slate-800 hover:border-slate-700 bg-slate-900/50'
+                      }`}
+                      onDragEnter={(e) => { e.preventDefault(); setDragActiveRegIneBack(true); }}
+                      onDragOver={(e) => { e.preventDefault(); setDragActiveRegIneBack(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setDragActiveRegIneBack(false); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragActiveRegIneBack(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          setRegIneBackName(file.name);
+                          const r = new FileReader();
+                          r.onloadend = () => setRegIneBack(r.result as string);
+                          r.readAsDataURL(file);
+                        }
+                      }}
+                    >
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-white mb-1 shrink-0" />
+                      <span className="text-[9px] font-mono text-slate-300 font-bold">INE Reverso</span>
+                      <span className="text-[8px] text-slate-500 font-sans mt-0.5 truncate max-w-full">
+                        {regIneBackName ? `✓ ${regIneBackName}` : 'Arrastra o pincha'}
+                      </span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="absolute inset-x-0 inset-y-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            setRegIneBackName(file.name);
+                            const r = new FileReader();
+                            r.onloadend = () => setRegIneBack(r.result as string);
+                            r.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* ADDRESS CE */}
+                    <div 
+                      className={`relative border-2 border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center transition ${
+                        dragActiveRegProof ? 'border-[#a3c90e] bg-[#a3c90e]/5' : 'border-slate-800 hover:border-slate-700 bg-slate-900/50'
+                      }`}
+                      onDragEnter={(e) => { e.preventDefault(); setDragActiveRegProof(true); }}
+                      onDragOver={(e) => { e.preventDefault(); setDragActiveRegProof(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setDragActiveRegProof(false); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragActiveRegProof(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          setRegProofName(file.name);
+                          const r = new FileReader();
+                          r.onloadend = () => setRegProofOfAddress(r.result as string);
+                          r.readAsDataURL(file);
+                        }
+                      }}
+                    >
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-white mb-1 shrink-0" />
+                      <span className="text-[9px] font-mono text-slate-300 font-bold">Comprobante</span>
+                      <span className="text-[8px] text-slate-500 font-sans mt-0.5 truncate max-w-full">
+                        {regProofName ? `✓ ${regProofName}` : 'Arrastra o pincha'}
+                      </span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="absolute inset-x-0 inset-y-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) {
+                            setRegProofName(file.name);
+                            const r = new FileReader();
+                            r.onloadend = () => setRegProofOfAddress(r.result as string);
+                            r.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setHomeSubView('client_options')}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-2.5 px-4 rounded-xl transition text-center text-xs border border-white/5 cursor-pointer"
+                  >
+                    Regresar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#a3c90e] hover:bg-[#b5dc12] text-slate-950 font-black py-2.5 px-4 rounded-xl transition text-center text-xs cursor-pointer shadow-lg shadow-[#a3c90e]/20"
+                  >
+                    Enviar Expediente y Entrar ✓
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mt-4">
+            Salda App • Cartera Integrada y Consulta Remota
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
       {/* IMMERSIVE UNENCAPSULATED SPLASH SCREEN */}
@@ -1295,6 +1787,7 @@ export default function App() {
         onOpenNotifications={() => setIsNotificationTrayOpen(true)}
         isSoundEnabled={isSoundEnabled}
         onToggleSound={toggleSoundSettings}
+        onGoHome={() => setIsHome(true)}
       />
 
       {/* Main Layout Container */}
@@ -1325,9 +1818,13 @@ export default function App() {
                 <>
                   <span className="font-semibold font-mono text-blue-450 text-blue-400">Caja de Recaudación Activa</span> como Gestora Express <strong className="text-white">@cajera_lucia</strong>. ID Transacción: <strong className="text-white font-mono">CL-P049A</strong>.
                 </>
+              ) : currentUser.startsWith('cliente_') || currentUser === 'cliente_esperanza' ? (
+                <>
+                  <span className="font-semibold font-mono text-emerald-450 text-emerald-400">Portal del Cliente Activo</span> como <strong className="text-white">{getUserDisplayName(currentUser)}</strong>. Identidad Unificada: <strong className="text-[#a3c90e] font-mono">@{currentUser}</strong>.
+                </>
               ) : (
                 <>
-                  <span className="font-semibold font-mono text-emerald-450 text-emerald-400">Conexión Segura Autenticada</span> con token de supervisor <strong className="text-white">AH-908A1</strong>. Bienvenido de vuelta, Harold Salazar.
+                  <span className="font-semibold font-mono text-emerald-450 text-emerald-400">Conexión Segura Autenticada</span> con token de supervisor <strong className="text-white">AH-908A1</strong>. Bienvenido de vuelta, {getUserDisplayName(currentUser)}.
                 </>
               )}
             </div>
@@ -2193,6 +2690,7 @@ export default function App() {
                     payments={clientPayments} 
                     onRegisterPayment={handleRegisterClientPayment} 
                     dossiers={dossiers}
+                    currentUser={currentUser}
                   />
                 )}
 

@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { ShieldCheck, User, LogOut, Calendar, Database, RefreshCw, Key, Menu, ChevronDown, Award, Smartphone, Volume2, VolumeX, Bell } from 'lucide-react';
 
 interface AdminHeaderProps {
-  currentUser: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza';
-  onUserChange: (user: 'admin_harold' | 'asesor_juan' | 'cajera_lucia' | 'cliente_esperanza') => void;
+  currentUser: string;
+  onUserChange: (user: string) => void;
   onResetData: () => void;
   onToggleSidebar?: () => void;
   unreadNotificationsCount?: number;
   onOpenNotifications?: () => void;
   isSoundEnabled?: boolean;
   onToggleSound?: () => void;
+  onGoHome?: () => void;
 }
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({ 
@@ -20,7 +21,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   unreadNotificationsCount = 0,
   onOpenNotifications,
   isSoundEnabled = true,
-  onToggleSound
+  onToggleSound,
+  onGoHome
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -29,7 +31,24 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     if (user === 'admin_harold') return 'SUPER ADMIN';
     if (user === 'asesor_juan') return 'ASESOR VIP';
     if (user === 'cajera_lucia') return 'CAJERA EXPRESS';
+    if (user === 'cliente_esperanza') return 'ESPERANZA';
+    if (user.startsWith('cliente_')) {
+      const name = user.replace('cliente_', '').replace(/_/g, ' ');
+      return name.toUpperCase();
+    }
     return 'PORTAL CLIENTE';
+  };
+
+  const getInitials = (user: string) => {
+    if (user === 'admin_harold') return 'AH';
+    if (user === 'asesor_juan') return 'AJ';
+    if (user === 'cajera_lucia') return 'CL';
+    if (user === 'cliente_esperanza') return 'CE';
+    if (user.startsWith('cliente_')) {
+      const clean = user.replace('cliente_', '').replace(/_/g, ' ');
+      return clean.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
+    }
+    return 'CL';
   };
 
   return (
@@ -182,7 +201,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             >
               {/* White Circle with Deep Teal border - matches the mock visual element precisely */}
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white bg-[#0a3a46] text-[#a3c90e] font-extrabold flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95 transition-all duration-150 text-[10px] sm:text-xs md:text-sm">
-                {currentUser === 'admin_harold' ? 'AH' : currentUser === 'asesor_juan' ? 'AJ' : currentUser === 'cajera_lucia' ? 'CL' : 'CE'}
+                {getInitials(currentUser)}
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-white hidden sm:block" />
             </button>
@@ -270,9 +289,35 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                     <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">CE</div>
                     <div className="text-left">
                       <div className="font-bold text-[11px]">@cliente_esperanza</div>
-                      <div className="text-[8px] opacity-80 font-sans">Portal Cliente</div>
+                      <div className="text-[8px] opacity-80 font-sans">Portal Cliente Demo</div>
                     </div>
                   </button>
+
+                  {currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza' && (
+                    <div className="w-full px-3 py-2 bg-white/10 rounded-xl text-left border border-[#a3c90e]/30 flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-[#a3c90e] text-[#0a3a46] flex items-center justify-center font-extrabold text-[10px]">{getInitials(currentUser)}</div>
+                      <div className="text-left overflow-hidden">
+                        <div className="font-bold text-[11px] text-[#a3c90e] truncate">@{currentUser.replace('cliente_', '')}</div>
+                        <div className="text-[8px] opacity-80 font-sans text-white">Cliente Activo</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {onGoHome && (
+                    <button
+                      onClick={() => {
+                        onGoHome();
+                        setShowDropdown(false);
+                      }}
+                      className="w-full mt-2 pt-2 border-t border-white/10 px-3 py-2 text-rose-300 hover:bg-rose-500/10 hover:text-rose-400 font-bold font-sans transition flex items-center gap-2 cursor-pointer rounded-xl"
+                    >
+                      <LogOut className="w-4 h-4 text-rose-400" />
+                      <div className="text-left">
+                        <div className="font-bold text-[11px]">Salir al Inicio</div>
+                        <div className="text-[8px] opacity-80 font-sans">Ver pantalla de roles</div>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </>
             )}
