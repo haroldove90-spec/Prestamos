@@ -20,6 +20,8 @@ export interface Client {
   joinDate: string;
   membership?: 'Ninguna' | 'Básica' | 'Premium';
   active?: boolean;
+  username?: string;
+  password?: string;
 }
 
 export interface CreditRequest {

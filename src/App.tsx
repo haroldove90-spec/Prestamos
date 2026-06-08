@@ -43,7 +43,65 @@ import {
   bulkInsertSystemNotificationsCloud,
   DbSystemNotification
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff } from 'lucide-react';
+
+export function generateNextClientId(currentClients: Client[], baseRef?: string): string {
+  let reference = baseRef ? baseRef.trim() : "";
+  if (!reference) {
+    const pattern = /^([A-Za-z]+)-?(\d+)$/;
+    let maxNum = 0;
+    let prefix = "PM";
+    let delimiter = "-";
+    
+    for (const client of currentClients) {
+      const match = client.id.match(pattern);
+      if (match) {
+        const pref = match[1];
+        const num = parseInt(match[2], 10);
+        if (num > maxNum) {
+          maxNum = num;
+          prefix = pref;
+          delimiter = client.id.includes("-") ? "-" : "";
+        }
+      }
+    }
+    
+    if (maxNum > 0) {
+      const nextNum = maxNum + 1;
+      const originalNumStr = maxNum.toString();
+      const numLength = originalNumStr.length;
+      let nextNumStr = nextNum.toString();
+      if (nextNumStr.length < numLength) {
+        nextNumStr = nextNumStr.padStart(numLength, '0');
+      }
+      return `${prefix}${delimiter}${nextNumStr}`;
+    }
+    
+    return `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+  } else {
+    const match = reference.match(/^([A-Za-z]+)-?(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const delimiter = reference.includes("-") ? "-" : "";
+      const currentNum = parseInt(match[2], 10);
+      let nextNum = currentNum + 1;
+      
+      let proposedId = `${prefix}${delimiter}${nextNum}`;
+      while (currentClients.some(c => c.id === proposedId)) {
+        nextNum++;
+        proposedId = `${prefix}${delimiter}${nextNum}`;
+      }
+      
+      const numLength = match[2].length;
+      let nextNumStr = nextNum.toString();
+      if (nextNumStr.length < numLength) {
+        nextNumStr = nextNumStr.padStart(numLength, '0');
+      }
+      return `${prefix}${delimiter}${nextNumStr}`;
+    }
+    return `${reference}${Math.floor(1005 + Math.random() * 8900)}`;
+  }
+}
 
 export default function App() {
   // PWA & Splash Screen States
@@ -242,8 +300,23 @@ export default function App() {
   const [isHome, setIsHome] = useState<boolean>(true);
   const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register'>('roles');
 
+  // Client number baseline configuration
+  const [nextClientNumberBase, setNextClientNumberBase] = useState<string>(() => {
+    return localStorage.getItem('buro_next_client_ref') || 'PM-820400';
+  });
+
+  const handleUpdateNextClientNumberBase = (val: string) => {
+    setNextClientNumberBase(val);
+    localStorage.setItem('buro_next_client_ref', val);
+  };
+
   // Registration form states
   const [regName, setRegName] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regAddress, setRegAddress] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
   const [regRequestedAmount, setRegRequestedAmount] = useState<number>(30000);
@@ -961,8 +1034,9 @@ export default function App() {
   };
 
   // UPDATE CLIENT WITH NEW VALUES (EDIT OR DEACTIVATE)
-  const handleUpdateClient = (updatedClient: Client) => {
-    setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+  const handleUpdateClient = (updatedClient: Client, originalId?: string) => {
+    const idToMatch = originalId || updatedClient.id;
+    setClients(prev => prev.map(c => c.id === idToMatch ? updatedClient : c));
     
     const newQueryLog: BureauQueryLog = {
       id: `Q-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -994,7 +1068,7 @@ export default function App() {
   // ADD NEW CLIENT
   const handleAddClient = (newClientData: Omit<Client, 'id' | 'joinDate'>) => {
     // Generate unique unified registration number (ID de Cliente, ID de Préstamo e Identificador de Pago)
-    const newId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newId = generateNextClientId(clients, nextClientNumberBase);
     const newClient: Client = {
       ...newClientData,
       id: newId,
@@ -1286,9 +1360,9 @@ export default function App() {
           />
 
           {homeSubView === 'roles' && (
-            <div className="space-y-6 w-full max-w-4xl">
-              <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block">Seleccione su Rol de Acceso</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+            <div className="space-y-6 w-full max-w-2xl mx-auto animate-fadeIn">
+              <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block text-center">Seleccione su Rol de Acceso</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
                 {/* ADMIN ACCESS CARD */}
                 <button
                   onClick={() => {
@@ -1311,56 +1385,6 @@ export default function App() {
                       Administrador
                     </h2>
                     <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Harold Salazar</p>
-                  </div>
-                </button>
-
-                {/* ASESOR VIP ACCESS CARD */}
-                <button
-                  onClick={() => {
-                    setCurrentUser('asesor_juan');
-                    setActiveTab('asesor_dashboard');
-                    setIsHome(false);
-                    playSynthesizedSound('success');
-                  }}
-                  className="group relative bg-[#0c1821]/60 hover:bg-[#112433] border border-white/10 hover:border-blue-400/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
-                  id="role-box-asesor"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/10 group-hover:border-blue-500/20 transition-all duration-300 shadow-inner">
-                    <User className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-blue-400 transition-colors duration-200">
-                      Asesor VIP
-                    </h2>
-                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Juan Orozco</p>
-                  </div>
-                </button>
-
-                {/* CAJERA EXPRESS ACCESS CARD */}
-                <button
-                  onClick={() => {
-                    setCurrentUser('cajera_lucia');
-                    setActiveTab('cajera_dashboard');
-                    setIsHome(false);
-                    playSynthesizedSound('success');
-                  }}
-                  className="group relative bg-[#1c180a]/60 hover:bg-[#2e260f] border border-white/10 hover:border-orange-400/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
-                  id="role-box-cajera"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-orange-450/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-orange-400 group-hover:bg-orange-400/10 group-hover:border-orange-400/20 transition-all duration-300 shadow-inner">
-                    <DollarSign className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-orange-400 transition-colors duration-200">
-                      Cajera Express
-                    </h2>
-                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Lucía Lara</p>
                   </div>
                 </button>
 
@@ -1473,8 +1497,12 @@ export default function App() {
                     alert('Por favor, rellena los campos marcados con (*).');
                     return;
                   }
+                  if (regPassword !== regConfirmPassword) {
+                    alert('Error: Las contraseñas ingresadas no coinciden. Por favor, verifíquelas.');
+                    return;
+                  }
                   
-                  const cleanUsername = regName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                  const cleanUsername = regUsername.toLowerCase().trim() || regName.toLowerCase().replace(/[^a-z0-9]/g, '_');
                   const dossierId = 'EXP-' + Math.floor(1000 + Math.random() * 9000);
                   const finalIneFront = regIneFront || 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=800&auto=format&fit=crop&q=80';
                   const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
@@ -1494,10 +1522,12 @@ export default function App() {
                     notificationDismissed: false
                   };
 
-                  const newClientId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+                  const newClientId = generateNextClientId(clients, nextClientNumberBase);
                   const newClient: Client = {
                     id: newClientId,
                     name: regName,
+                    username: cleanUsername,
+                    password: regPassword,
                     rfc: 'XAXX010101050',
                     email: `${regName.replaceAll(' ', '').trim().toLowerCase()}@saldaapp.com`,
                     phone: '811' + Math.floor(1000000 + Math.random() * 9000000),
@@ -1530,7 +1560,7 @@ export default function App() {
                     queriedClientName: regName,
                     requestedBy: 'cliente_portal',
                     scoreFound: 710,
-                    resolution: `📥 AUTO-REGISTRO EXITOSO: Expediente ${dossierId} de ${regName} por $${regRequestedAmount.toLocaleString('es-MX')} MXN ingresado en fase de validación.`
+                    resolution: `📥 AUTO-REGISTRO EXITOSO: Expediente ${dossierId} de ${regName} con ID de Cliente ${newClientId} por $${regRequestedAmount.toLocaleString('es-MX')} MXN ingresado en fase de validación.`
                   };
                   setQueries(prev => [newLog, ...prev]);
 
@@ -1544,14 +1574,14 @@ export default function App() {
                     actionBlocked: 'EXPEDIENTE_SOLICITADO',
                     targetClient: regName,
                     status: 'PENDIENTE',
-                    notes: `El nuevo cliente ${regName} ha completado exitosamente su registro de expediente y solicitado una línea de crédito comercial.`
+                    notes: `El nuevo cliente ${regName} ha completado exitosamente su registro de expediente con número ${newClientId} y solicitado una línea de crédito comercial.`
                   };
                   setSecurityAlerts(prev => [alertItem, ...prev]);
 
                   // Notify
                   addNotificationAndPopup(
                     `📄 Expediente Creado: ${regName}`,
-                    `Tu nuevo expediente digital ${dossierId} fue creado con estatus ANALIZANDO. Ya puedes operar en el Portal del Cliente.`,
+                    `Tu nuevo expediente digital ${dossierId} con Número de Cliente (Folio) ${newClientId} fue creado con estatus ANALIZANDO. Ya puedes operar en el Portal del Cliente.`,
                     'info',
                     'submit',
                     'admin_harold,asesor_juan,cliente_esperanza',
@@ -1565,6 +1595,11 @@ export default function App() {
 
                   // Clear
                   setRegName('');
+                  setRegUsername('');
+                  setRegPassword('');
+                  setRegConfirmPassword('');
+                  setShowRegPassword(false);
+                  setShowRegConfirmPassword(false);
                   setRegAddress('');
                   setRegBirthDate('');
                   setRegIneFront('');
@@ -1598,6 +1633,90 @@ export default function App() {
                       onChange={(e) => setRegBirthDate(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
                     />
+                  </div>
+                </div>
+
+                {/* ACCOUNT CREDENTIALS FOR PORTAL LOGIN */}
+                <div className="bg-[#0b1c24]/50 border border-slate-800 p-4 rounded-2xl space-y-3">
+                  <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-wider block">Credenciales de Acceso al Portal:</span>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Usuario *:</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. gregorio12"
+                        value={regUsername}
+                        onChange={(e) => setRegUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña *:</label>
+                      <div className="relative">
+                        <input
+                          type={showRegPassword ? "text" : "password"}
+                          required
+                          placeholder="Mín. 8 caracteres"
+                          value={regPassword}
+                          onChange={(e) => setRegPassword(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-8 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegPassword(!showRegPassword)}
+                          className="absolute right-2 top-1.5 text-slate-400 hover:text-[#a3c90e] bg-transparent border-none cursor-pointer p-1"
+                        >
+                          {showRegPassword ? (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+                          let pass = "";
+                          for (let i = 0; i < 10; i++) {
+                            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                          }
+                          setRegPassword(pass);
+                          setRegConfirmPassword(pass);
+                        }}
+                        className="text-[9px] text-[#a3c90e] hover:underline font-mono mt-1 block w-full text-left bg-transparent border-none cursor-pointer"
+                      >
+                        ⚡ Generar Contraseña
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Confirmar Contraseña *:</label>
+                      <div className="relative">
+                        <input
+                          type={showRegConfirmPassword ? "text" : "password"}
+                          required
+                          placeholder="Repite la contraseña"
+                          value={regConfirmPassword}
+                          onChange={(e) => setRegConfirmPassword(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-8 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                          className="absolute right-2 top-1.5 text-slate-400 hover:text-[#a3c90e] bg-transparent border-none cursor-pointer p-1"
+                        >
+                          {showRegConfirmPassword ? (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -2702,6 +2821,8 @@ export default function App() {
                     onImportClients={handleImportClients}
                     onUpdateClient={handleUpdateClient}
                     onDeleteClient={handleDeleteClient}
+                    nextClientNumberBase={nextClientNumberBase}
+                    onUpdateNextClientNumberBase={handleUpdateNextClientNumberBase}
                   />
                 )}
 

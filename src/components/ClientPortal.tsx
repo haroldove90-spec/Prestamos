@@ -43,13 +43,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   currentUser = 'cliente_esperanza'
 }) => {
   const isCustomUser = currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza';
-  const customTargetName = currentUser.replace('cliente_', '').replace(/_/g, ' ');
+  const customTargetUsername = currentUser.replace('cliente_', '').toLowerCase().trim();
 
   // Filter clients who have pending balances, default to the first one
   const clientsWithBalance = clients.filter(c => c.balanceOwed > 0);
   const [selectedClientId, setSelectedClientId] = useState<string>(() => {
     if (isCustomUser) {
-      const match = clients.find(c => c.name.toLowerCase() === customTargetName.toLowerCase());
+      const match = clients.find(c => 
+        (c.username && c.username.toLowerCase() === customTargetUsername) ||
+        (c.id.toLowerCase() === customTargetUsername) ||
+        (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === customTargetUsername) ||
+        (c.name.toLowerCase() === customTargetUsername.replace(/_/g, ' '))
+      );
       if (match) return match.id;
     }
     const hasEsperanza = clients.some(c => c.id === 'PM-327072' && c.balanceOwed > 0);
@@ -60,7 +65,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   // Force sync selection if currentUser changes
   useEffect(() => {
     if (isCustomUser) {
-      const match = clients.find(c => c.name.toLowerCase() === customTargetName.toLowerCase());
+      const match = clients.find(c => 
+        (c.username && c.username.toLowerCase() === customTargetUsername) ||
+        (c.id.toLowerCase() === customTargetUsername) ||
+        (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === customTargetUsername) ||
+        (c.name.toLowerCase() === customTargetUsername.replace(/_/g, ' '))
+      );
       if (match) setSelectedClientId(match.id);
     } else if (currentUser === 'cliente_esperanza') {
       const match = clients.find(c => c.id === 'PM-327072');
@@ -266,8 +276,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
           if (currentUser === 'cliente_esperanza') {
             return d.clientName.toLowerCase().includes('esperanza');
           }
-          if (isCustomUser) {
-            return d.clientName.toLowerCase() === customTargetName.toLowerCase();
+          if (isCustomUser && activeClient) {
+            return d.clientName.toLowerCase() === activeClient.name.toLowerCase();
           }
           return d.clientName.toLowerCase() === activeClient?.name.toLowerCase();
         }) || dossiers.find(d => d.clientName.toLowerCase() === activeClient?.name.toLowerCase());
@@ -345,8 +355,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       {activeClient.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">{activeClient.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-mono">{activeClient.rfc}</p>
+                      <h4 className="text-xs font-bold text-[#a3c90e] uppercase tracking-wide">{activeClient.name}</h4>
+                      <div className="flex flex-col text-[10px] font-mono mt-0.5 space-y-0.5">
+                        <span className="text-slate-350 text-[10px]">Número de Cliente: <strong className="text-white font-black">{activeClient.id}</strong></span>
+                        <span className="text-slate-400 text-[9px] uppercase">RFC: {activeClient.rfc}</span>
+                      </div>
                     </div>
                   </div>
 

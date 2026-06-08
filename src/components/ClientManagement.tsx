@@ -2,12 +2,72 @@ import React, { useState, useRef } from 'react';
 import { Search, UserPlus, FileText, CheckCircle, AlertTriangle, HelpCircle, X, ShieldAlert, Plus, Layers, Crown, Award, User, Sparkles, Upload, Edit, Trash2, Eye, Printer } from 'lucide-react';
 import { Client, BureauStatus } from '../types';
 
+export function generateNextClientId(currentClients: Client[], baseRef?: string): string {
+  let reference = baseRef ? baseRef.trim() : "";
+  if (!reference) {
+    const pattern = /^([A-Za-z]+)-?(\d+)$/;
+    let maxNum = 0;
+    let prefix = "PM";
+    let delimiter = "-";
+    
+    for (const client of currentClients) {
+      const match = client.id.match(pattern);
+      if (match) {
+        const pref = match[1];
+        const num = parseInt(match[2], 10);
+        if (num > maxNum) {
+          maxNum = num;
+          prefix = pref;
+          delimiter = client.id.includes("-") ? "-" : "";
+        }
+      }
+    }
+    
+    if (maxNum > 0) {
+      const nextNum = maxNum + 1;
+      const originalNumStr = maxNum.toString();
+      const numLength = originalNumStr.length;
+      let nextNumStr = nextNum.toString();
+      if (nextNumStr.length < numLength) {
+        nextNumStr = nextNumStr.padStart(numLength, '0');
+      }
+      return `${prefix}${delimiter}${nextNumStr}`;
+    }
+    
+    return `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+  } else {
+    const match = reference.match(/^([A-Za-z]+)-?(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const delimiter = reference.includes("-") ? "-" : "";
+      const currentNum = parseInt(match[2], 10);
+      let nextNum = currentNum + 1;
+      
+      let proposedId = `${prefix}${delimiter}${nextNum}`;
+      while (currentClients.some(c => c.id === proposedId)) {
+        nextNum++;
+        proposedId = `${prefix}${delimiter}${nextNum}`;
+      }
+      
+      const numLength = match[2].length;
+      let nextNumStr = nextNum.toString();
+      if (nextNumStr.length < numLength) {
+        nextNumStr = nextNumStr.padStart(numLength, '0');
+      }
+      return `${prefix}${delimiter}${nextNumStr}`;
+    }
+    return `${reference}${Math.floor(1005 + Math.random() * 8900)}`;
+  }
+}
+
 interface ClientManagementProps {
   clients: Client[];
   onAddClient: (newClient: Omit<Client, 'id' | 'joinDate'>) => void;
   onImportClients?: (newClients: Client[]) => void;
-  onUpdateClient?: (updatedClient: Client) => void;
+  onUpdateClient?: (updatedClient: Client, originalId?: string) => void;
   onDeleteClient?: (clientId: string) => void;
+  nextClientNumberBase: string;
+  onUpdateNextClientNumberBase: (val: string) => void;
 }
 
 export const ClientManagement: React.FC<ClientManagementProps> = ({ 
@@ -15,7 +75,9 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   onAddClient, 
   onImportClients,
   onUpdateClient,
-  onDeleteClient
+  onDeleteClient,
+  nextClientNumberBase,
+  onUpdateNextClientNumberBase
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<BureauStatus | 'ALL'>('ALL');
@@ -24,6 +86,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Client | null>(null);
+  const [originalId, setOriginalId] = useState<string>('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // CSV Import State
@@ -693,6 +756,31 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         </div>
       </div>
 
+      {/* SECCIÓN CONFIGURACIÓN DE CONSECUTIVO Y REFERENCIA DE CLIENTES (ADMIN ONLY CONTROLS) */}
+      <div className="mx-6 mt-6 p-4 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-[#030712] border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="space-y-1 text-left w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#a3c90e] animate-pulse" />
+            <h4 className="text-xs font-black font-mono text-white uppercase tracking-wider">Referencia Base de Clientes (Sincronización de Consecutivo)</h4>
+          </div>
+          <p className="text-[10px] text-slate-300 leading-normal max-w-xl">
+            El sistema generará consecutivamente los siguientes números de clientes incrementando este formato. Modifícalo para sincronizar un rango específico (Ej: <strong>PM-820400</strong>, <strong>CLI-1502</strong>, <strong>REF-2026-00</strong>).
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-start md:self-center w-full md:w-auto">
+          <input
+            type="text"
+            value={nextClientNumberBase}
+            onChange={(e) => onUpdateNextClientNumberBase(e.target.value)}
+            placeholder="Ej. PM-820400"
+            className="bg-slate-950 border border-slate-800 hover:border-[#a3c90e]/50 rounded-xl px-3 py-1.5 font-mono text-xs text-[#a3c90e] font-extrabold focus:outline-none focus:ring-1 focus:ring-[#a3c90e] w-full md:w-40 uppercase"
+          />
+          <div className="px-2.5 py-1.5 rounded-lg bg-[#a3c90e]/10 text-[#a3c90e] text-[10px] font-bold font-mono whitespace-nowrap shrink-0 border border-[#a3c90e]/20">
+            Siguiente: {generateNextClientId(clients, nextClientNumberBase)}
+          </div>
+        </div>
+      </div>
+
       {/* CSV IMPORT SUCCESS BANNER */}
       {importSuccess && (
         <div className="mx-6 mt-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3 text-left">
@@ -1082,6 +1170,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
                           title="Editar Expediente"
                           onClick={() => {
                             setEditForm({ ...c });
+                            setOriginalId(c.id);
                             setIsEditing(true);
                           }}
                           className="p-1.5 bg-indigo-950/20 hover:bg-indigo-600/25 border border-indigo-900 hover:border-indigo-500 text-indigo-400 hover:text-white rounded-lg transition cursor-pointer"
@@ -1305,6 +1394,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
               <button
                 onClick={() => {
                   setEditForm({ ...selectedClient });
+                  setOriginalId(selectedClient.id);
                   setIsEditing(true);
                   setSelectedClient(null); // Close the detail popup when entering editor
                 }}
@@ -1350,12 +1440,30 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
 
             <form onSubmit={(e) => {
               e.preventDefault();
+              if (clients.some(c => c.id === editForm.id && c.id !== originalId)) {
+                alert("Error: El número de cliente ya existe. Por favor asigne uno único.");
+                return;
+              }
               if (onUpdateClient && editForm) {
-                onUpdateClient(editForm);
+                onUpdateClient(editForm, originalId);
               }
               setIsEditing(false);
               setEditForm(null);
             }} className="space-y-4 text-left">
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">Número de Cliente / Identificador Único (Contrato)</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.id}
+                  onChange={(e) => setEditForm({ ...editForm, id: e.target.value.toUpperCase() })}
+                  className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-[#a3c90e] font-mono font-extrabold focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase"
+                />
+                {clients.some(c => c.id === editForm.id && c.id !== originalId) && (
+                  <p className="text-[9px] text-rose-400 font-bold font-mono mt-0.5">⚠️ Error: Este identificador ya está asignado a otro cliente.</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre Completo del Cliente</label>
                 <input

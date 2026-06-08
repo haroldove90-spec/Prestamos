@@ -109,28 +109,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               @harold
             </button>
             <button
-              onClick={() => onUserChange('asesor_juan')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1 cursor-pointer ${
-                currentUser === 'asesor_juan'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <User className="w-3 h-3 text-[#a3c90e]" />
-              @juan
-            </button>
-            <button
-              onClick={() => onUserChange('cajera_lucia')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1 cursor-pointer ${
-                currentUser === 'cajera_lucia'
-                  ? 'bg-slate-950 text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <LogOut className="w-3 h-3 rotate-180 text-orange-400" />
-              @lucia
-            </button>
-            <button
               onClick={() => onUserChange('cliente_esperanza')}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1.5 cursor-pointer ${
                 currentUser === 'cliente_esperanza'
@@ -236,42 +214,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                     <div className="text-left">
                       <div className="font-bold text-[11px]">@admin_harold</div>
                       <div className="text-[8px] opacity-80 font-sans">Super Admin</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onUserChange('asesor_juan');
-                      setShowDropdown(false);
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer ${
-                      currentUser === 'asesor_juan' 
-                        ? 'bg-[#a3c90e] text-[#0a3a46] font-bold shadow-md' 
-                        : 'hover:bg-white/10 text-white'
-                    }`}
-                  >
-                    <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">AJ</div>
-                    <div className="text-left">
-                      <div className="font-bold text-[11px]">@asesor_juan</div>
-                      <div className="text-[8px] opacity-80 font-sans">Asesor VIP</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onUserChange('cajera_lucia');
-                      setShowDropdown(false);
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer ${
-                      currentUser === 'cajera_lucia' 
-                        ? 'bg-[#a3c90e] text-[#0a3a46] font-bold shadow-md' 
-                        : 'hover:bg-white/10 text-white'
-                    }`}
-                  >
-                    <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">CL</div>
-                    <div className="text-left">
-                      <div className="font-bold text-[11px]">@cajera_lucia</div>
-                      <div className="text-[8px] opacity-80 font-sans">Cajera Express</div>
                     </div>
                   </button>
 
