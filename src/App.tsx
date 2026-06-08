@@ -43,7 +43,7 @@ import {
   bulkInsertSystemNotificationsCloud,
   DbSystemNotification
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown } from 'lucide-react';
 
 export default function App() {
   // PWA & Splash Screen States
@@ -1286,9 +1286,9 @@ export default function App() {
           />
 
           {homeSubView === 'roles' && (
-            <div className="space-y-6 w-full max-w-lg">
+            <div className="space-y-6 w-full max-w-4xl">
               <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block">Seleccione su Rol de Acceso</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
                 {/* ADMIN ACCESS CARD */}
                 <button
                   onClick={() => {
@@ -1297,18 +1297,71 @@ export default function App() {
                     setIsHome(false);
                     playSynthesizedSound('success');
                   }}
-                  className="group relative bg-[#0a1f26]/60 hover:bg-[#0f2e38] border border-white/10 hover:border-[#a3c90e]/40 p-8 rounded-3xl flex flex-col items-center justify-center gap-5 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  className="group relative bg-[#0a1f26]/60 hover:bg-[#0f2e38] border border-white/10 hover:border-[#a3c90e]/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
                   id="role-box-admin"
                 >
                   <div className="absolute inset-0 bg-gradient-to-b from-[#a3c90e]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   
-                  <div className="w-16 h-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[#a3c90e] group-hover:bg-[#a3c90e]/10 group-hover:border-[#a3c90e]/20 transition-all duration-300 shadow-inner">
-                    <ShieldCheck className="w-8 h-8 group-hover:scale-110 transition-transform duration-305" />
+                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[#a3c90e] group-hover:bg-[#a3c90e]/10 group-hover:border-[#a3c90e]/20 transition-all duration-300 shadow-inner">
+                    <ShieldCheck className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
                   </div>
 
-                  <h2 className="text-lg font-bold text-white tracking-wide font-sans group-hover:text-[#a3c90e] transition-colors duration-200">
-                    Administrador
-                  </h2>
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-[#a3c90e] transition-colors duration-200">
+                      Administrador
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Harold Salazar</p>
+                  </div>
+                </button>
+
+                {/* ASESOR VIP ACCESS CARD */}
+                <button
+                  onClick={() => {
+                    setCurrentUser('asesor_juan');
+                    setActiveTab('asesor_dashboard');
+                    setIsHome(false);
+                    playSynthesizedSound('success');
+                  }}
+                  className="group relative bg-[#0c1821]/60 hover:bg-[#112433] border border-white/10 hover:border-blue-400/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  id="role-box-asesor"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/10 group-hover:border-blue-500/20 transition-all duration-300 shadow-inner">
+                    <User className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-blue-400 transition-colors duration-200">
+                      Asesor VIP
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Juan Orozco</p>
+                  </div>
+                </button>
+
+                {/* CAJERA EXPRESS ACCESS CARD */}
+                <button
+                  onClick={() => {
+                    setCurrentUser('cajera_lucia');
+                    setActiveTab('cajera_dashboard');
+                    setIsHome(false);
+                    playSynthesizedSound('success');
+                  }}
+                  className="group relative bg-[#1c180a]/60 hover:bg-[#2e260f] border border-white/10 hover:border-orange-400/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  id="role-box-cajera"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-orange-450/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-orange-400 group-hover:bg-orange-400/10 group-hover:border-orange-400/20 transition-all duration-300 shadow-inner">
+                    <DollarSign className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-orange-400 transition-colors duration-200">
+                      Cajera Express
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Lucía Lara</p>
+                  </div>
                 </button>
 
                 {/* CLIENT ACCESS CARD */}
@@ -1317,18 +1370,21 @@ export default function App() {
                     setHomeSubView('client_options');
                     playSynthesizedSound('success');
                   }}
-                  className="group relative bg-[#061019]/60 hover:bg-[#0c1c2b] border border-white/10 hover:border-indigo-500/40 p-8 rounded-3xl flex flex-col items-center justify-center gap-5 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  className="group relative bg-[#061019]/60 hover:bg-[#0c1c2b] border border-white/10 hover:border-indigo-500/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
                   id="role-box-client"
                 >
                   <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                  <div className="w-16 h-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-300 shadow-inner">
-                    <Smartphone className="w-8 h-8 group-hover:scale-110 transition-transform duration-305" />
+                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/10 group-hover:border-indigo-500/20 transition-all duration-300 shadow-inner">
+                    <Smartphone className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
                   </div>
 
-                  <h2 className="text-lg font-bold text-white tracking-wide font-sans group-hover:text-indigo-400 transition-colors duration-200">
-                    Cliente
-                  </h2>
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-indigo-400 transition-colors duration-200">
+                      Cliente
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight font-bold text-[#a3c90e]">Autoservicio</p>
+                  </div>
                 </button>
               </div>
             </div>
@@ -1960,12 +2016,12 @@ export default function App() {
                     className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
                       activeTab === 'portfolio'
                         ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-955 bg-slate-905 bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                        : 'bg-slate-955 bg-slate-905 bg-slate-955 text-slate-400 hover:text-white border-slate-800 font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold font-semibold">
+                      <span className="text-xs font-semibold">
                         {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
                       </span>
                     </div>
@@ -1976,8 +2032,8 @@ export default function App() {
                     </span>
                   </button>
 
-                  {/* TAB OPTION 2: BUREAU INTEL & STRESS (SUPERVISOR RESTRICTED ACCORDING TO ROLE) */}
-                  {currentUser !== 'admin_harold' && (
+                  {/* TAB OPTION 2: BUREAU INTEL & STRESS */}
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
                     <button
                       id="mobile-tab-bureau-lookup"
                       onClick={() => {
@@ -1989,7 +2045,7 @@ export default function App() {
                       className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
                         activeTab === 'bureau'
                           ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                          : 'bg-slate-955 text-slate-400 hover:text-white border-slate-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -2033,7 +2089,7 @@ export default function App() {
                   </button>
 
                   {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-                  {currentUser !== 'admin_harold' && (
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
                     <button
                       id="mobile-tab-memberships-management"
                       onClick={() => {
@@ -2044,12 +2100,12 @@ export default function App() {
                       }}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
                         activeTab === 'memberships'
-                          ? 'bg-amber-500 text-slate-950 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
+                          ? 'bg-amber-500 text-slate-955 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
                           : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-950 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
+                        <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-955 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
                         <span className="text-xs font-semibold">Módulo de Membresías</span>
                       </div>
                       <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
@@ -2061,7 +2117,7 @@ export default function App() {
                   )}
 
                   {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
-                  {currentUser !== 'admin_harold' && currentUser === 'admin_harold' && (
+                  {currentUser === 'admin_harold' && (
                     <button
                       id="mobile-tab-security-audit"
                       onClick={() => setActiveTab('security_center')}
@@ -2087,8 +2143,8 @@ export default function App() {
                     </button>
                   )}
 
-                  {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
-                  {currentUser === 'admin_harold' && (
+                  {/* TAB OPTION 7: CREDIT SIMULATION */}
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cliente_esperanza' || currentUser.startsWith('cliente_')) && (
                     <button
                       id="mobile-tab-credit-simulation"
                       onClick={() => setActiveTab('credit_simulation')}
@@ -2109,7 +2165,7 @@ export default function App() {
                   )}
 
                   {/* EXPEDIENTES (NUEVO MODULO) */}
-                  {currentUser !== 'admin_harold' && (
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
                     <button
                       id="mobile-tab-dossiers"
                       onClick={() => setActiveTab('dossiers')}
@@ -2353,8 +2409,8 @@ export default function App() {
               </span>
             </button>
 
-            {/* TAB OPTION 2: BUREAU INTEL & STRESS (SUPERVISOR RESTRICTED ACCORDING TO ROLE) */}
-            {currentUser !== 'admin_harold' && (
+            {/* TAB OPTION 2: BUREAU INTEL & STRESS */}
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
               <button
                 id="tab-bureau-lookup"
                 onClick={() => {
@@ -2410,7 +2466,7 @@ export default function App() {
             </button>
 
             {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-            {currentUser !== 'admin_harold' && (
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
               <button
                 id="tab-memberships-management"
               onClick={() => {
@@ -2437,8 +2493,8 @@ export default function App() {
             </button>
             )}
 
-            {/* TAB OPTION 5: SECURITY AUDIT DIVISION (AVAILABLE TO ADMIN) */}
-            {currentUser !== 'admin_harold' && currentUser === 'admin_harold' && (
+            {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
+            {currentUser === 'admin_harold' && (
               <button
                 id="tab-security-audit"
                 onClick={() => setActiveTab('security_center')}
@@ -2464,8 +2520,8 @@ export default function App() {
               </button>
             )}
 
-            {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
-            {currentUser === 'admin_harold' && (
+            {/* TAB OPTION 7: CREDIT SIMULATION */}
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cliente_esperanza' || currentUser.startsWith('cliente_')) && (
               <button
                 id="tab-credit-simulation"
                 onClick={() => setActiveTab('credit_simulation')}
@@ -2486,7 +2542,7 @@ export default function App() {
             )}
 
             {/* TAB OPTION: EXPEDIENTES (NUEVO MODULO) */}
-            {currentUser !== 'admin_harold' && (
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
               <button
                 id="tab-dossiers"
                 onClick={() => setActiveTab('dossiers')}
