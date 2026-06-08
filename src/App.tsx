@@ -1824,51 +1824,6 @@ export default function App() {
 
       {/* Main Layout Container */}
       <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        {/* UPPER STATUS HIGHLIGHT BAR */}
-        <div className={`p-4 border rounded-3xl flex flex-col md:flex-row justify-between items-center gap-3 shadow-md transition-colors duration-300 ${
-          currentUser === 'asesor_juan' 
-            ? 'bg-indigo-950/40 border-indigo-900/50' 
-            : currentUser === 'cajera_lucia'
-            ? 'bg-blue-950/40 border-blue-900/50'
-            : 'bg-slate-900/80 border-slate-800'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3 shrink-0">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                currentUser === 'asesor_juan' ? 'bg-indigo-400' : currentUser === 'cajera_lucia' ? 'bg-blue-400' : 'bg-emerald-400'
-              }`}></span>
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${
-                currentUser === 'asesor_juan' ? 'bg-indigo-505' : currentUser === 'asesor_juan' ? 'bg-indigo-500' : currentUser === 'cajera_lucia' ? 'bg-blue-500' : 'bg-emerald-500'
-              }`}></span>
-            </span>
-            <div className="text-xs text-slate-350">
-              {currentUser === 'asesor_juan' ? (
-                <>
-                  <span className="font-semibold font-mono text-indigo-400">Sesión de Operación Iniciada</span> como Ejecutivo de Crédito <strong className="text-white">@asesor_juan</strong>. Token de Oficina: <strong className="text-white font-mono">AJ-X011B</strong>.
-                </>
-              ) : currentUser === 'cajera_lucia' ? (
-                <>
-                  <span className="font-semibold font-mono text-blue-450 text-blue-400">Caja de Recaudación Activa</span> como Gestora Express <strong className="text-white">@cajera_lucia</strong>. ID Transacción: <strong className="text-white font-mono">CL-P049A</strong>.
-                </>
-              ) : currentUser.startsWith('cliente_') || currentUser === 'cliente_esperanza' ? (
-                <>
-                  <span className="font-semibold font-mono text-emerald-450 text-emerald-400">Portal del Cliente Activo</span> como <strong className="text-white">{getUserDisplayName(currentUser)}</strong>. Identidad Unificada: <strong className="text-[#a3c90e] font-mono">@{currentUser}</strong>.
-                </>
-              ) : (
-                <>
-                  <span className="font-semibold font-mono text-emerald-450 text-emerald-400">Conexión Segura Autenticada</span> con token de supervisor <strong className="text-white">AH-908A1</strong>. Bienvenido de vuelta, {getUserDisplayName(currentUser)}.
-                </>
-              )}
-            </div>
-          </div>
-          <div className="text-[11px] font-mono text-slate-500 flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 text-indigo-455 text-indigo-400" />
-            <span>Nodos operativos óptimos • Tiempo real</span>
-          </div>
-        </div>
-
-        {/* METRIC PANEL (LIVE CARDS IN REAL TIME) */}
-        <MetricCardPanel clients={clients} requests={requests} />
 
         {/* BOTTOM SECTION LAYOUT WITH SIDEBAR + MAIN MODULE */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1930,6 +1885,27 @@ export default function App() {
                   <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
                     Módulos Disponibles
                   </span>
+
+                  {/* TAB OPTION 6: FINANCIAL METRICS (MOVED TO TOP) */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-financial-metrics"
+                      onClick={() => setActiveTab('financial_metrics')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'financial_metrics'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-lg shadow-indigo-600/15'
+                          : 'bg-slate-955 bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
+                        <span className="text-xs font-semibold">Métricas</span>
+                      </div>
+                      <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                        Finanzas
+                      </span>
+                    </button>
+                  )}
 
                   {/* TAB OPTION 0: ADVISOR CONSOLE (ONLY FOR ASESOR) */}
                   {currentUser === 'asesor_juan' && (
@@ -2111,27 +2087,6 @@ export default function App() {
                     </button>
                   )}
 
-                  {/* TAB OPTION 6: FINANCIAL METRICS */}
-                  {currentUser === 'admin_harold' && (
-                    <button
-                      id="mobile-tab-financial-metrics"
-                      onClick={() => setActiveTab('financial_metrics')}
-                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                        activeTab === 'financial_metrics'
-                          ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-lg shadow-indigo-600/15'
-                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
-                        <span className="text-xs font-semibold font-semibold">Métricas</span>
-                      </div>
-                      <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
-                        Finanzas
-                      </span>
-                    </button>
-                  )}
-
                   {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
                   {currentUser === 'admin_harold' && (
                     <button
@@ -2307,6 +2262,27 @@ export default function App() {
             <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
               Módulos Disponibles
             </span>
+
+            {/* TAB OPTION 6: FINANCIAL METRICS & MONTH-END CLOSE (MOVED TO TOP) */}
+            {currentUser === 'admin_harold' && (
+              <button
+                id="tab-financial-metrics"
+                onClick={() => setActiveTab('financial_metrics')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'financial_metrics'
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-lg shadow-indigo-600/15'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
+                  <span className="text-xs font-semibold">Métricas</span>
+                </div>
+                <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                  Finanzas
+                </span>
+              </button>
+            )}
 
             {/* TAB OPTION 0: ADVISOR CONSOLE (ONLY FOR ASESOR) */}
             {currentUser === 'asesor_juan' && (
@@ -2488,27 +2464,6 @@ export default function App() {
               </button>
             )}
 
-            {/* TAB OPTION 6: FINANCIAL METRICS & MONTH-END CLOSE (AVAILABLE TO ADMIN) */}
-            {currentUser === 'admin_harold' && (
-              <button
-                id="tab-financial-metrics"
-                onClick={() => setActiveTab('financial_metrics')}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                  activeTab === 'financial_metrics'
-                    ? 'bg-indigo-600 text-white font-bold border-indigo-500 shadow-lg shadow-indigo-600/15'
-                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
-                  <span className="text-xs font-semibold">Métricas</span>
-                </div>
-                <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
-                  Finanzas
-                </span>
-              </button>
-            )}
-
             {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
             {currentUser === 'admin_harold' && (
               <button
@@ -2639,34 +2594,6 @@ export default function App() {
 
           {/* MAIN MODULE ZONE */}
           <main className="lg:col-span-9">
-            {/* REAL-TIME SECURITY ALARM FOR Harold Salazar */}
-            {currentUser === 'admin_harold' && securityAlerts.some(a => a.status === 'PENDIENTE') && (
-              <div className="bg-gradient-to-r from-red-955 from-red-950/60 to-slate-950 border-2 border-red-600/40 p-5 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden mb-6 animate-pulse">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full blur-2xl" />
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-2xl bg-rose-500 text-slate-950 w-12 h-12 flex items-center justify-center shrink-0">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <div className="text-left space-y-1">
-                    <span className="bg-red-500/20 text-rose-400 border border-red-500/30 text-[9px] font-mono px-2 py-0.5 rounded font-black uppercase tracking-wider block w-fit">
-                      ALERTA ROJA - CONTROL PERIMETRAL DETECTADO
-                    </span>
-                    <h4 className="text-xs font-mono font-black text-white leading-tight uppercase">
-                      Intento de Bypass Crítico de @asesor_juan desde Dispositivo Móvil
-                    </h4>
-                    <p className="text-xs text-slate-400 max-w-xl">
-                      Se bloqueó alteración manual de Buró Interno para <strong className="text-slate-200">Roberto Martínez (CLI-003)</strong> a las 22:40:57. El sistema congeló de manera inmediata los accesos del asesor.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveTab('security_center')}
-                  className="bg-rose-600 hover:bg-rose-500 text-white border border-rose-550/20 shadow-md font-bold text-xs px-5 py-3 rounded-xl transition cursor-pointer shrink-0 uppercase tracking-tight font-sans text-center"
-                >
-                  Dictaminar Incidencia
-                </button>
-              </div>
-            )}
 
             {/* CONDITIONAL CHECK: USER SUSPENDED PREVENTS COMMERCE ACCESS */}
             {currentUser === 'asesor_juan' && isAsesorSuspended ? (
@@ -2781,11 +2708,14 @@ export default function App() {
                 )}
 
                 {activeTab === 'financial_metrics' && (
-                  <FinancialMetricsModule 
-                    clients={clients}
-                    setClients={setClients}
-                    onAddQueryLog={handleAddQueryLog}
-                  />
+                  <div className="space-y-6">
+                    <MetricCardPanel clients={clients} requests={requests} />
+                    <FinancialMetricsModule 
+                      clients={clients}
+                      setClients={setClients}
+                      onAddQueryLog={handleAddQueryLog}
+                    />
+                  </div>
                 )}
 
                 {activeTab === 'credit_simulation' && (

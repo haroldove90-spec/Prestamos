@@ -644,9 +644,8 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-indigo-400" />
-            Gestión Integrada de Cartera ({filteredClients.length})
+            Clientes Nuevos ({filteredClients.length})
           </h2>
-          <p className="text-xs text-slate-400">Expedientes consolidados, control de saldos y evaluación de riesgo comercial/personal.</p>
         </div>
         
         <div className="flex gap-2 flex-wrap items-center">

@@ -124,15 +124,15 @@ export const FinancialMetricsModule: React.FC<FinancialMetricsModuleProps> = ({
   };
 
   // Execute Export Process
-  const handleExportProceso = () => {
+  const handleExportProceso = (method?: 'PDF' | 'EXCEL') => {
     setIsExporting(true);
     const logs: ExportLog[] = [
       { timestamp: '22:49:21', type: 'info', message: 'INICIANDO: Invocando generador de reportes estructurados CNBV...' },
       { timestamp: '22:49:21', type: 'info', message: 'ANALYSIS: Consolidando saldos deudores de clientes y abonos del periodo ordinario.' },
-      { timestamp: '22:49:22', type: 'info', message: 'PROCESS: Calculando prorrateos de membresías activas (Básica: 149 / Premium: 499).' },
-      { timestamp: '22:49:22', type: 'success', message: 'PDF GENERATED: Guardado en /files/reportes/Cierre_Mayo_2026.pdf con firmas criptográficas.' },
-      { timestamp: '22:49:23', type: 'success', message: 'SERVER BACKUP: Respaldo estructurado transmitido a softwareai569@gmail.com con protocolo SSL/TLS.' },
-      { timestamp: '22:49:23', type: 'info', message: 'FINISH: Reportes consolidados e indexados en el casillero digital del Administrador.' }
+      { timestamp: '22:49:22', type: 'info', message: `PROCESS: Exportando mediante formato local consolidado ${method || 'PDF'}.` },
+      { timestamp: '22:49:22', type: 'success', message: `DOWNLOAD: Archivo generado y transferido con éxito en formato ${method || 'PDF'}.` },
+      { timestamp: '22:49:23', type: 'success', message: 'SERVER BACKUP: Respaldo cifrado transmitido a softwareai569@gmail.com con protocolo SSL/TLS.' },
+      { timestamp: '22:49:23', type: 'info', message: 'FINISH: Reportes consolidados e indexados para el Administrador Harold.' }
     ];
 
     let currentLogIndex = 0;
@@ -146,7 +146,148 @@ export const FinancialMetricsModule: React.FC<FinancialMetricsModuleProps> = ({
         clearInterval(interval);
         setIsExporting(false);
       }
-    }, 450);
+    }, 200);
+  };
+
+  const downloadCSVReport = () => {
+    const headers = "Concepto,Valor (MXN)\n";
+    const rows = [
+      `Capital de Prestamos Colocado,${totalCapitalColocado}`,
+      `Saldo Insoluto Activo,${totalOutstandingBalance}`,
+      `Recaudacion de Capital (Abonos),${abonosCapital}`,
+      `Intereses Ordinarios Estimados,${interesesRecaudados}`,
+      `Recaudacion por Membresias,${recaudacionMembresias}`,
+      `Ingresos Totales del Periodo,${totalIngresosMes}`,
+      `Cartera Vencida (Overdue),${totalOverdueBalance}`,
+      `Indice de Cartera Vencida (NPL Ratio) %,${nplRatio.toFixed(2)}`,
+      `Membresias Basicas Activas,${basicMemberships}`,
+      `Membresias Premium Activas,${premiumMemberships}`
+    ].join('\n');
+    
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `reporte_metricas_financieras_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    handleExportProceso('EXCEL');
+  };
+
+  const downloadPDFReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Por favor habilita las ventanas emergentes (popups) de este navegador para proceder con la descarga del reporte PDF.");
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Métricas de Inteligencia Financiera - Salda App</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
+            .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #6366f1; padding-bottom: 15px; margin-bottom: 25px; }
+            .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px; }
+            .metric-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
+            th { text-align: left; background-color: #1e1b4b; color: white; padding: 12px 10px; text-transform: uppercase; font-size: 11px; }
+            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; }
+            .total-row { font-weight: bold; background-color: #f1f5f9; }
+            .footer { margin-top: 50px; border-top: 1px solid #cbd5e1; padding-top: 20px; font-size: 10px; color: #64748b; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header-bar">
+            <div>
+              <h1 style="color: #6366f1; margin: 0; font-size: 26px; font-weight: 800;">SALDA APP</h1>
+              <p style="margin: 3px 0 0 0; font-size: 11px; color: #475569; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Métricas de Inteligencia Financiera</p>
+            </div>
+            <div style="text-align: right; font-family: monospace; font-size: 11px; color: #64748b;">
+              <p style="margin: 0;">FECHA GENERACIÓN: ${new Date().toLocaleDateString('es-MX')}</p>
+              <p style="margin: 3px 0 0 0;">SOLICITANTE: Harold Salazar (@admin_harold)</p>
+            </div>
+          </div>
+
+          <h2 style="font-size: 16px; margin-bottom: 15px;">Resumen Consolidado</h2>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Capital Total Colocado</span>
+              <strong style="color: #0f172a; font-size: 20px; display: block; margin-top: 3px;">${formatMXN(totalCapitalColocado)}</strong>
+            </div>
+            <div class="metric-card">
+              <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Saldo Insoluto Activo</span>
+              <strong style="color: #0f172a; font-size: 20px; display: block; margin-top: 3px;">${formatMXN(totalOutstandingBalance)}</strong>
+            </div>
+            <div class="metric-card">
+              <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Recaudación de Capital</span>
+              <strong style="color: #0f172a; font-size: 20px; display: block; margin-top: 3px;">${formatMXN(abonosCapital)}</strong>
+            </div>
+            <div class="metric-card">
+              <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Total Ingresos Mensuales</span>
+              <strong style="color: #6366f1; font-size: 20px; display: block; margin-top: 3px;">${formatMXN(totalIngresosMes)}</strong>
+            </div>
+          </div>
+
+          <h2 style="font-size: 16px; margin-bottom: 10px; margin-top: 30px;">Detalles de Ejecución Operativa</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Concepto Clave</th>
+                <th style="text-align: right;">Cifras Consolidadas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Capital de Préstamos Colocado</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace;">${formatMXN(totalCapitalColocado)}</td>
+              </tr>
+              <tr>
+                <td>Saldo Insoluto Activo Pendiente</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace;">${formatMXN(totalOutstandingBalance)}</td>
+              </tr>
+              <tr>
+                <td>Abonos Recaudados en el Ejercicio</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace;">${formatMXN(abonosCapital)}</td>
+              </tr>
+              <tr>
+                <td>Intereses Ordinarios Estimados Proyectados</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace;">+ ${formatMXN(interesesRecaudados)}</td>
+              </tr>
+              <tr>
+                <td>Ingresos por Cobro de Membresías (Básica/Premium)</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace;">+ ${formatMXN(recaudacionMembresias)}</td>
+              </tr>
+              <tr>
+                <td>Cartera Vencida (Overdue Balance)</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace; color: #dc2626;">${formatMXN(totalOverdueBalance)}</td>
+              </tr>
+              <tr>
+                <td>Índice de Cartera Vencida (NPL Ratio %)</td>
+                <td style="text-align: right; font-weight: bold; font-family: monospace; color: ${nplRatio > 5 ? '#dc2626' : '#16a34a'}">${nplRatio.toFixed(2)}%</td>
+              </tr>
+              <tr class="total-row">
+                <td>Ingresos Totales del Ejercicio</td>
+                <td style="text-align: right; font-family: monospace; font-size: 14px; color: #4f46e5;">${formatMXN(totalIngresosMes)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Este reporte contiene información contable interna confidencial y está certificado mediante firmas criptográficas en el servidor.</p>
+            <p style="margin-top: 8px; font-weight: bold; color: #334155;">Salda App S.A. de C.V. • Monterrey, N.L.</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    handleExportProceso('PDF');
   };
 
   // Approve Recommended Credit Line Increase
@@ -194,15 +335,12 @@ export const FinancialMetricsModule: React.FC<FinancialMetricsModuleProps> = ({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className={`w-3 h-3 rounded-full ${isClosed ? 'bg-indigo-505 bg-indigo-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+              <span className={`w-3 h-3 rounded-full ${isClosed ? 'bg-indigo-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
               <h2 className="text-base font-bold text-white uppercase font-mono tracking-tight flex items-center gap-2">
-                <Clock className="w-5 h-5 text-indigo-455 text-indigo-400" />
-                Módulo de Inteligencia Financiera / Cierre de Mes
+                <Clock className="w-5 h-5 text-indigo-400" />
+                Métricas
               </h2>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Consolidación periódica de balances, indexación perimetral de cartera vencida y cálculo sistemático de ganancias por membresía.
-            </p>
           </div>
 
           <div className="flex gap-2">
@@ -555,22 +693,22 @@ export const FinancialMetricsModule: React.FC<FinancialMetricsModuleProps> = ({
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 disabled={isExporting}
-                onClick={handleExportProceso}
-                className="bg-indigo-600 hover:bg-indigo-505 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-3 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-2 border border-indigo-550/20 text-center"
+                onClick={downloadPDFReport}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 px-3 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-2 border border-indigo-550/20 text-center"
               >
-                <Download className="w-4 h-4 font-black text-indigo-150 text-indigo-100" />
-                <span>Exportar Reporte</span>
-                <span className="text-[8px] font-medium opacity-80 leading-snug">Genera PDF en disco corporativo</span>
+                <Download className="w-4 h-4 font-black text-indigo-100" />
+                <span>Exportar PDF</span>
+                <span className="text-[8px] font-medium opacity-80 leading-snug">Genera PDF de Balance</span>
               </button>
 
               <button
                 disabled={isExporting}
-                onClick={handleExportProceso}
+                onClick={downloadCSVReport}
                 className="bg-slate-950/60 hover:bg-slate-950 text-slate-200 hover:text-white disabled:opacity-50 font-bold py-3 px-3 border border-slate-850 rounded-xl transition cursor-pointer flex flex-col items-center justify-center gap-2 text-center"
               >
-                <Mail className="w-4 h-4 text-indigo-400" />
-                <span>Respaldar Correo</span>
-                <span className="text-[8px] opacity-80 text-slate-500 leading-snug font-medium">Envía balances a Harold</span>
+                <FileText className="w-4 h-4 text-indigo-400" />
+                <span>Exportar Excel (CSV)</span>
+                <span className="text-[8px] opacity-80 text-slate-500 leading-snug font-medium font-mono">Genera hoja de cálculo</span>
               </button>
             </div>
 

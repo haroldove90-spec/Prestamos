@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calculator, Calendar, ClipboardList, Download, 
-  Printer, Sparkles, TrendingUp, RefreshCw, ChevronRight, Check, DollarSign, Award, ArrowUpRight
+  Printer, Sparkles, TrendingUp, RefreshCw, ChevronRight, Check, DollarSign, Award, ArrowUpRight,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Client } from '../types';
 
@@ -140,6 +141,25 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
       currency: 'MXN',
       maximumFractionDigits: 0
     }).format(val);
+  };
+
+  const handleExportCSV = () => {
+    const clientName = selectedClientId 
+      ? clients.find(c => c.id === selectedClientId)?.name || 'Prospecto Unificado'
+      : 'Prospecto General';
+      
+    const headers = "Periodo,Fecha de Vencimiento,Cuota Total (MXN),Abono a Capital (MXN),Intereses Ordinarios (MXN),Saldo Insoluto Restante (MXN)\n";
+    const rows = amortizationSchedule.map(p => 
+      `${p.period},"${p.date}",${p.payment.toFixed(2)},${p.capital.toFixed(2)},${p.interest.toFixed(2)},${p.balance.toFixed(2)}`
+    ).join('\n');
+    
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `simulacion_${clientName.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleExportPDF = () => {
@@ -288,14 +308,10 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl animate-pulse" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-widest block">Herramienta Financiera Real</span>
             <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-1">
               <Calculator className="w-5 h-5 text-indigo-400" />
-              Simulador de Créditos y Amortización
+              Simulador de Crédito
             </h2>
-            <p className="text-xs text-slate-300 mt-1 leading-normal max-w-xl">
-              Calcula cuotas ordinarias sobre saldos insolutos, sugiere tasas preferenciales para clientes VIP y genera la tabla de vencimientos que puedes exportar instantáneamente a PDF.
-            </p>
           </div>
 
           <div className="bg-slate-950 px-4 py-2 border border-slate-800 rounded-2xl flex items-center gap-3 font-mono text-[10px]">
@@ -395,10 +411,20 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
                     max="50"
                     value={rate}
                     onChange={(e) => setRate(parseFloat(e.target.value) || 14.5)}
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-indigo-500"
+                    disabled={currentUser !== 'admin_harold'}
+                    className={`w-full border text-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:border-indigo-500 ${
+                      currentUser === 'admin_harold' 
+                        ? 'bg-slate-950 border-slate-800 focus:ring-1 focus:ring-[#a1c60d]' 
+                        : 'bg-slate-900 border-slate-850/80 text-slate-500 cursor-not-allowed'
+                    }`}
                   />
                   <span className="absolute right-3 top-2.5 text-slate-500 text-[10px] font-mono font-bold">%</span>
                 </div>
+                {currentUser !== 'admin_harold' && (
+                  <p className="text-[9px] text-amber-500/80 font-semibold leading-tight mt-1">
+                    🔒 El Supervisor Harold Salazar bloqueó los ajustes a la tasa anual.
+                  </p>
+                )}
               </div>
 
               {/* Recurrence Frequency */}
@@ -417,21 +443,32 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-3 border-t border-slate-800 flex gap-2">
+            <div className="pt-3 border-t border-slate-800 grid grid-cols-3 gap-2">
               <button
                 onClick={handleSaveSimulation}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950 hover:bg-slate-850 text-slate-200 text-xs font-bold transition cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2.5 px-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950 hover:bg-slate-850 text-slate-200 text-[10px] font-bold transition cursor-pointer"
+                title="Guardar Simulación"
               >
-                <ClipboardList className="w-4 h-4 text-slate-450 text-indigo-400" />
-                Guardar Sim.
+                <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Guardar</span>
               </button>
               
               <button
                 onClick={handleExportPDF}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-550 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-indigo-650/10"
+                className="flex items-center justify-center gap-1 py-1 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-550 text-white text-[10px] font-bold transition cursor-pointer shadow-md"
+                title="Exportar a PDF"
               >
-                <Printer className="w-4 h-4" />
-                Exportar (PDF)
+                <Printer className="w-3.5 h-3.5" />
+                <span>Exp. PDF</span>
+              </button>
+
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center justify-center gap-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold transition cursor-pointer border border-slate-700"
+                title="Exportar a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Exp. Excel</span>
               </button>
             </div>
           </div>

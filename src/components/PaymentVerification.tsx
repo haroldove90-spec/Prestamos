@@ -22,6 +22,100 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
     payments.find(p => p.status === 'PENDIENTE')?.id || payments[0]?.id || null
   );
 
+  const exportPaymentsCSV = () => {
+    const headers = "ID Abono,Acreditado,Monto (MXN),Metodo Pago,Referencia,Fecha Operacion,Estado Conciliacion\n";
+    const rows = payments.map(p => 
+      `"${p.id}","${p.clientName}",${p.amount},"${p.method}","${p.reference}","${p.dateSubmitted}","${p.status}"`
+    ).join('\n');
+    
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `verificacion_pagos_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPaymentsPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Por favor habilita las ventanas emergentes (popups) de este navegador para proceder con la descarga del reporte PDF.");
+      return;
+    }
+
+    const paymentRows = payments.map(p => `
+      <tr style="border-bottom: 1px solid #e1e8ed;">
+        <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px;">${p.id}</td>
+        <td style="padding: 10px 8px;">
+          <div style="font-weight: bold; font-size: 13px; color: #1e293b;">${p.clientName}</div>
+          <div style="font-size: 11px; color: #64748b; font-family: monospace;">Ref: ${p.reference}</div>
+        </td>
+        <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px; text-align: right;">$${p.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+        <td style="padding: 10px 8px; font-size: 11px; text-align: center;">${p.method}</td>
+        <td style="padding: 10px 8px; font-family: monospace; font-size: 11px; text-align: center; color: #475569;">${p.dateSubmitted}</td>
+        <td style="padding: 10px 8px; text-align: center; font-weight: bold; font-size: 10px; font-family: monospace; color: ${p.status === 'PENDIENTE' ? '#d97706' : p.status === 'PAGO_REALIZADO' ? '#059669' : '#dc2626'}">
+          ${p.status === 'PENDIENTE' ? 'PENDIENTE' : p.status === 'PAGO_REALIZADO' ? 'APROBADO' : 'RECHAZADO'}
+        </td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Reporte de Historial Operativo de Transacciones Entrantes</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; padding: 40px; margin: 0; background-color: #ffffff; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 30px; }
+            .logo-text { font-size: 22px; font-weight: bold; color: #10b981; text-transform: uppercase; letter-spacing: 1px; }
+            .metadata { text-align: right; font-size: 11px; color: #64748b; line-height: 1.5; }
+            .title { text-align: center; margin-bottom: 25px; }
+            .title h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+            th { background-color: #f8fafc; padding: 10px 8px; text-align: left; font-weight: bold; border-bottom: 2px solid #cbd5e1; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px; color: #475569; }
+            .footer { border-top: 1px dashed #cbd5e1; margin-top: 50px; padding-top: 15px; text-align: center; font-size: 10px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-text">SALDA APP</div>
+            <div class="metadata">
+              <p>FECHA: ${new Date().toLocaleDateString('es-MX')}</p>
+              <p>EMISIÓN: Harold Salazar (Admin Supervisor)</p>
+            </div>
+          </div>
+          <div class="title">
+            <h1>Verificación de Pagos e Historial de Transacciones</h1>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID Abono</th>
+                <th>Acreditado</th>
+                <th style="text-align: right;">Monto</th>
+                <th style="text-align: center;">Método</th>
+                <th style="text-align: center;">Fecha Carga</th>
+                <th style="text-align: center;">Estado Cobro</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paymentRows}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Salda App S.A. de C.V. • Historial auditado de ingresos conciliados en caja.</p>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   // Filter payments list
   const filteredPayments = payments.filter(p => {
     if (filter === 'TODOS') return true;
@@ -46,18 +140,30 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <span className="text-[10px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block">AUDITORÍA GESTIÓN COBRANZA</span>
             <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-1">
               <FileCheck2 className="w-5 h-5 text-[#a3c90e]" />
-              Verificación de Abonos y Evidencia Visual
+              Verificación de Pagos
             </h2>
-            <p className="text-xs text-slate-300 mt-1 leading-normal max-w-xl">
-              Revisa y procesa en tiempo real las capturas y fotografías tomadas por los acreditados. Al aprobar, el abono se aplicará automáticamente a la cartera vencida o saldo activo.
-            </p>
           </div>
 
-          {/* Quick Counter Badges */}
-          <div className="flex gap-2 font-mono text-[10px]">
+          {/* Quick Counter Badges & Export Buttons */}
+          <div className="flex gap-2 font-mono text-[10px] items-center flex-wrap">
+            <button
+              onClick={exportPaymentsCSV}
+              className="bg-slate-950 hover:bg-slate-800 text-slate-100 border border-slate-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer font-sans text-[11px]"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
+              Exp. Excel
+            </button>
+
+            <button
+              onClick={exportPaymentsPDF}
+              className="bg-slate-950 hover:bg-slate-800 text-slate-100 border border-slate-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer font-sans text-[11px]"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-indigo-400" />
+              Exp. PDF
+            </button>
+
             <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1.5 rounded-xl font-bold">
               {payments.filter(p => p.status === 'PENDIENTE').length} Pnd
             </span>

@@ -27,6 +27,102 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
   const pendingRequests = requests.filter(r => r.status === 'PENDIENTE');
   const resolvedRequests = requests.filter(r => r.status !== 'PENDIENTE');
 
+  const exportRequestsCSV = () => {
+    const headers = "ID Solicitud,Solicitante,Monto Solicitado,Proposito,Segmento,Score Consulta,Fecha Envio,Estado Actual\n";
+    const rows = requests.map(r => 
+      `"${r.id}","${r.clientName}",${r.requestedAmount},"${r.purpose}","${r.category}",${r.score},"${r.dateSubmitted}","${r.status}"`
+    ).join('\n');
+    
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(headers + rows);
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `solicitudes_credito_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportRequestsPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Por favor habilita las ventanas emergentes (popups) de este navegador para proceder con la descarga del reporte PDF.");
+      return;
+    }
+
+    const requestRows = requests.map(r => `
+      <tr style="border-bottom: 1px solid #e1e8ed;">
+        <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px;">${r.id}</td>
+        <td style="padding: 10px 8px;">
+          <div style="font-weight: bold; font-size: 13px; color: #1e293b;">${r.clientName}</div>
+          <div style="font-size: 11px; color: #64748b;">Motivo: ${r.purpose}</div>
+        </td>
+        <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px; color: #1e1b4b; text-align: right;">$${r.requestedAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+        <td style="padding: 10px 8px; font-family: monospace; font-size: 11px; text-align: center;">${r.category}</td>
+        <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: ${r.score >= 700 ? '#10b981' : r.score >= 600 ? '#d97706' : '#dc2626'}; font-family: monospace; font-size: 11px;">${r.score}</td>
+        <td style="padding: 10px 8px; font-family: monospace; font-size: 11px; text-align: center; color: #475569;">${r.dateSubmitted}</td>
+        <td style="padding: 10px 8px; text-align: center; font-weight: bold; font-size: 10.5px; font-family: monospace; color: ${r.status === 'PENDIENTE' ? '#d97706' : r.status === 'APROBADO' ? '#059669' : '#dc2626'}">
+          ${r.status}
+        </td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Reporte de Solicitudes y Dictámenes de Crédito</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; padding: 40px; margin: 0; background-color: #ffffff; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 30px; }
+            .logo-text { font-size: 22px; font-weight: bold; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; }
+            .metadata { text-align: right; font-size: 11px; color: #64748b; line-height: 1.5; }
+            .title { text-align: center; margin-bottom: 25px; }
+            .title h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 0.5px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+            th { background-color: #f8fafc; padding: 10px 8px; text-align: left; font-weight: bold; border-bottom: 2px solid #cbd5e1; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.5px; color: #475569; }
+            .footer { border-top: 1px dashed #cbd5e1; margin-top: 50px; padding-top: 15px; text-align: center; font-size: 10px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-text">SALDA APP</div>
+            <div class="metadata">
+              <p>FECHA: ${new Date().toLocaleDateString('es-MX')}</p>
+              <p>EMISIÓN: Harold Salazar (Admin)</p>
+            </div>
+          </div>
+          <div class="title">
+            <h1>Historial y Dictamen de Solicitudes de Crédito</h1>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID Solicitud</th>
+                <th>Acreditado</th>
+                <th style="text-align: right;">Monto Solicitado</th>
+                <th style="text-align: center;">Segmento</th>
+                <th style="text-align: center;">Score</th>
+                <th style="text-align: center;">Fecha Envio</th>
+                <th style="text-align: center;">Dictamen</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${requestRows}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Salda App S.A. de C.V. • Control del Consolidado de Créditos Oficial.</p>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!candName || !purpose) {
@@ -67,20 +163,35 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
           <div>
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-indigo-400" />
-              Triage y Pipeline de Solicitudes
+              Autorización de Créditos
             </h2>
-            <p className="text-xs text-slate-400">
-              Analiza solicitudes entrantes, evalúa el score y decide aprobación expedita o rechazo por riesgo.
-            </p>
           </div>
 
-          <button
-            onClick={() => setIsSimulatingReq(!isSimulatingReq)}
-            className="bg-indigo-650 hover:bg-slate-800 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md border border-indigo-500/40"
-          >
-            <Plus className="w-4 h-4" />
-            Simular Solicitud Entrante
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={exportRequestsCSV}
+              className="border border-slate-700 bg-slate-800 hover:bg-slate-705 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-semibold px-3 py-2 rounded-xl transition duration-150 flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              Exportar Excel
+            </button>
+
+            <button
+              onClick={exportRequestsPDF}
+              className="border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-semibold px-3 py-2 rounded-xl transition duration-150 flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" />
+              Exportar PDF
+            </button>
+
+            <button
+              onClick={() => setIsSimulatingReq(!isSimulatingReq)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-md border border-indigo-500/40"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Simular Solicitud Entrante
+            </button>
+          </div>
         </div>
 
         {isSimulatingReq && (
