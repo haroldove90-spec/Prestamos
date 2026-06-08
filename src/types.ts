@@ -19,6 +19,7 @@ export interface Client {
   category: 'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario';
   joinDate: string;
   membership?: 'Ninguna' | 'Básica' | 'Premium';
+  active?: boolean;
 }
 
 export interface CreditRequest {

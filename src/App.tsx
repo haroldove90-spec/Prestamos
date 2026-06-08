@@ -12,6 +12,7 @@ import { FinancialMetricsModule } from './components/FinancialMetricsModule';
 import { ClientPortal } from './components/ClientPortal';
 import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
+import { CreditSimulation } from './components/CreditSimulation';
 import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
 import { 
   INITIAL_CLIENTS, 
@@ -159,7 +160,7 @@ export default function App() {
     return user;
   };
 
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation'>('portfolio');
 
   const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
     const local = localStorage.getItem('buro_dossiers');
@@ -957,6 +958,37 @@ export default function App() {
       setSecurityAlerts([]);
       setActiveTab('portfolio');
     }
+  };
+
+  // UPDATE CLIENT WITH NEW VALUES (EDIT OR DEACTIVATE)
+  const handleUpdateClient = (updatedClient: Client) => {
+    setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+    
+    const newQueryLog: BureauQueryLog = {
+      id: `Q-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: updatedClient.name,
+      requestedBy: currentUser || 'admin_harold',
+      scoreFound: updatedClient.creditScore,
+      resolution: `✓ ACTUALIZACIÓN COMERCIAL: Expediente de cliente ${updatedClient.id} actualizado con éxito en Consola. Estatus Activo: ${updatedClient.active !== false ? 'SÍ' : 'NO'}.`
+    };
+    setQueries(prev => [newQueryLog, ...prev]);
+  };
+
+  // DELETE CLIENT PERMANENTLY
+  const handleDeleteClient = (clientId: string) => {
+    const target = clients.find(c => c.id === clientId);
+    setClients(prev => prev.filter(c => c.id !== clientId));
+
+    const newQueryLog: BureauQueryLog = {
+      id: `Q-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: target ? target.name : `Cliente ${clientId}`,
+      requestedBy: currentUser || 'admin_harold',
+      scoreFound: target ? target.creditScore : 600,
+      resolution: `⚠️ BAJA DE CARTERA: Expediente ${clientId} eliminado permanentemente de la Consola Central por Harold Salazar.`
+    };
+    setQueries(prev => [newQueryLog, ...prev]);
   };
 
   // ADD NEW CLIENT
@@ -1921,7 +1953,7 @@ export default function App() {
                   )}
 
                   {/* TAB OPTION 0.5: CAJERA DASHBOARD (ONLY FOR CAJERA/SUPER ADMIN) */}
-                  {(currentUser === 'cajera_lucia' || currentUser === 'admin_harold') && (
+                  {currentUser === 'cajera_lucia' && (
                     <button
                       id="mobile-tab-cajera-dashboard"
                       onClick={() => setActiveTab('cajera_dashboard')}
@@ -1938,7 +1970,7 @@ export default function App() {
                       <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
                         activeTab === 'cajera_dashboard'
                           ? 'bg-slate-950 text-blue-400 border-blue-500/30 font-bold'
-                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20 font-bold'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-505/20 font-bold'
                       }`}>
                         RECAUDACIÓN
                       </span>
@@ -1957,7 +1989,9 @@ export default function App() {
                   >
                     <div className="flex items-center gap-3">
                       <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">Gestión de Cartera</span>
+                      <span className="text-xs font-semibold font-semibold">
+                        {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
+                      </span>
                     </div>
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                       activeTab === 'portfolio' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-slate-400'
@@ -1967,30 +2001,32 @@ export default function App() {
                   </button>
 
                   {/* TAB OPTION 2: BUREAU INTEL & STRESS (SUPERVISOR RESTRICTED ACCORDING TO ROLE) */}
-                  <button
-                    id="mobile-tab-bureau-lookup"
-                    onClick={() => {
-                      if (currentUser !== 'admin_harold') {
-                        alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
-                      }
-                      setActiveTab('bureau');
-                    }}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'bureau'
-                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">Buró de Inteligencia</span>
-                    </div>
-                    <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
-                      activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
-                    }`}>
-                      {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
-                    </span>
-                  </button>
+                  {currentUser !== 'admin_harold' && (
+                    <button
+                      id="mobile-tab-bureau-lookup"
+                      onClick={() => {
+                        if (currentUser !== 'admin_harold') {
+                          alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
+                        }
+                        setActiveTab('bureau');
+                      }}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'bureau'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
+                        <span className="text-xs font-semibold">Buró de Inteligencia</span>
+                      </div>
+                      <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
+                        activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
+                      }`}>
+                        {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
+                      </span>
+                    </button>
+                  )}
 
                   {/* TAB OPTION 3: REQUESTS PIPELINE */}
                   <button
@@ -2004,7 +2040,9 @@ export default function App() {
                   >
                     <div className="flex items-center gap-3">
                       <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">Pipeline Aprobaciones</span>
+                      <span className="text-xs font-semibold">
+                        {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
+                      </span>
                     </div>
                     <div className="flex gap-1.5 items-center">
                       {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
@@ -2019,33 +2057,35 @@ export default function App() {
                   </button>
 
                   {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-                  <button
-                    id="mobile-tab-memberships-management"
-                    onClick={() => {
-                      if (currentUser !== 'admin_harold') {
-                        alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
-                      }
-                      setActiveTab('memberships');
-                    }}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'memberships'
-                        ? 'bg-amber-500 text-slate-950 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-950 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
-                      <span className="text-xs font-semibold">Módulo de Membresías</span>
-                    </div>
-                    <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
-                      activeTab === 'memberships' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-                    }`}>
-                      VIP ACTIVO
-                    </span>
-                  </button>
+                  {currentUser !== 'admin_harold' && (
+                    <button
+                      id="mobile-tab-memberships-management"
+                      onClick={() => {
+                        if (currentUser !== 'admin_harold') {
+                          alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
+                        }
+                        setActiveTab('memberships');
+                      }}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'memberships'
+                          ? 'bg-amber-500 text-slate-950 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-950 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
+                        <span className="text-xs font-semibold">Módulo de Membresías</span>
+                      </div>
+                      <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
+                        activeTab === 'memberships' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        VIP ACTIVO
+                      </span>
+                    </button>
+                  )}
 
                   {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
-                  {currentUser === 'admin_harold' && (
+                  {currentUser !== 'admin_harold' && currentUser === 'admin_harold' && (
                     <button
                       id="mobile-tab-security-audit"
                       onClick={() => setActiveTab('security_center')}
@@ -2060,7 +2100,7 @@ export default function App() {
                         <span className="text-xs font-semibold">Auditoría de Seguridad</span>
                       </div>
                       {securityAlerts.some(a => a.status === 'PENDIENTE') ? (
-                        <span className="bg-rose-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse font-mono tracking-tighter">
+                        <span className="bg-rose-550 bg-rose-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse font-mono tracking-tighter">
                           ALERTA ROJA
                         </span>
                       ) : (
@@ -2084,7 +2124,7 @@ export default function App() {
                     >
                       <div className="flex items-center gap-3">
                         <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
-                        <span className="text-xs font-semibold">Informes & Cierre de Mes</span>
+                        <span className="text-xs font-semibold font-semibold">Métricas</span>
                       </div>
                       <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
                         Finanzas
@@ -2092,43 +2132,68 @@ export default function App() {
                     </button>
                   )}
 
+                  {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-credit-simulation"
+                      onClick={() => setActiveTab('credit_simulation')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'credit_simulation'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                          : 'bg-slate-955 bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Layers className={`w-4 h-4 ${activeTab === 'credit_simulation' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                        <span className="text-xs font-semibold font-semibold font-semibold">Simulador de Crédito</span>
+                      </div>
+                      <span className="bg-slate-950 text-[#a3c90e] text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                        Simulación
+                      </span>
+                    </button>
+                  )}
+
                   {/* EXPEDIENTES (NUEVO MODULO) */}
-                  <button
-                    id="mobile-tab-dossiers"
-                    onClick={() => setActiveTab('dossiers')}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'dossiers'
-                        ? 'bg-indigo-650 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-550/20'
-                        : 'bg-slate-950 text-indigo-400 border-slate-800 hover:text-white font-bold'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-400'}`} />
-                      <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
-                    </div>
-                    <span className="text-[9px] bg-indigo-505 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
-                      NUEVO
-                    </span>
-                  </button>
+                  {currentUser !== 'admin_harold' && (
+                    <button
+                      id="mobile-tab-dossiers"
+                      onClick={() => setActiveTab('dossiers')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'dossiers'
+                          ? 'bg-indigo-650 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-550/20'
+                          : 'bg-slate-950 text-indigo-400 border-slate-800 hover:text-white font-bold'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-400'}`} />
+                        <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
+                      </div>
+                      <span className="text-[9px] bg-indigo-505 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
+                        NUEVO
+                      </span>
+                    </button>
+                  )}
 
                   {/* PORTAL DE CLIENTES (DEMO) */}
-                  <button
-                    id="mobile-tab-client-portal"
-                    onClick={() => setActiveTab('client_portal')}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'client_portal'
-                        ? 'bg-emerald-600 font-bold border-emerald-400 shadow-lg text-white'
-                        : 'bg-slate-950 text-[#a3c90e] border-[#a3c90e]/25 hover:text-white font-bold'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
-                      <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
-                    </div>
-                    <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
-                      CLIENTE
-                    </span>
-                  </button>
+                  {currentUser !== 'admin_harold' && (
+                    <button
+                      id="mobile-tab-client-portal"
+                      onClick={() => setActiveTab('client_portal')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'client_portal'
+                          ? 'bg-emerald-600 font-bold border-emerald-400 shadow-lg text-white'
+                          : 'bg-slate-950 text-[#a3c90e] border-[#a3c90e]/25 hover:text-white font-bold'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
+                        <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+                      </div>
+                      <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
+                        CLIENTE
+                      </span>
+                    </button>
+                  )}
 
                   {/* VERIFICACION DE PAGOS CON COMPROBANTE */}
                   {(currentUser === 'admin_harold' || currentUser === 'cajera_lucia') && (
@@ -2142,8 +2207,10 @@ export default function App() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <FileCheck2 className={`w-4 h-4 ${activeTab === 'payment_verification' ? 'text-slate-950' : 'text-amber-400 animate-bounce'}`} />
-                        <span className="text-xs font-semibold">Validación de Abonos</span>
+                        <FileCheck2 className={`w-4 h-4 ${activeTab === 'payment_verification' ? 'text-slate-955' : 'text-amber-450 animate-bounce'}`} />
+                        <span className="text-xs font-semibold">
+                          {currentUser === 'admin_harold' ? 'Verificación de Pagos' : 'Validación de Abonos'}
+                        </span>
                       </div>
                       <div className="flex gap-1 items-center">
                         {clientPayments.filter(p => p.status === 'PENDIENTE').length > 0 && (
@@ -2263,7 +2330,7 @@ export default function App() {
             )}
 
             {/* TAB OPTION 0.5: CAJERA DASHBOARD (ONLY FOR CAJERA/SUPER ADMIN) */}
-            {(currentUser === 'cajera_lucia' || currentUser === 'admin_harold') && (
+            {currentUser === 'cajera_lucia' && (
               <button
                 id="tab-cajera-dashboard"
                 onClick={() => setActiveTab('cajera_dashboard')}
@@ -2299,7 +2366,9 @@ export default function App() {
             >
               <div className="flex items-center gap-3">
                 <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
-                <span className="text-xs font-semibold">Gestión de Cartera</span>
+                <span className="text-xs font-semibold">
+                  {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
+                </span>
               </div>
               <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                 activeTab === 'portfolio' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-slate-400'
@@ -2309,30 +2378,32 @@ export default function App() {
             </button>
 
             {/* TAB OPTION 2: BUREAU INTEL & STRESS (SUPERVISOR RESTRICTED ACCORDING TO ROLE) */}
-            <button
-              id="tab-bureau-lookup"
-              onClick={() => {
-                if (currentUser !== 'admin_harold') {
-                  alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
-                }
-                setActiveTab('bureau');
-              }}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'bureau'
-                  ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                  : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
-                <span className="text-xs font-semibold">Buró de Inteligencia</span>
-              </div>
-              <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
-                activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
-              }`}>
-                {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
-              </span>
-            </button>
+            {currentUser !== 'admin_harold' && (
+              <button
+                id="tab-bureau-lookup"
+                onClick={() => {
+                  if (currentUser !== 'admin_harold') {
+                    alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
+                  }
+                  setActiveTab('bureau');
+                }}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'bureau'
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="text-xs font-semibold">Buró de Inteligencia</span>
+                </div>
+                <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
+                  activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
+                }`}>
+                  {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
+                </span>
+              </button>
+            )}
 
             {/* TAB OPTION 3: REQUESTS PIPELINE */}
             <button
@@ -2346,7 +2417,9 @@ export default function App() {
             >
               <div className="flex items-center gap-3">
                 <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
-                <span className="text-xs font-semibold">Pipeline Aprobaciones</span>
+                <span className="text-xs font-semibold">
+                  {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
+                </span>
               </div>
               <div className="flex gap-1.5 items-center">
                 {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
@@ -2361,8 +2434,9 @@ export default function App() {
             </button>
 
             {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-            <button
-              id="tab-memberships-management"
+            {currentUser !== 'admin_harold' && (
+              <button
+                id="tab-memberships-management"
               onClick={() => {
                 if (currentUser !== 'admin_harold') {
                   alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
@@ -2385,9 +2459,10 @@ export default function App() {
                 VIP ACTIVO
               </span>
             </button>
+            )}
 
             {/* TAB OPTION 5: SECURITY AUDIT DIVISION (AVAILABLE TO ADMIN) */}
-            {currentUser === 'admin_harold' && (
+            {currentUser !== 'admin_harold' && currentUser === 'admin_harold' && (
               <button
                 id="tab-security-audit"
                 onClick={() => setActiveTab('security_center')}
@@ -2426,7 +2501,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <TrendingUp className={`w-4 h-4 ${activeTab === 'financial_metrics' ? 'text-white' : 'text-emerald-400'}`} />
-                  <span className="text-xs font-semibold">Informes & Cierre de Mes</span>
+                  <span className="text-xs font-semibold">Métricas</span>
                 </div>
                 <span className="bg-slate-955 bg-slate-950 text-indigo-400 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
                   Finanzas
@@ -2434,43 +2509,68 @@ export default function App() {
               </button>
             )}
 
+            {/* TAB OPTION 7: CREDIT SIMULATION (AVAILABLE TO ADMIN) */}
+            {currentUser === 'admin_harold' && (
+              <button
+                id="tab-credit-simulation"
+                onClick={() => setActiveTab('credit_simulation')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'credit_simulation'
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
+                    : 'bg-slate-900 hover:bg-slate-850/85 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Layers className={`w-4 h-4 ${activeTab === 'credit_simulation' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                  <span className="text-xs font-semibold">Simulador de Crédito</span>
+                </div>
+                <span className="bg-slate-950 text-[#a3c90e] text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded uppercase font-bold">
+                  Simulación
+                </span>
+              </button>
+            )}
+
             {/* TAB OPTION: EXPEDIENTES (NUEVO MODULO) */}
-            <button
-              id="tab-dossiers"
-              onClick={() => setActiveTab('dossiers')}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'dossiers'
-                  ? 'bg-indigo-600 font-bold border-indigo-450 shadow-lg text-white'
-                  : 'bg-slate-900 hover:bg-slate-850/80 text-indigo-400 hover:text-white border-slate-800 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-450'}`} />
-                <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
-              </div>
-              <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
-                NUEVO
-              </span>
-            </button>
+            {currentUser !== 'admin_harold' && (
+              <button
+                id="tab-dossiers"
+                onClick={() => setActiveTab('dossiers')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'dossiers'
+                    ? 'bg-indigo-600 font-bold border-indigo-450 shadow-lg text-white'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-indigo-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className={`w-4 h-4 ${activeTab === 'dossiers' ? 'text-white' : 'text-indigo-450'}`} />
+                  <span className="text-xs font-bold text-slate-200">Expedientes (Préstamos)</span>
+                </div>
+                <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 px-1.5 py-0.5 rounded font-mono font-black animate-pulse">
+                  NUEVO
+                </span>
+              </button>
+            )}
 
             {/* TAB OPTION: PORTAL CLIENTES (DEMO) */}
-            <button
-              id="tab-client-portal"
-              onClick={() => setActiveTab('client_portal')}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'client_portal'
-                  ? 'bg-emerald-650 bg-emerald-600 text-white font-bold border-emerald-400 shadow-lg shadow-emerald-500/10'
-                  : 'bg-slate-900 hover:bg-slate-850/80 text-[#a3c90e] border-[#a3c90e]/25 font-bold'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
-              </div>
-              <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
-                CLIENTE
-              </span>
-            </button>
+            {currentUser !== 'admin_harold' && (
+              <button
+                id="tab-client-portal"
+                onClick={() => setActiveTab('client_portal')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'client_portal'
+                    ? 'bg-emerald-650 bg-emerald-600 text-white font-bold border-emerald-400 shadow-lg shadow-emerald-500/10'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-[#a3c90e] border-[#a3c90e]/25 font-bold'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+                </div>
+                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
+                  CLIENTE
+                </span>
+              </button>
+            )}
 
             {/* TAB OPTION: VERIFICACION DE PAGOS CON COMPROBANTE */}
             {(currentUser === 'admin_harold' || currentUser === 'cajera_lucia') && (
@@ -2485,7 +2585,9 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <FileCheck2 className={`w-4 h-4 ${activeTab === 'payment_verification' ? 'text-slate-950' : 'text-amber-400 animate-bounce'}`} />
-                  <span className="text-xs font-semibold">Validación de Abonos</span>
+                  <span className="text-xs font-semibold">
+                    {currentUser === 'admin_harold' ? 'Verificación de Pagos' : 'Validación de Abonos'}
+                  </span>
                 </div>
                 <div className="flex gap-1 items-center">
                   {clientPayments.filter(p => p.status === 'PENDIENTE').length > 0 && (
@@ -2615,6 +2717,8 @@ export default function App() {
                     clients={clients} 
                     onAddClient={handleAddClient} 
                     onImportClients={handleImportClients}
+                    onUpdateClient={handleUpdateClient}
+                    onDeleteClient={handleDeleteClient}
                   />
                 )}
 
@@ -2681,6 +2785,13 @@ export default function App() {
                     clients={clients}
                     setClients={setClients}
                     onAddQueryLog={handleAddQueryLog}
+                  />
+                )}
+
+                {activeTab === 'credit_simulation' && (
+                  <CreditSimulation 
+                    clients={clients}
+                    currentUser={currentUser}
                   />
                 )}
 
