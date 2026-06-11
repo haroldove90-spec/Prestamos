@@ -386,12 +386,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="text-[10px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block">Portal de Autoservicio</span>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-1">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-1" id="client-greeting-title">
               <Smartphone className="w-5 h-5 text-[#a3c90e]" />
-              Mi Cuenta y Servicios
+              Hola, {activeClient?.name || 'Cliente'}
             </h2>
             <p className="text-xs text-slate-300 mt-1 max-w-xl">
-              Bienvenido a tu panel personal. Consulta tu préstamo activo, gestiona el estatus de tus pagos o solicita financiamiento complementario al instante.
+              Bienvenido a tu panel personal de autoservicio. Consulta tu préstamo activo, gestiona el estatus de tus pagos o solicita financiamiento complementario al instante.
             </p>
           </div>
 

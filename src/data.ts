@@ -27,6 +27,8 @@ export const INITIAL_CLIENTS: Client[] = [
     delinquencyDays: 0,
     category: 'Comercial',
     joinDate: '2024-01-10',
+    username: 'carlos',
+    password: 'password',
     membership: 'Premium'
   },
   {
@@ -42,6 +44,8 @@ export const INITIAL_CLIENTS: Client[] = [
     delinquencyDays: 35,
     category: 'Personal',
     joinDate: '2025-11-12',
+    username: 'ana',
+    password: 'password',
     membership: 'Ninguna'
   },
   {
@@ -252,6 +256,8 @@ export const INITIAL_CLIENTS: Client[] = [
     delinquencyDays: 90,
     category: 'Personal',
     joinDate: '2025-05-11',
+    username: 'esperanza',
+    password: 'password',
     membership: 'Ninguna'
   },
   {

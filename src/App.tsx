@@ -311,6 +311,10 @@ export default function App() {
   };
 
   // Registration form states
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -1418,58 +1422,126 @@ export default function App() {
           )}
 
           {homeSubView === 'client_options' && (
-            <div className="w-full max-w-lg bg-slate-900/50 border border-slate-800 p-8 rounded-3xl space-y-6 animate-fade-in text-center">
-              <div className="text-center space-y-2">
-                <span className="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-widest block">Portal de Autoservicio</span>
-                <h4 className="text-lg font-black text-white">¿Cómo deseas ingresar?</h4>
-                <p className="text-xs text-slate-400">Selecciona si eres un cliente registrado con demostración de deuda o si deseas auto-registrarte para solicitar un nuevo préstamo.</p>
+            <div className="w-full max-w-lg bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[32px] space-y-6 animate-fade-in relative overflow-hidden" id="client-login-card">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl animate-pulse" />
+              
+              <div className="border-b border-slate-800 pb-4 text-center sm:text-left">
+                <span className="text-[9px] font-mono font-black text-indigo-400 uppercase tracking-widest block">Acceso de Clientes</span>
+                <h3 className="text-lg font-bold text-white mt-1">Ingresar a mi Cuenta</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-normal">
+                  Ingresa tu usuario o clave única ID y contraseña para consultar tus saldos, reportar tus comprobantes de pago o simular créditos.
+                </p>
               </div>
 
-              <div className="flex flex-col gap-4">
-                {/* Option A: Demo Client */}
-                <button
-                  onClick={() => {
-                    setCurrentUser('cliente_esperanza');
-                    setActiveTab('client_portal');
-                    setIsHome(false);
-                    playSynthesizedSound('success');
-                  }}
-                  className="p-4 rounded-2xl bg-slate-950/65 border border-slate-800 hover:border-indigo-500 hover:bg-slate-950 hover:border-indigo-500/45 text-left transition duration-150 flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
-                      CE
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-white group-hover:text-indigo-400 transition">Cliente Demo Esperanza (Con Deuda)</h4>
-                      <p className="text-[10px] text-slate-400">Ver saldos, reportar tickets SPEI/Oxxo y simular abonos.</p>
-                    </div>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-slate-500 -rotate-90" />
-                </button>
+              {/* Login Form */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setLoginError('');
+                  const cleanUsername = loginUsername.trim().toLowerCase();
+                  
+                  // Search client in memory
+                  const matchedClient = clients.find(c => 
+                    (c.username && c.username.toLowerCase() === cleanUsername) || 
+                    (c.id.toLowerCase() === cleanUsername) ||
+                    (c.email && c.email.toLowerCase() === cleanUsername)
+                  );
 
+                  if (!matchedClient) {
+                    setLoginError('El usuario o ID ingresado no está registrado.');
+                    playSynthesizedSound('warning');
+                    return;
+                  }
+
+                  if (matchedClient.password && matchedClient.password !== loginPassword) {
+                    setLoginError('Contraseña incorrecta. Por favor, intente de nuevo.');
+                    playSynthesizedSound('warning');
+                    return;
+                  }
+
+                  // Login successful!
+                  const targetUserStr = 'cliente_' + (matchedClient.username || matchedClient.id).toLowerCase();
+                  setCurrentUser(targetUserStr);
+                  setActiveTab('client_portal');
+                  setIsHome(false);
+                  playSynthesizedSound('success');
+
+                  // Reset fields
+                  setLoginUsername('');
+                  setLoginPassword('');
+                  setLoginError('');
+                }}
+                className="space-y-4"
+              >
+                {loginError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/25 text-red-500 text-xs rounded-xl flex items-center gap-2 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre de Usuario o ID de Cliente *:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. esperanza o PM-327072"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                    id="login-username-input"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña *:</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Ingrese su contraseña"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    id="login-password-input"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 active:scale-95 duration-100 mt-2"
+                  id="submit-login-button"
+                >
+                  <Smartphone className="w-4 h-4 animate-bounce" />
+                  Iniciar Sesión en el Dashboard
+                </button>
+              </form>
+
+              <div className="pt-4 border-t border-slate-800/60 flex flex-col gap-3">
+                <span className="text-[10px] uppercase font-mono text-slate-500 text-center">¿Nuevo en Salda App?</span>
+                
                 {/* Option B: New Registration */}
                 <button
                   onClick={() => {
                     setHomeSubView('client_register');
                     playSynthesizedSound('success');
                   }}
-                  className="p-4 rounded-2xl bg-slate-950/65 border border-[#a3c90e]/15 hover:border-[#a3c90e] hover:bg-slate-950 text-left transition duration-150 flex items-center justify-between cursor-pointer group"
+                  className="p-3.5 rounded-2xl bg-slate-950/45 border border-[#a3c90e]/15 hover:border-[#a3c90e] hover:bg-slate-950/80 text-left transition duration-150 flex items-center justify-between cursor-pointer group"
+                  id="go-to-register-button"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                    <div className="w-8 h-8 rounded-full bg-[#a3c90e]/10 text-[#a3c90e] flex items-center justify-center font-bold text-xs shrink-0 font-mono">
                       +
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-white group-hover:text-[#a3c90e] transition">¡Auto-Registro de Nuevo Cliente!</h4>
-                      <p className="text-[10px] text-slate-400">Sube tu INE/identificación, comprobante y solicita préstamo hoy.</p>
+                      <h4 className="text-xs font-bold text-white group-hover:text-[#a3c90e] transition">¡Crear Cuenta y Solicitar Préstamo!</h4>
+                      <p className="text-[9px] text-slate-400">Auto-registro digital con INE y comprobantes en segundos.</p>
                     </div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-500 -rotate-90" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 -rotate-90" />
                 </button>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 text-center">
                 <button
                   onClick={() => setHomeSubView('roles')}
                   className="text-xs text-slate-400 hover:text-white font-mono underline cursor-pointer bg-transparent border-none"
