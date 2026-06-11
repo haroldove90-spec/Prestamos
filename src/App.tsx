@@ -319,7 +319,10 @@ export default function App() {
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regAddress, setRegAddress] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
-  const [regRequestedAmount, setRegRequestedAmount] = useState<number>(30000);
+  const [regRequestedAmount, setRegRequestedAmount] = useState<number>(3000);
+  const [regLoanType, setRegLoanType] = useState<'12 semanas' | '1 mes'>('12 semanas');
+  const [regMonthlyPlan, setRegMonthlyPlan] = useState<string>('3000_4200');
+  const [regWeeklyPlan, setRegWeeklyPlan] = useState<string>('3000_3900');
   const [regIneFront, setRegIneFront] = useState('');
   const [regIneBack, setRegIneBack] = useState('');
   const [regProofOfAddress, setRegProofOfAddress] = useState('');
@@ -1519,7 +1522,9 @@ export default function App() {
                     requestedAmount: regRequestedAmount,
                     status: 'ANALIZANDO',
                     createdAt: new Date().toISOString().split('T')[0],
-                    notificationDismissed: false
+                    notificationDismissed: false,
+                    loanType: regLoanType,
+                    monthlyPlan: regLoanType === '1 mes' ? regMonthlyPlan : regWeeklyPlan
                   };
 
                   const newClientId = generateNextClientId(clients, nextClientNumberBase);
@@ -1732,18 +1737,84 @@ export default function App() {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Tipo de Préstamo *:</label>
+                    <select
+                      value={regLoanType}
+                      onChange={(e) => {
+                        const val = e.target.value as '12 semanas' | '1 mes';
+                        setRegLoanType(val);
+                        // Reset amounts based on dynamic option selections
+                        if (val === '1 mes') {
+                          const amt = parseInt(regMonthlyPlan.split('_')[0], 10);
+                          setRegRequestedAmount(amt);
+                        } else {
+                          const amt = parseInt(regWeeklyPlan.split('_')[0], 10);
+                          setRegRequestedAmount(amt);
+                        }
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    >
+                      <option value="12 semanas">12 Semanas (Planes Semanales)</option>
+                      <option value="1 mes">1 Mes (Planes Mensuales)</option>
+                    </select>
+                  </div>
+
+                  {regLoanType === '1 mes' ? (
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-[#a3c90e] mb-1">Seleccionar Plan de Pago Mensual *:</label>
+                      <select
+                        value={regMonthlyPlan}
+                        onChange={(e) => {
+                          setRegMonthlyPlan(e.target.value);
+                          const amt = parseInt(e.target.value.split('_')[0], 10);
+                          setRegRequestedAmount(amt);
+                        }}
+                        className="w-full bg-[#0a3a46]/40 border border-[#a3c90e]/30 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-bold focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      >
+                        <option value="3000_4200">Préstamo de $3,000 para pagar $4,200 en 1 mes</option>
+                        <option value="4000_5600">Préstamo de $4,000 para pagar $5,600 en 1 mes</option>
+                        <option value="5000_7000">Préstamo de $5,000 para pagar $7,000 en 1 mes</option>
+                        <option value="6000_8400">Préstamo de $6,000 para pagar $8,400 en 1 mes</option>
+                        <option value="7000_9800">Préstamo de $7,000 para pagar $9,800 en 1 mes</option>
+                        <option value="8000_11200">Préstamo de $8,000 para pagar $11,200 en 1 mes</option>
+                        <option value="9000_12600">Préstamo de $9,000 para pagar $12,600 en 1 mes</option>
+                        <option value="10000_14000">Préstamo de $10,000 para pagar $14,000 en 1 mes</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-[#a3c90e] mb-1">Seleccionar Plan de Pago Semanal *:</label>
+                      <select
+                        value={regWeeklyPlan}
+                        onChange={(e) => {
+                          setRegWeeklyPlan(e.target.value);
+                          const amt = parseInt(e.target.value.split('_')[0], 10);
+                          setRegRequestedAmount(amt);
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-bold focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      >
+                        <option value="3000_3900">Préstamo de $3,000 para pagar 12 abonos semanales de $325 (Total: $3,900)</option>
+                        <option value="4000_5200">Préstamo de $4,000 para pagar 12 abonos semanales de $433 (Total: $5,200)</option>
+                        <option value="5000_6500">Préstamo de $5,000 para pagar 12 abonos semanales de $541 (Total: $6,500)</option>
+                        <option value="6500_8450">Préstamo de $6,500 para pagar 12 abonos semanales de $704 (Total: $8,450)</option>
+                        <option value="8000_10400">Préstamo de $8,000 para pagar 12 abonos semanales de $866 (Total: $10,400)</option>
+                        <option value="10000_13000">Préstamo de $10,000 para pagar 12 abonos semanales de $1,083 (Total: $13,000)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
                 <div>
-                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto del Préstamo a Solicitar ($ MXN) *:</label>
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto de Capital Solicitado ($ MXN):</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
                     <input
                       type="number"
-                      required
-                      min="1000"
-                      max="150000"
+                      disabled
                       value={regRequestedAmount}
-                      onChange={(e) => setRegRequestedAmount(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-bold font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      className="w-full bg-slate-950/80 border border-slate-850 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black font-mono text-sm focus:outline-none"
                     />
                   </div>
                 </div>
@@ -2129,136 +2200,61 @@ export default function App() {
                   )}
 
                   {/* TAB OPTION 1: PORTFOLIO */}
-                  <button
-                    id="mobile-tab-portfolio-management"
-                    onClick={() => setActiveTab('portfolio')}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'portfolio'
-                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-955 bg-slate-905 bg-slate-955 text-slate-400 hover:text-white border-slate-800 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">
-                        {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
-                      </span>
-                    </div>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                      activeTab === 'portfolio' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-slate-400'
-                    }`}>
-                      {clients.length}
-                    </span>
-                  </button>
-
-                  {/* TAB OPTION 2: BUREAU INTEL & STRESS */}
-                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cajera_lucia') && (
                     <button
-                      id="mobile-tab-bureau-lookup"
-                      onClick={() => {
-                        if (currentUser !== 'admin_harold') {
-                          alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
-                        }
-                        setActiveTab('bureau');
-                      }}
+                      id="mobile-tab-portfolio-management"
+                      onClick={() => setActiveTab('portfolio')}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                        activeTab === 'bureau'
+                        activeTab === 'portfolio'
                           ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                          : 'bg-slate-955 text-slate-400 hover:text-white border-slate-800 font-medium'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
-                        <span className="text-xs font-semibold">Buró de Inteligencia</span>
+                        <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
+                        <span className="text-xs font-semibold">
+                          {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
+                        </span>
                       </div>
-                      <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
-                        activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        activeTab === 'portfolio' 
+                          ? 'bg-slate-950 text-[#a3c90e] font-bold border border-[#a3c90e]/20' 
+                          : 'bg-[#a3c90e]/15 text-[#a3c90e] border border-[#a3c90e]/20 font-bold'
                       }`}>
-                        {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
+                        {clients.length}
                       </span>
                     </button>
                   )}
+
+
 
                   {/* TAB OPTION 3: REQUESTS PIPELINE */}
-                  <button
-                    id="mobile-tab-requests-pipeline"
-                    onClick={() => setActiveTab('requests')}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                      activeTab === 'requests'
-                        ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">
-                        {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
-                      </span>
-                    </div>
-                    <div className="flex gap-1.5 items-center">
-                      {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
-                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                      )}
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                        activeTab === 'requests' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-amber-500/10 text-amber-400 font-bold'
-                      }`}>
-                        {requests.filter(r => r.status === 'PENDIENTE').length} pnd
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+                  {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cajera_lucia') && (
                     <button
-                      id="mobile-tab-memberships-management"
-                      onClick={() => {
-                        if (currentUser !== 'admin_harold') {
-                          alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
-                        }
-                        setActiveTab('memberships');
-                      }}
+                      id="mobile-tab-requests-pipeline"
+                      onClick={() => setActiveTab('requests')}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                        activeTab === 'memberships'
-                          ? 'bg-amber-500 text-slate-955 font-bold border-amber-405 shadow-lg shadow-amber-500/20 shadow-amber-500/20'
+                        activeTab === 'requests'
+                          ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
                           : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-955 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
-                        <span className="text-xs font-semibold">Módulo de Membresías</span>
-                      </div>
-                      <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
-                        activeTab === 'memberships' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-                      }`}>
-                        VIP ACTIVO
-                      </span>
-                    </button>
-                  )}
-
-                  {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
-                  {currentUser === 'admin_harold' && (
-                    <button
-                      id="mobile-tab-security-audit"
-                      onClick={() => setActiveTab('security_center')}
-                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                        activeTab === 'security_center'
-                          ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-lg shadow-rose-600/10'
-                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <ShieldAlert className={`w-4 h-4 ${activeTab === 'security_center' ? 'text-white' : 'text-rose-450'}`} />
-                        <span className="text-xs font-semibold">Auditoría de Seguridad</span>
-                      </div>
-                      {securityAlerts.some(a => a.status === 'PENDIENTE') ? (
-                        <span className="bg-rose-550 bg-rose-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse font-mono tracking-tighter">
-                          ALERTA ROJA
+                        <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
+                        <span className="text-xs font-semibold">
+                          {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
                         </span>
-                      ) : (
-                        <span className="bg-slate-950 text-slate-500 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded">
-                          SISTEMA OK
+                      </div>
+                      <div className="flex gap-1.5 items-center">
+                        {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
+                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                        )}
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                          activeTab === 'requests' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-amber-500/10 text-amber-400'
+                        }`}>
+                          {requests.filter(r => r.status === 'PENDIENTE').length} pnd
                         </span>
-                      )}
+                      </div>
                     </button>
                   )}
 
@@ -2317,7 +2313,7 @@ export default function App() {
                     >
                       <div className="flex items-center gap-3">
                         <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
-                        <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+                        <span className="text-xs font-bold text-slate-200">Mis pagos</span>
                       </div>
                       <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
                         CLIENTE
@@ -2506,138 +2502,63 @@ export default function App() {
             )}
 
             {/* TAB OPTION 1: PORTFOLIO */}
-            <button
-              id="tab-portfolio-management"
-              onClick={() => setActiveTab('portfolio')}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'portfolio'
-                  ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                  : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
-                <span className="text-xs font-semibold">
-                  {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
-                </span>
-              </div>
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                activeTab === 'portfolio' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-slate-400'
-              }`}>
-                {clients.length}
-              </span>
-            </button>
-
-            {/* TAB OPTION 2: BUREAU INTEL & STRESS */}
-            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cajera_lucia') && (
               <button
-                id="tab-bureau-lookup"
-                onClick={() => {
-                  if (currentUser !== 'admin_harold') {
-                    alert('Acceso comercial básico para Ejecutivo. Parámetros de tasas globales e índices macro de Buró están bloqueados en consulta de lectura única por regulaciones del comité de riesgo.');
-                  }
-                  setActiveTab('bureau');
-                }}
+                id="tab-portfolio-management"
+                onClick={() => setActiveTab('portfolio')}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                  activeTab === 'bureau'
+                  activeTab === 'portfolio'
                     ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
                     : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Search className={`w-4 h-4 ${activeTab === 'bureau' ? 'text-white' : 'text-slate-500'}`} />
-                  <span className="text-xs font-semibold">Buró de Inteligencia</span>
+                  <Layers className={`w-4 h-4 ${activeTab === 'portfolio' ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="text-xs font-semibold">
+                    {currentUser === 'admin_harold' ? 'Clientes Nuevos' : 'Gestión de Cartera'}
+                  </span>
                 </div>
-                <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
-                  activeTab === 'bureau' ? 'bg-indigo-700 text-white font-bold' : 'bg-slate-950 text-indigo-400 font-bold'
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                  activeTab === 'portfolio' 
+                    ? 'bg-slate-950 text-[#a3c90e] font-bold border border-[#a3c90e]/20' 
+                    : 'bg-[#a3c90e]/15 text-[#a3c90e] border border-[#a3c90e]/20 font-bold'
                 }`}>
-                  {currentUser === 'admin_harold' ? 'Parámetros' : 'Consulta'}
+                  {clients.length}
                 </span>
               </button>
             )}
 
             {/* TAB OPTION 3: REQUESTS PIPELINE */}
-            <button
-              id="tab-requests-pipeline"
-              onClick={() => setActiveTab('requests')}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'requests'
-                  ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
-                  : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
-                <span className="text-xs font-semibold">
-                  {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
-                </span>
-              </div>
-              <div className="flex gap-1.5 items-center">
-                {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                )}
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                  activeTab === 'requests' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-amber-500/10 text-amber-400 font-bold'
-                }`}>
-                  {requests.filter(r => r.status === 'PENDIENTE').length} pnd
-                </span>
-              </div>
-            </button>
-
-            {/* TAB OPTION 4: MEMBERSHIPS MODULE */}
-            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan') && (
+            {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cajera_lucia') && (
               <button
-                id="tab-memberships-management"
-              onClick={() => {
-                if (currentUser !== 'admin_harold') {
-                  alert('El Administrador Senior Harold gestiona las promociones. Puedes realizar afiliaciones automáticas dentro de la consola Asesor.');
-                }
-                setActiveTab('memberships');
-              }}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                activeTab === 'memberships'
-                  ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-lg shadow-amber-500/20'
-                  : 'bg-slate-900 hover:bg-slate-850/85 text-slate-400 hover:text-white border-slate-800 font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Crown className={`w-4 h-4 ${activeTab === 'memberships' ? 'text-slate-955 animate-bounce' : 'text-amber-400 animate-pulse'}`} />
-                <span className="text-xs font-semibold">Módulo de Membresías</span>
-              </div>
-              <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'memberships' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-              }`}>
-                VIP ACTIVO
-              </span>
-            </button>
-            )}
-
-            {/* TAB OPTION 5: SECURITY AUDIT DIVISION */}
-            {currentUser === 'admin_harold' && (
-              <button
-                id="tab-security-audit"
-                onClick={() => setActiveTab('security_center')}
+                id="tab-requests-pipeline"
+                onClick={() => setActiveTab('requests')}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
-                  activeTab === 'security_center'
-                    ? 'bg-rose-600 text-white font-bold border-rose-500 shadow-lg shadow-rose-600/10'
+                  activeTab === 'requests'
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-lg shadow-indigo-500/10'
                     : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <ShieldAlert className={`w-4 h-4 ${activeTab === 'security_center' ? 'text-white' : 'text-rose-450'}`} />
-                  <span className="text-xs font-semibold">Auditoría de Seguridad</span>
+                  <FileSpreadsheet className={`w-4 h-4 ${activeTab === 'requests' ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="text-xs font-semibold">
+                    {currentUser === 'admin_harold' ? 'Autorización de Créditos' : 'Pipeline Aprobaciones'}
+                  </span>
                 </div>
-                {securityAlerts.some(a => a.status === 'PENDIENTE') ? (
-                  <span className="bg-rose-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse font-mono tracking-tighter">
-                    ALERTA ROJA
+                <div className="flex gap-1.5 items-center">
+                  {requests.filter(r => r.status === 'PENDIENTE').length > 0 && (
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  )}
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                    activeTab === 'requests' ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-amber-500/10 text-amber-400 font-bold'
+                  }`}>
+                    {requests.filter(r => r.status === 'PENDIENTE').length} pnd
                   </span>
-                ) : (
-                  <span className="bg-slate-950 text-slate-500 text-[9px] font-mono border border-slate-850 px-1.5 py-0.5 rounded">
-                    SISTEMA OK
-                  </span>
-                )}
+                </div>
               </button>
             )}
+
+
 
             {/* TAB OPTION 7: CREDIT SIMULATION */}
             {(currentUser === 'admin_harold' || currentUser === 'asesor_juan' || currentUser === 'cliente_esperanza' || currentUser.startsWith('cliente_')) && (
@@ -2694,7 +2615,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-3">
                   <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
-                  <span className="text-xs font-bold text-slate-200">Portal de Clientes (Abonos)</span>
+                  <span className="text-xs font-bold text-slate-200">Mis pagos</span>
                 </div>
                 <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-mono font-black">
                   CLIENTE
@@ -2826,15 +2747,7 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'bureau' && (
-                  <BureauLookup 
-                    clients={clients} 
-                    queries={queries} 
-                    riskParams={riskParams} 
-                    onAddQueryLog={handleAddQueryLog} 
-                    onUpdateRiskParams={handleUpdateRiskParams} 
-                  />
-                )}
+
 
                 {activeTab === 'requests' && (
                   <RequestPipeline 
@@ -2845,13 +2758,7 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'memberships' && (
-                  <MembershipsModule 
-                    clients={clients} 
-                    riskParams={riskParams}
-                    onUpdateClientMembership={handleUpdateClientMembership} 
-                  />
-                )}
+
 
                 {activeTab === 'asesor_dashboard' && (
                   <AsesorDashboard 
@@ -2875,14 +2782,7 @@ export default function App() {
                   />
                 )}
 
-                {activeTab === 'security_center' && (
-                  <SecurityAuditModule 
-                    incidents={securityAlerts}
-                    isAsesorSuspended={isAsesorSuspended}
-                    onResolveIncident={handleResolveIncident}
-                    onClearLogs={handleClearSecurityLogs}
-                  />
-                )}
+
 
                 {activeTab === 'financial_metrics' && (
                   <div className="space-y-6">
@@ -2909,6 +2809,9 @@ export default function App() {
                     onRegisterPayment={handleRegisterClientPayment} 
                     dossiers={dossiers}
                     currentUser={currentUser}
+                    setClients={setClients}
+                    onAddRequest={handleAddRequest}
+                    onAddDossier={handleAddDossier}
                   />
                 )}
 

@@ -33,6 +33,8 @@ export interface CreditRequest {
   category: 'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario';
   dateSubmitted: string;
   status: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+  loanType?: string;
+  monthlyPlan?: string;
 }
 
 export interface BureauQueryLog {
@@ -75,6 +77,8 @@ export interface ClientDossier {
   createdAt: string;
   adminNotes?: string;
   notificationDismissed: boolean;
+  loanType?: string;
+  monthlyPlan?: string;
 }
 
 
