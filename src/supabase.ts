@@ -14,9 +14,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 async function checkTableAccessible(tableName: string): Promise<boolean> {
   try {
     const { error } = await supabase.from(tableName).select('id').limit(1);
-    if (error && error.code === '42P01') {
-      // 42P01 is PostgreSQL code for undefined_table
-      return false;
+    if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST125') {
+        // 42P01 is PostgreSQL undefined_table, PGRST125 is PostgREST invalid path (missing routes/tables)
+        return false;
+      }
     }
     return true;
   } catch {
@@ -28,7 +30,7 @@ async function checkTableAccessible(tableName: string): Promise<boolean> {
  * Checks if the required tables exist in Supabase.
  */
 export async function verifyTablesExist(): Promise<boolean> {
-  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments', 'dossiers'];
+  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments', 'dossiers', 'system_notifications'];
   for (const table of essentialTables) {
     const ok = await checkTableAccessible(table);
     if (!ok) return false;

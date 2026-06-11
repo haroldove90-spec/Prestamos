@@ -22,6 +22,7 @@ export interface Client {
   active?: boolean;
   username?: string;
   password?: string;
+  profileImage?: string;
 }
 
 export interface CreditRequest {

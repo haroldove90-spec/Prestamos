@@ -13,6 +13,7 @@ interface ClientPortalProps {
   onRegisterPayment: (payment: ClientPayment) => void;
   activeClientPayment?: ClientPayment | null;
   dossiers?: ClientDossier[];
+  setDossiers?: React.Dispatch<React.SetStateAction<ClientDossier[]>>;
   currentUser?: string;
   setClients?: React.Dispatch<React.SetStateAction<Client[]>>;
   onAddRequest?: (request: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => void;
@@ -45,6 +46,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   clients, 
   onRegisterPayment,
   dossiers,
+  setDossiers,
   currentUser = 'cliente_esperanza',
   setClients,
   onAddRequest,
@@ -88,12 +90,66 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const activeClient = clients.find(c => c.id === selectedClientId);
 
   // Tabs layout
-  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan'>('my_loan');
+  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan' | 'profile'>('my_loan');
 
   // Form states inside "Mis pagos"
   const [amount, setAmount] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [reference, setReference] = useState<string>('');
+
+  // Sincronización temporal del Perfil del Cliente
+  const [tempName, setTempName] = useState('');
+  const [tempRfc, setTempRfc] = useState('');
+  const [tempPhone, setTempPhone] = useState('');
+  const [tempEmail, setTempEmail] = useState('');
+  const [tempBirthDate, setTempBirthDate] = useState('');
+  const [tempAddress, setTempAddress] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [tempProfileImage, setTempProfileImage] = useState('');
+  const [tempIneFront, setTempIneFront] = useState('');
+  const [tempIneBack, setTempIneBack] = useState('');
+  const [tempProofOfAddress, setTempProofOfAddress] = useState('');
+
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
+
+  // Selector / Modal de zoom de identificación
+  const [zoomedImg, setZoomedImg] = useState<{ src: string, title: string } | null>(null);
+
+  const myDossier = (dossiers || []).find(d => {
+    if (isCustomUser && activeClient) {
+      return d.clientName.toLowerCase() === activeClient.name.toLowerCase();
+    }
+    return d.clientName.toLowerCase() === activeClient?.name.toLowerCase();
+  });
+
+  useEffect(() => {
+    if (activeClient && portalTab === 'profile') {
+      setTempName(activeClient.name || '');
+      setTempRfc(activeClient.rfc || '');
+      setTempPhone(activeClient.phone || '');
+      setTempEmail(activeClient.email || '');
+      setTempPassword(activeClient.password || '');
+      setTempProfileImage(activeClient.profileImage || '');
+
+      setProfileSuccessMsg(null);
+      setProfileErrorMsg(null);
+
+      if (myDossier) {
+        setTempBirthDate(myDossier.birthDate || '');
+        setTempAddress(myDossier.address || '');
+        setTempIneFront(myDossier.ineFront || '');
+        setTempIneBack(myDossier.ineBack || '');
+        setTempProofOfAddress(myDossier.proofOfAddress || '');
+      } else {
+        setTempBirthDate('');
+        setTempAddress('');
+        setTempIneFront('');
+        setTempIneBack('');
+        setTempProofOfAddress('');
+      }
+    }
+  }, [selectedClientId, portalTab, dossiers, activeClient]);
   
   // Camera & Image states
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
@@ -370,6 +426,117 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     setReqNotes('');
   };
 
+  const handleProfileFileChange = (
+    field: 'profileImage' | 'ineFront' | 'ineBack' | 'proofOfAddress',
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (field === 'profileImage') {
+        setTempProfileImage(base64String);
+      } else if (field === 'ineFront') {
+        setTempIneFront(base64String);
+      } else if (field === 'ineBack') {
+        setTempIneBack(base64String);
+      } else if (field === 'proofOfAddress') {
+        setTempProofOfAddress(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = (field: 'profileImage' | 'ineFront' | 'ineBack' | 'proofOfAddress') => {
+    if (field === 'profileImage') {
+      setTempProfileImage('');
+    } else if (field === 'ineFront') {
+      setTempIneFront('');
+    } else if (field === 'ineBack') {
+      setTempIneBack('');
+    } else if (field === 'proofOfAddress') {
+      setTempProofOfAddress('');
+    }
+  };
+
+  const handleSaveProfileChanges = () => {
+    if (!activeClient) return;
+
+    if (!tempName.trim()) {
+      setProfileErrorMsg('El nombre completo no puede estar vacío.');
+      return;
+    }
+
+    // Update clients array
+    if (setClients) {
+      setClients(prev => prev.map(c => {
+        if (c.id === activeClient.id) {
+          return {
+            ...c,
+            name: tempName.trim(),
+            rfc: tempRfc.trim().toUpperCase(),
+            phone: tempPhone.trim(),
+            email: tempEmail.trim(),
+            password: tempPassword,
+            profileImage: tempProfileImage
+          };
+        }
+        return c;
+      }));
+    }
+
+    // Update dossiers array
+    if (setDossiers) {
+      setDossiers(prev => {
+        const existingDossierIndex = prev.findIndex(d => {
+          return d.clientName.toLowerCase() === activeClient.name.toLowerCase() || 
+                 d.clientName.toLowerCase() === tempName.trim().toLowerCase();
+        });
+
+        if (existingDossierIndex !== -1) {
+          return prev.map((d, idx) => {
+            if (idx === existingDossierIndex) {
+              return {
+                ...d,
+                clientName: tempName.trim(),
+                address: tempAddress.trim(),
+                birthDate: tempBirthDate,
+                ineFront: tempIneFront,
+                ineBack: tempIneBack,
+                proofOfAddress: tempProofOfAddress
+              };
+            }
+            return d;
+          });
+        } else {
+          const newDossier: ClientDossier = {
+            id: `DOS-${Math.floor(100000 + Math.random() * 900000)}`,
+            clientName: tempName.trim(),
+            address: tempAddress.trim(),
+            birthDate: tempBirthDate || new Date().toISOString().split('T')[0],
+            ineFront: tempIneFront || 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=800&auto=format&fit=crop&q=80',
+            ineBack: tempIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80',
+            proofOfAddress: tempProofOfAddress || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&auto=format&fit=crop&q=80',
+            requestedAmount: 0,
+            status: 'ANALIZANDO',
+            createdAt: new Date().toISOString().split('T')[0],
+            notificationDismissed: false
+          };
+          return [...prev, newDossier];
+        }
+      });
+    }
+
+    setProfileSuccessMsg('¡Configuraciones y documentos respaldados exitosamente!');
+    setProfileErrorMsg(null);
+
+    // Auto clear feedback after 4 seconds
+    setTimeout(() => {
+      setProfileSuccessMsg(null);
+    }, 4000);
+  };
+
   const formatMXN = (val: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -563,7 +730,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         );
       })()}
 
-      {/* THREE INTERACTIVE PORTAL VIEWS TABS */}
+      {/* FOUR INTERACTIVE PORTAL VIEWS TABS */}
       <div className="flex border-b border-slate-800 gap-1 overflow-x-auto pb-px">
         <button
           onClick={() => {
@@ -608,6 +775,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         >
           <Zap className="w-4 h-4" />
           Solicitar otro préstamo
+        </button>
+
+        <button
+          onClick={() => {
+            setPortalTab('profile');
+            setReqSuccessMsg(null);
+          }}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition duration-250 cursor-pointer ${
+            portalTab === 'profile' 
+              ? 'border-[#a3c90e] bg-[#a3c90e]/5 text-[#a3c90e]' 
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <User className="w-4 h-4" />
+          Mi Perfil
         </button>
       </div>
 
@@ -1115,6 +1297,356 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             </div>
           )}
 
+          {/* 4. VIEW "MI PERFIL" CONTAINER */}
+          {portalTab === 'profile' && activeClient && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#a3c90e]" />
+                  Configurar Datos de Cuenta y Expediente Digital
+                </h3>
+                <p className="text-[11px] text-slate-400 font-mono mt-1">
+                  ID de Cliente: {activeClient.id} • Modifica tus registros contractuales y personales.
+                </p>
+              </div>
+
+              {/* Success / Error Messages */}
+              {profileSuccessMsg && (
+                <div className="flex gap-2.5 items-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-sans text-xs animate-pulse">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{profileSuccessMsg}</span>
+                </div>
+              )}
+
+              {profileErrorMsg && (
+                <div className="flex gap-2.5 items-center p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-sans text-xs animate-bounce">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{profileErrorMsg}</span>
+                </div>
+              )}
+
+              {/* Form container divided in responsive columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Panel: Datos Personales */}
+                <div className="bg-slate-950/50 border border-slate-850 p-4 rounded-xl space-y-3.5">
+                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5">
+                    1. Datos Personales de Identidad
+                  </h4>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre Completo *:</label>
+                    <input
+                      type="text"
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      placeholder="Ej. Esperanza Gomez Gomez"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">RFC Oficial *:</label>
+                    <input
+                      type="text"
+                      maxLength={13}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-[#a3c90e] uppercase focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempRfc}
+                      onChange={(e) => setTempRfc(e.target.value)}
+                      placeholder="Ej. GOME800101XYZ"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Teléfono Móvil (A 10 digitos):</label>
+                    <input
+                      type="tel"
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempPhone}
+                      onChange={(e) => setTempPhone(e.target.value)}
+                      placeholder="Ej. 811000223"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección de Correo Electrónico:</label>
+                    <input
+                      type="email"
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempEmail}
+                      onChange={(e) => setTempEmail(e.target.value)}
+                      placeholder="ejemplo@saldaapp.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Fecha de Nacimiento:</label>
+                    <input
+                      type="date"
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempBirthDate}
+                      onChange={(e) => setTempBirthDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección Domiciliaria:</label>
+                    <textarea
+                      rows={2}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempAddress}
+                      onChange={(e) => setTempAddress(e.target.value)}
+                      placeholder="Ej. Av. Hidalgo #104, Col. Centro, Monterrey"
+                    />
+                  </div>
+                </div>
+
+                {/* Panel: Credenciales / Contraseña de acceso */}
+                <div className="bg-slate-950/50 border border-slate-850 p-4 rounded-xl space-y-4">
+                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5">
+                    2. Contraseña del Sistema
+                  </h4>
+
+                  <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 space-y-1.5 text-[11px] leading-relaxed">
+                    <p className="text-slate-350">
+                      Usa estas credenciales para acceder a tu dashboard en tu siguiente inicio de sesión.
+                    </p>
+                    <div className="flex gap-2">
+                      <span className="text-slate-500 font-mono">Nombre de Usuario:</span>
+                      <span className="font-bold text-white font-mono">{activeClient.username || activeClient.id}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso:</label>
+                    <input
+                      type="text"
+                      className="w-full bg-slate-950 border border-[#a3c90e]/30 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      placeholder="Contraseña del cliente"
+                    />
+                  </div>
+
+                  {/* Panel For Profile Avatar Upload */}
+                  <div className="border-t border-slate-850 pt-4 space-y-3">
+                    <h5 className="text-[10px] uppercase font-mono font-black text-white">Fotografía de Perfil (Avatar)</h5>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full border border-slate-850 bg-slate-950 overflow-hidden flex items-center justify-center relative shadow-inner">
+                        {tempProfileImage ? (
+                          <img src={tempProfileImage} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-7 h-7 text-slate-600" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 flex gap-2">
+                        <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-2 px-3.5 rounded-xl border border-slate-705 flex items-center gap-1.5 select-none transition">
+                          <Upload className="w-3.5 h-3.5 text-[#a3c90e]" />
+                          Subir Foto
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={(e) => handleProfileFileChange('profileImage', e)}
+                          />
+                        </label>
+
+                        {tempProfileImage && (
+                          <button
+                            onClick={() => handleClearImage('profileImage')}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold py-2 px-3.5 border border-red-500/20 active:scale-95 transition rounded-xl flex items-center gap-1 cursor-pointer"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Section 3: Expedientes Digitales (INE, Comprobante de domicilio, etc) */}
+              <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-4">
+                <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-2 flex justify-between items-center">
+                  <span>3. Expediente del Expediente Contractual (Expediente Digital)</span>
+                  <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 font-normal px-2 py-0.5 rounded-full uppercase tracking-normal">
+                    Formatos JPG, PNG, Base64
+                  </span>
+                </h4>
+
+                <p className="text-[11px] text-slate-350">
+                  Visualiza, sube, reemplaza o borra las imágenes oficiales de tu identificación oficial (INE) y comprobante de domicilio.
+                </p>
+
+                {/* Grid display for the images */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  
+                  {/* INE Frontal */}
+                  <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">INE Anverso (Delante)</span>
+                    
+                    <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
+                      {tempIneFront ? (
+                        <>
+                          <img src={tempIneFront} alt="INE Frontal" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => setZoomedImg({ src: tempIneFront, title: 'INE - Anverso (Frente)' })}
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
+                              title="Zoom"
+                            >
+                              Ver Grande
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-3 text-slate-600 flex flex-col items-center gap-1.5">
+                          <ImageIcon className="w-8 h-8 opacity-40 text-slate-500" />
+                          <span className="text-[9px] font-mono">Sin Imagen de INE</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1.5 mt-auto">
+                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
+                        <Upload className="w-3 h-3 text-[#a3c90e]" />
+                        Cambiar
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => handleProfileFileChange('ineFront', e)}
+                        />
+                      </label>
+                      {tempIneFront && (
+                        <button
+                          onClick={() => handleClearImage('ineFront')}
+                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
+                          title="Eliminar registro"
+                        >
+                          Borrar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* INE Reverso */}
+                  <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">INE Reverso (Detrás)</span>
+                    
+                    <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
+                      {tempIneBack ? (
+                        <>
+                          <img src={tempIneBack} alt="INE Reverso" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => setZoomedImg({ src: tempIneBack, title: 'INE - Reverso (Atrás)' })}
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
+                              title="Zoom"
+                            >
+                              Ver Grande
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-3 text-slate-600 flex flex-col items-center gap-1.5">
+                          <ImageIcon className="w-8 h-8 opacity-40 text-slate-500" />
+                          <span className="text-[9px] font-mono">Sin Imagen de INE</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1.5 mt-auto">
+                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
+                        <Upload className="w-3 h-3 text-[#a3c90e]" />
+                        Cambiar
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => handleProfileFileChange('ineBack', e)}
+                        />
+                      </label>
+                      {tempIneBack && (
+                        <button
+                          onClick={() => handleClearImage('ineBack')}
+                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
+                          title="Eliminar registro"
+                        >
+                          Borrar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comprobante de Domicilio */}
+                  <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">Comprobante de Domicilio</span>
+                    
+                    <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
+                      {tempProofOfAddress ? (
+                        <>
+                          <img src={tempProofOfAddress} alt="Comprobante" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => setZoomedImg({ src: tempProofOfAddress, title: 'Comprobante de Domicilio' })}
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
+                              title="Zoom"
+                            >
+                              Ver Grande
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-3 text-slate-600 flex flex-col items-center gap-1.5">
+                          <ImageIcon className="w-8 h-8 opacity-40 text-slate-500" />
+                          <span className="text-[9px] font-mono">Sin Documento</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1.5 mt-auto">
+                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
+                        <Upload className="w-3 h-3 text-[#a3c90e]" />
+                        Cambiar
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => handleProfileFileChange('proofOfAddress', e)}
+                        />
+                      </label>
+                      {tempProofOfAddress && (
+                        <button
+                          onClick={() => handleClearImage('proofOfAddress')}
+                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
+                          title="Eliminar registro"
+                        >
+                          Borrar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Botón de Guardado General */}
+              <div className="border-t border-slate-800 pt-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveProfileChanges}
+                  className="bg-[#a3c90e] hover:bg-[#acd113] active:scale-95 text-slate-950 font-black px-7 py-3 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-lg select-none border-none transition"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Guardar Actualizaciones de Perfil
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right Side Col (4 spans): Selected Client Info Card (Persistent details) */}
@@ -1198,6 +1730,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
       {/* Hidden camera snapshot canvas rendering tool */}
       <canvas ref={canvasRef} className="hidden" />
+
+      {/* Lightbox Modal for zooming in on ID / document photographs */}
+      {zoomedImg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+          <div className="relative max-w-3xl w-full bg-slate-910 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-805 border-slate-800">
+              <h4 className="text-xs uppercase tracking-widest font-mono text-[#a3c90e] font-black">{zoomedImg.title}</h4>
+              <button 
+                onClick={() => setZoomedImg(null)}
+                className="p-1 px-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-red-500 text-slate-400 hover:text-white transition cursor-pointer text-xs font-mono"
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+            
+            <div className="w-full h-[60vh] max-h-[500px] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center relative">
+              <img 
+                src={zoomedImg.src} 
+                alt={zoomedImg.title} 
+                className="max-w-full max-h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

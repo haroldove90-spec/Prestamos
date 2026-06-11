@@ -1347,7 +1347,9 @@ export default function App() {
   const unreadCount = systemNotifications.filter(n => {
     const roles = n.targetRoles ? n.targetRoles.split(',').map((r: string) => r.trim()) : [];
     const readUsers = n.readBy ? n.readBy.split(',').map((u: string) => u.trim()) : [];
-    return roles.includes(currentUser) && !readUsers.includes(currentUser);
+    const isTarget = roles.includes(currentUser) || 
+      (currentUser.startsWith('cliente_') && roles.some(r => r === 'cliente_esperanza' || r.startsWith('cliente_')));
+    return isTarget && !readUsers.includes(currentUser);
   }).length;
 
   if (isHome) {
@@ -2128,17 +2130,39 @@ export default function App() {
       )}
 
       {/* Dynamic Header */}
-      <AdminHeader 
-        currentUser={currentUser} 
-        onUserChange={handleUserChange} 
-        onResetData={handleResetData} 
-        onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
-        unreadNotificationsCount={unreadCount}
-        onOpenNotifications={() => setIsNotificationTrayOpen(true)}
-        isSoundEnabled={isSoundEnabled}
-        onToggleSound={toggleSoundSettings}
-        onGoHome={() => setIsHome(true)}
-      />
+      {(() => {
+        const activeClientObj = clients.find(c => {
+          const isCustomUser = currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza';
+          const customTargetUsername = currentUser.replace('cliente_', '').toLowerCase().trim();
+          if (isCustomUser) {
+            return (c.username && c.username.toLowerCase() === customTargetUsername) || 
+                   (c.id.toLowerCase() === customTargetUsername) ||
+                   (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === customTargetUsername) ||
+                   (c.name.toLowerCase() === customTargetUsername.replace(/_/g, ' '));
+          } else if (currentUser === 'cliente_esperanza') {
+            return c.id === 'PM-327072';
+          }
+          return false;
+        });
+        const headerDisplayName = activeClientObj ? activeClientObj.name : getUserDisplayName(currentUser);
+        const headerProfileImage = activeClientObj?.profileImage;
+
+        return (
+          <AdminHeader 
+            currentUser={currentUser} 
+            onUserChange={handleUserChange} 
+            onResetData={handleResetData} 
+            onToggleSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+            unreadNotificationsCount={unreadCount}
+            onOpenNotifications={() => setIsNotificationTrayOpen(true)}
+            isSoundEnabled={isSoundEnabled}
+            onToggleSound={toggleSoundSettings}
+            onGoHome={() => setIsHome(true)}
+            userDisplayName={headerDisplayName}
+            profileImage={headerProfileImage}
+          />
+        );
+      })()}
 
       {/* Main Layout Container */}
       <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
@@ -2880,6 +2904,7 @@ export default function App() {
                     payments={clientPayments} 
                     onRegisterPayment={handleRegisterClientPayment} 
                     dossiers={dossiers}
+                    setDossiers={setDossiers}
                     currentUser={currentUser}
                     setClients={setClients}
                     onAddRequest={handleAddRequest}
@@ -3048,22 +3073,33 @@ export default function App() {
 
             {/* Scrollable Notifications list */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 font-sans">
-              {systemNotifications.length === 0 ? (
-                <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
-                    <Bell className="w-6 h-6 opacity-30" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-400">Sin notificaciones nuevas</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Los movimientos se reflejarán de inmediato.</p>
-                  </div>
-                </div>
-              ) : (
-                systemNotifications.map((notif) => {
+              {(() => {
+                const userNotifications = systemNotifications.filter(notif => {
+                  const rolesList = notif.targetRoles ? notif.targetRoles.split(',').map((r: string) => r.trim()) : [];
+                  return rolesList.includes(currentUser) || 
+                    (currentUser.startsWith('cliente_') && rolesList.some(r => r === 'cliente_esperanza' || r.startsWith('cliente_')));
+                });
+
+                if (userNotifications.length === 0) {
+                  return (
+                    <div className="text-center py-12 flex flex-col items-center justify-center gap-3 w-full">
+                      <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                        <Bell className="w-6 h-6 opacity-30" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-400">Sin notificaciones nuevas</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Los movimientos se reflejarán de inmediato.</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return userNotifications.map((notif) => {
                   const rolesList = notif.targetRoles ? notif.targetRoles.split(',').map((r: string) => r.trim()) : [];
                   const readList = notif.readBy ? notif.readBy.split(',').map((u: string) => u.trim()) : [];
                   
-                  const isTargetForUser = rolesList.includes(currentUser);
+                  const isTargetForUser = rolesList.includes(currentUser) || 
+                    (currentUser.startsWith('cliente_') && rolesList.some(r => r === 'cliente_esperanza' || r.startsWith('cliente_')));
                   const isUnread = isTargetForUser && !readList.includes(currentUser);
                   
                   // Handle manual mark single item as read
@@ -3126,8 +3162,8 @@ export default function App() {
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
 
             {/* Bottom active roles guide lines */}
