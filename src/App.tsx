@@ -323,7 +323,7 @@ export default function App() {
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regAddress, setRegAddress] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
-  const [regRequestedAmount, setRegRequestedAmount] = useState<number>(3000);
+  const [regRequestedAmount, setRegRequestedAmount] = useState<number>(10000);
   const [regLoanType, setRegLoanType] = useState<'12 semanas' | '1 mes'>('12 semanas');
   const [regMonthlyPlan, setRegMonthlyPlan] = useState<string>('3000_4200');
   const [regWeeklyPlan, setRegWeeklyPlan] = useState<string>('3000_3900');
@@ -1585,6 +1585,16 @@ export default function App() {
                   const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
                   const finalProof = regProofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
 
+                  const regFee = Math.round((regRequestedAmount / 1000) * 135);
+                  const regTotalPayable = regRequestedAmount + regFee;
+                  let planDesc = '';
+                  if (regLoanType === '1 mes') {
+                    planDesc = `Plan Mensual de Pago Único de $${regTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN)`;
+                  } else {
+                    const abonoSemanal = Math.round(regTotalPayable / 12);
+                    planDesc = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${regTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN)`;
+                  }
+
                   const newDossier: ClientDossier = {
                     id: dossierId,
                     clientName: regName,
@@ -1598,7 +1608,7 @@ export default function App() {
                     createdAt: new Date().toISOString().split('T')[0],
                     notificationDismissed: false,
                     loanType: regLoanType,
-                    monthlyPlan: regLoanType === '1 mes' ? regMonthlyPlan : regWeeklyPlan
+                    monthlyPlan: planDesc
                   };
 
                   const newClientId = generateNextClientId(clients, nextClientNumberBase);
@@ -1613,7 +1623,7 @@ export default function App() {
                     creditScore: 680,
                     bureauStatus: 'REGULAR',
                     totalCreditGranted: regRequestedAmount,
-                    balanceOwed: regRequestedAmount,
+                    balanceOwed: regTotalPayable,
                     delinquencyDays: 0,
                     category: 'Personal',
                     joinDate: new Date().toISOString().split('T')[0],
@@ -1811,85 +1821,119 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Tipo de Préstamo *:</label>
-                    <select
-                      value={regLoanType}
-                      onChange={(e) => {
-                        const val = e.target.value as '12 semanas' | '1 mes';
-                        setRegLoanType(val);
-                        // Reset amounts based on dynamic option selections
-                        if (val === '1 mes') {
-                          const amt = parseInt(regMonthlyPlan.split('_')[0], 10);
-                          setRegRequestedAmount(amt);
-                        } else {
-                          const amt = parseInt(regWeeklyPlan.split('_')[0], 10);
-                          setRegRequestedAmount(amt);
-                        }
-                      }}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                    >
-                      <option value="12 semanas">12 Semanas (Planes Semanales)</option>
-                      <option value="1 mes">1 Mes (Planes Mensuales)</option>
-                    </select>
+                {/* Dynamic Onboarding Loan Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-950/40 p-4 border border-slate-800 rounded-2xl">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Tipo de Préstamo *:</label>
+                      <select
+                        value={regLoanType}
+                        onChange={(e) => {
+                          const val = e.target.value as '12 semanas' | '1 mes';
+                          setRegLoanType(val);
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      >
+                        <option value="12 semanas">12 Semanas (Planes Semanales)</option>
+                        <option value="1 mes">1 Mes (Planes Mensuales)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto de Capital Solicitado ($ MXN) *:</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
+                        <input
+                          type="number"
+                          min={1000}
+                          max={50000}
+                          step={1000}
+                          required
+                          value={regRequestedAmount || ''}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setRegRequestedAmount(val);
+                          }}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                        />
+                      </div>
+
+                      {/* Onboarding slider */}
+                      <div className="pt-2 px-1">
+                        <input
+                          type="range"
+                          min={1000}
+                          max={50000}
+                          step={1000}
+                          value={regRequestedAmount || 1000}
+                          onChange={(e) => setRegRequestedAmount(Number(e.target.value))}
+                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
+                        />
+                        <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1 select-none">
+                          <span>Mín: $1,000</span>
+                          <span>Paso: $1,000</span>
+                          <span>Máx: $50,000</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {regLoanType === '1 mes' ? (
+                  {/* Real-time Calculation Panel */}
+                  <div className="bg-slate-950/80 border border-slate-850 rounded-xl p-4 flex flex-col justify-between">
                     <div>
-                      <label className="block text-[10px] uppercase font-mono text-[#a3c90e] mb-1">Seleccionar Plan de Pago Mensual *:</label>
-                      <select
-                        value={regMonthlyPlan}
-                        onChange={(e) => {
-                          setRegMonthlyPlan(e.target.value);
-                          const amt = parseInt(e.target.value.split('_')[0], 10);
-                          setRegRequestedAmount(amt);
-                        }}
-                        className="w-full bg-[#0a3a46]/40 border border-[#a3c90e]/30 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-bold focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                      >
-                        <option value="3000_4200">Préstamo de $3,000 para pagar $4,200 en 1 mes</option>
-                        <option value="4000_5600">Préstamo de $4,000 para pagar $5,600 en 1 mes</option>
-                        <option value="5000_7000">Préstamo de $5,000 para pagar $7,000 en 1 mes</option>
-                        <option value="6000_8400">Préstamo de $6,000 para pagar $8,400 en 1 mes</option>
-                        <option value="7000_9800">Préstamo de $7,000 para pagar $9,800 en 1 mes</option>
-                        <option value="8000_11200">Préstamo de $8,000 para pagar $11,200 en 1 mes</option>
-                        <option value="9000_12600">Préstamo de $9,000 para pagar $12,600 en 1 mes</option>
-                        <option value="10000_14000">Préstamo de $10,000 para pagar $14,000 en 1 mes</option>
-                      </select>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-[#a3c90e] mb-1">Seleccionar Plan de Pago Semanal *:</label>
-                      <select
-                        value={regWeeklyPlan}
-                        onChange={(e) => {
-                          setRegWeeklyPlan(e.target.value);
-                          const amt = parseInt(e.target.value.split('_')[0], 10);
-                          setRegRequestedAmount(amt);
-                        }}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-bold focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                      >
-                        <option value="3000_3900">Préstamo de $3,000 para pagar 12 abonos semanales de $325 (Total: $3,900)</option>
-                        <option value="4000_5200">Préstamo de $4,000 para pagar 12 abonos semanales de $433 (Total: $5,200)</option>
-                        <option value="5000_6500">Préstamo de $5,000 para pagar 12 abonos semanales de $541 (Total: $6,500)</option>
-                        <option value="6500_8450">Préstamo de $6,500 para pagar 12 abonos semanales de $704 (Total: $8,450)</option>
-                        <option value="8000_10400">Préstamo de $8,000 para pagar 12 abonos semanales de $866 (Total: $10,400)</option>
-                        <option value="10000_13000">Préstamo de $10,000 para pagar 12 abonos semanales de $1,083 (Total: $13,000)</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
+                      <h4 className="text-[10px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
+                        <span>📊 Análisis de Cuotas</span>
+                        <span className="text-[9px] text-[#a3c90e]/80 font-normal italic">
+                          ($135 x cada $1,000)
+                        </span>
+                      </h4>
 
-                <div>
-                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto de Capital Solicitado ($ MXN):</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
-                    <input
-                      type="number"
-                      disabled
-                      value={regRequestedAmount}
-                      className="w-full bg-slate-950/80 border border-slate-850 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black font-mono text-sm focus:outline-none"
-                    />
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between py-0.5">
+                          <span className="text-slate-400">Capital Solicitado:</span>
+                          <span className="text-white font-mono font-bold">
+                            ${(regRequestedAmount || 0).toLocaleString('es-MX')} MXN
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between py-0.5">
+                          <span className="text-slate-400">Comisión / Interés (13.5%):</span>
+                          <span className="text-[#a3c90e] font-mono font-bold">
+                            + ${(Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')} MXN
+                          </span>
+                        </div>
+
+                        <div className="border-t border-slate-800 mt-2 pt-2 flex justify-between select-none">
+                          <span className="text-white font-bold uppercase tracking-wider text-[10px]">Adeudo Total:</span>
+                          <span className="text-[#a3c90e] font-extrabold font-mono">
+                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')} MXN
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 p-2 bg-[#0284c7]/5 border border-[#0284c7]/10 rounded-lg">
+                      <div className="text-[9px] uppercase font-mono text-[#38bdf8] font-bold mb-0.5">
+                        Plan de Amortización:
+                      </div>
+                      {regLoanType === '12 semanas' ? (
+                        <div className="text-[11px] text-slate-300">
+                          <strong>12 pagos semanales</strong> de{" "}
+                          <span className="text-white font-bold font-mono">
+                            ${Math.round(((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)) / 12).toLocaleString('es-MX')}
+                          </span>{" "}
+                          MXN.
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-slate-300">
+                          <strong>1 pago mensual único</strong> de{" "}
+                          <span className="text-white font-bold font-mono">
+                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')}
+                          </span>{" "}
+                          MXN.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
