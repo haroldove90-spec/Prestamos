@@ -6,7 +6,7 @@ import {
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
   PlusCircle
 } from 'lucide-react';
-import { Client, ClientPayment, ClientDossier, CreditRequest } from '../types';
+import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS } from '../types';
 
 interface ClientPortalProps {
   clients: Client[];
@@ -167,7 +167,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
 
   // States inside "Solicitar otro préstamo"
-  const [reqLoanType, setReqLoanType] = useState<'12 semanas' | '1 mes'>('12 semanas');
+  const [reqLoanType, setReqLoanType] = useState<'12 semanas' | 'Préstamo Fijo'>('12 semanas');
   const [reqMonthlyPlan, setReqMonthlyPlan] = useState<string>('3000_4200');
   const [reqWeeklyPlan, setReqWeeklyPlan] = useState<string>('3000_3900');
   const [reqCustomAmount, setReqCustomAmount] = useState<number>(10000);
@@ -374,19 +374,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     e.preventDefault();
     if (!activeClient) return;
 
-    if (reqCustomAmount < 1000 || reqCustomAmount > 50000) {
+    if (reqLoanType !== 'Préstamo Fijo' && (reqCustomAmount < 1000 || reqCustomAmount > 50000)) {
       alert('La cantidad solicitada debe ser de un mínimo de $1,000 MXN hasta un máximo de $50,000 MXN.');
       return;
     }
 
     const finalAmount = reqCustomAmount;
-    const weeksCount = reqLoanType === '12 semanas' ? 12 : 4;
-    const reqFee = Math.round((finalAmount / 1000) * 135 * weeksCount);
+    let reqFee = 0;
+    if (reqLoanType === 'Préstamo Fijo') {
+      const match = PRESTAMOS_FIJOS.find(p => p.capital === finalAmount);
+      reqFee = match ? match.interest : 1200;
+    } else {
+      reqFee = Math.round((finalAmount / 1000) * 135 * 12);
+    }
     const reqTotalPayable = finalAmount + reqFee;
     let descPlan = '';
 
-    if (reqLoanType === '1 mes') {
-      descPlan = `Plan Mensual de Pago Único de $${reqTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo de Financiamiento: $${reqFee.toLocaleString('es-MX')} MXN por 4 semanas)`;
+    if (reqLoanType === 'Préstamo Fijo') {
+      descPlan = `Préstamo Fijo de $${finalAmount.toLocaleString('es-MX')} MXN para pagar $${reqTotalPayable.toLocaleString('es-MX')} MXN (Interés: $${reqFee.toLocaleString('es-MX')} MXN en 4 semanas)`;
     } else {
       const abonoSemanal = Math.round(reqTotalPayable / 12);
       descPlan = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${reqTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo: $${reqFee.toLocaleString('es-MX')} MXN por 12 semanas)`;
@@ -425,7 +430,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     }
 
     setReqSuccessMsg('¡Solicitud de Préstamo Enviada Correctamente!');
-    setReqSuccessDetails(`Tu solicitud de nuevo crédito por capital neto de $${finalAmount.toLocaleString('es-MX')} MXN (${reqLoanType === '1 mes' ? 'Mensual' : '12 Semanas'}) ha sido ingresada al Pipeline de Aprobaciones. El monto total a pagar estimado es de $${reqTotalPayable.toLocaleString('es-MX')} MXN.`);
+    setReqSuccessDetails(`Tu solicitud de nuevo crédito por capital neto de $${finalAmount.toLocaleString('es-MX')} MXN (${reqLoanType === 'Préstamo Fijo' ? 'Fijo/Mensual' : '12 Semanas'}) ha sido ingresada al Pipeline de Aprobaciones. El monto total a pagar estimado es de $${reqTotalPayable.toLocaleString('es-MX')} MXN.`);
     
     // Clear inputs
     setReqPurpose('');
@@ -1218,60 +1223,87 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Tipo de Préstamo a Solicitar *:</label>
                         <select
                           value={reqLoanType}
-                          onChange={(e) => setReqLoanType(e.target.value as '12 semanas' | '1 mes')}
+                          onChange={(e) => {
+                            const val = e.target.value as '12 semanas' | 'Préstamo Fijo';
+                            setReqLoanType(val);
+                            if (val === 'Préstamo Fijo') {
+                              setReqCustomAmount(3000);
+                            } else {
+                              setReqCustomAmount(10000);
+                            }
+                          }}
                           className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e] cursor-pointer"
                         >
                           <option value="12 semanas">Opción #1: 12 Semanas (Planes Semanales)</option>
-                          <option value="1 mes">Opción #2: 1 Mes (Planes Mensuales)</option>
+                          <option value="Préstamo Fijo">Opción #2: Préstamos Fijos (Planes Mensuales)</option>
                         </select>
                       </div>
 
-                      {/* Custom Amount Requested Input & Slider */}
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] uppercase font-mono text-slate-400">
-                          Cantidad Requerida (Monto) *:
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black select-none">$</span>
-                          <input
-                            type="number"
-                            min={1000}
-                            max={50000}
-                            step={1000}
-                            required
-                            value={reqCustomAmount || ''}
+                      {reqLoanType === 'Préstamo Fijo' ? (
+                        <div>
+                          <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Seleccionar Préstamo Fijo *:</label>
+                          <select
+                            value={reqCustomAmount}
                             onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setReqCustomAmount(val);
+                              setReqCustomAmount(Number(e.target.value));
                             }}
-                            className="w-full bg-slate-950 border border-slate-850 rounded-xl pl-7 pr-16 py-2 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                            placeholder="Monto requerido"
-                          />
-                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] uppercase font-mono text-[#a3c90e] font-bold">
-                            MXN
-                          </span>
+                            className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e] cursor-pointer"
+                          >
+                            {PRESTAMOS_FIJOS.map((item) => (
+                              <option key={item.capital} value={item.capital}>
+                                {item.label} (Mensual)
+                              </option>
+                            ))}
+                          </select>
                         </div>
-
-                        {/* Visual Range Slider */}
-                        <div className="pt-1 px-1">
-                          <input
-                            type="range"
-                            min={1000}
-                            max={50000}
-                            step={1000}
-                            value={reqCustomAmount || 1000}
-                            onChange={(e) => setReqCustomAmount(Number(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
-                          />
-                          <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1 select-none">
-                            <span>Mín: $1,000</span>
-                            <span className="text-[#a3c90e] bg-[#a3c90e]/5 border border-[#a3c90e]/10 px-1 py-0.2 rounded font-bold">
-                              Paso: $1,000
+                      ) : (
+                        /* Custom Amount Requested Input & Slider */
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] uppercase font-mono text-slate-400">
+                            Cantidad Requerida (Monto) *:
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black select-none">$</span>
+                            <input
+                              type="number"
+                              min={1000}
+                              max={50000}
+                              step={1000}
+                              required
+                              value={reqCustomAmount || ''}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setReqCustomAmount(val);
+                              }}
+                              className="w-full bg-slate-950 border border-slate-850 rounded-xl pl-7 pr-16 py-2 text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                              placeholder="Monto requerido"
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] uppercase font-mono text-[#a3c90e] font-bold">
+                              MXN
                             </span>
-                            <span>Máx: $50,000</span>
+                          </div>
+
+                          {/* Visual Range Slider */}
+                          <div className="pt-1 px-1">
+                            <input
+                              type="range"
+                              min={1000}
+                              max={50000}
+                              step={1000}
+                              value={reqCustomAmount || 1000}
+                              onChange={(e) => setReqCustomAmount(Number(e.target.value))}
+                              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
+                            />
+                            <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1 select-none">
+                              <span>Mín: $1,000</span>
+                              <span className="text-[#a3c90e] bg-[#a3c90e]/5 border border-[#a3c90e]/10 px-1 py-0.2 rounded font-bold">
+                                Paso: $1,000
+                              </span>
+                              <span>Máx: $50,000</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Desglose de Pago Estimado Panel */}
@@ -1280,7 +1312,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         <h4 className="text-[10px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-850 pb-1.5 mb-2.5 flex items-center justify-between">
                           <span>📊 Desglose de Solicitud</span>
                           <span className="text-[9px] text-[#a3c90e]/85 lowercase font-normal italic">
-                            ($135 sem. por cada $1,000)
+                            {reqLoanType === 'Préstamo Fijo' ? 'Menú de Préstamos Fijos' : '($135 sem. por cada $1,000)'}
                           </span>
                         </h4>
 
@@ -1294,10 +1326,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
                           <div className="flex justify-between items-center py-0.5">
                             <span className="text-slate-400 text-[11px]">
-                              Interés ({reqLoanType === '12 semanas' ? '12 Semanas' : '4 semanas'})
+                              Interés ({reqLoanType === '12 semanas' ? '12 Semanas' : 'Préstamo Fijo'})
                             </span>
                             <span className="text-[#a3c90e] font-mono font-bold">
-                              {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
+                              {formatMXN(Math.round(
+                                reqLoanType === 'Préstamo Fijo'
+                                  ? (PRESTAMOS_FIJOS.find(p => p.capital === reqCustomAmount)?.interest || 1200)
+                                  : ((reqCustomAmount || 0) / 1000) * 135 * 12
+                              ))}
                             </span>
                           </div>
                         </div>
@@ -1320,7 +1356,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="text-xs text-slate-300 font-sans">
                             <strong>4 pagos semanales</strong> de{" "}
                             <span className="text-white font-black font-mono">
-                              {formatMXN(Math.round(Math.round(((reqCustomAmount || 0) / 1000) * 135 * 4) / 4))}
+                              {formatMXN(Math.round((PRESTAMOS_FIJOS.find(p => p.capital === reqCustomAmount)?.interest || 1200) / 4))}
                             </span>{" "}
                             MXN.
                           </div>

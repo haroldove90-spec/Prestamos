@@ -13,7 +13,7 @@ import { ClientPortal } from './components/ClientPortal';
 import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS } from './types';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
@@ -324,7 +324,7 @@ export default function App() {
   const [regAddress, setRegAddress] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
   const [regRequestedAmount, setRegRequestedAmount] = useState<number>(10000);
-  const [regLoanType, setRegLoanType] = useState<'12 semanas' | '1 mes'>('12 semanas');
+  const [regLoanType, setRegLoanType] = useState<'12 semanas' | 'Préstamo Fijo'>('12 semanas');
   const [regMonthlyPlan, setRegMonthlyPlan] = useState<string>('3000_4200');
   const [regWeeklyPlan, setRegWeeklyPlan] = useState<string>('3000_3900');
   const [regIneFront, setRegIneFront] = useState('');
@@ -1589,12 +1589,17 @@ export default function App() {
                   const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
                   const finalProof = regProofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
 
-                  const regWeeksCount = regLoanType === '12 semanas' ? 12 : 4;
-                  const regFee = Math.round((regRequestedAmount / 1000) * 135 * regWeeksCount);
+                  let regFee = 0;
+                  if (regLoanType === 'Préstamo Fijo') {
+                    const match = PRESTAMOS_FIJOS.find(p => p.capital === regRequestedAmount);
+                    regFee = match ? match.interest : 1200;
+                  } else {
+                    regFee = Math.round((regRequestedAmount / 1000) * 135 * 12);
+                  }
                   const regTotalPayable = regRequestedAmount + regFee;
                   let planDesc = '';
-                  if (regLoanType === '1 mes') {
-                    planDesc = `Plan Mensual de Pago Único de $${regTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN por 4 semanas)`;
+                  if (regLoanType === 'Préstamo Fijo') {
+                    planDesc = `Préstamo Fijo/Mensual de $${regRequestedAmount.toLocaleString('es-MX')} MXN para pagar $${regTotalPayable.toLocaleString('es-MX')} MXN (Costo: $${regFee.toLocaleString('es-MX')} MXN en 4 semanas)`;
                   } else {
                     const abonoSemanal = Math.round(regTotalPayable / 12);
                     planDesc = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${regTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN por 12 semanas)`;
@@ -1834,53 +1839,77 @@ export default function App() {
                       <select
                         value={regLoanType}
                         onChange={(e) => {
-                          const val = e.target.value as '12 semanas' | '1 mes';
+                          const val = e.target.value as '12 semanas' | 'Préstamo Fijo';
                           setRegLoanType(val);
+                          if (val === 'Préstamo Fijo') {
+                            setRegRequestedAmount(3000);
+                          } else {
+                            setRegRequestedAmount(10000);
+                          }
                         }}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
                       >
                         <option value="12 semanas">12 Semanas (Planes Semanales)</option>
-                        <option value="1 mes">1 Mes (Planes Mensuales)</option>
+                        <option value="Préstamo Fijo">Préstamo Fijo (Planes Mensuales)</option>
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto de Capital Solicitado ($ MXN) *:</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
-                        <input
-                          type="number"
-                          min={1000}
-                          max={50000}
-                          step={1000}
-                          required
-                          value={regRequestedAmount || ''}
+                    {regLoanType === 'Préstamo Fijo' ? (
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Préstamos Fijos *:</label>
+                        <select
+                          value={regRequestedAmount}
                           onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setRegRequestedAmount(Math.min(50000, val));
+                            setRegRequestedAmount(Number(e.target.value));
                           }}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                        />
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                        >
+                          {PRESTAMOS_FIJOS.map((item) => (
+                            <option key={item.capital} value={item.capital}>
+                              {item.label} (Mensual)
+                            </option>
+                          ))}
+                        </select>
                       </div>
+                    ) : (
+                      <div>
+                        <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Monto de Capital Solicitado ($ MXN) *:</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-2 text-[#a3c90e] font-sans font-bold text-sm">$</span>
+                          <input
+                            type="number"
+                            min={1000}
+                            max={50000}
+                            step={1000}
+                            required
+                            value={regRequestedAmount || ''}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setRegRequestedAmount(Math.min(50000, val));
+                            }}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                          />
+                        </div>
 
-                      {/* Onboarding slider */}
-                      <div className="pt-2 px-1">
-                        <input
-                          type="range"
-                          min={1000}
-                          max={50000}
-                          step={1000}
-                          value={regRequestedAmount || 1000}
-                          onChange={(e) => setRegRequestedAmount(Number(e.target.value))}
-                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
-                        />
-                        <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1 select-none">
-                          <span>Mín: $1,000</span>
-                          <span>Paso: $1,000</span>
-                          <span>Máx: $50,000</span>
+                        {/* Onboarding slider */}
+                        <div className="pt-2 px-1">
+                          <input
+                            type="range"
+                            min={1000}
+                            max={50000}
+                            step={1000}
+                            value={regRequestedAmount || 1000}
+                            onChange={(e) => setRegRequestedAmount(Number(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
+                          />
+                          <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1 select-none">
+                            <span>Mín: $1,000</span>
+                            <span>Paso: $1,000</span>
+                            <span>Máx: $50,000</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Real-time Calculation Panel */}
@@ -1889,7 +1918,7 @@ export default function App() {
                       <h4 className="text-[10px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
                         <span>📊 Análisis de Cuotas</span>
                         <span className="text-[9px] text-[#a3c90e]/80 font-normal italic">
-                          ($135 sem. x cada $1,000)
+                          {regLoanType === 'Préstamo Fijo' ? 'Menú de Préstamos Fijos' : '($135 sem. x cada $1,000)'}
                         </span>
                       </h4>
 
@@ -1902,9 +1931,13 @@ export default function App() {
                         </div>
 
                         <div className="flex justify-between py-0.5">
-                          <span className="text-slate-400">Interés Estimado ({regLoanType === '12 semanas' ? '12 Semanas' : '4 Semanas'}):</span>
+                          <span className="text-slate-400">Interés Estimado ({regLoanType === '12 semanas' ? '12 Semanas' : 'Préstamo Fijo'}):</span>
                           <span className="text-[#a3c90e] font-mono font-bold">
-                            ${(Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
+                            ${(Math.round(
+                              regLoanType === 'Préstamo Fijo'
+                                ? (PRESTAMOS_FIJOS.find(p => p.capital === regRequestedAmount)?.interest || 1200)
+                                : ((regRequestedAmount || 0) / 1000) * 135 * 12
+                            )).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
                       </div>
@@ -1926,7 +1959,7 @@ export default function App() {
                         <div className="text-[11px] text-slate-300">
                           <strong>4 pagos semanales</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${Math.round(Math.round(((regRequestedAmount || 0) / 1000) * 135 * 4) / 4).toLocaleString('es-MX')}
+                            ${Math.round((PRESTAMOS_FIJOS.find(p => p.capital === regRequestedAmount)?.interest || 1200) / 4).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>

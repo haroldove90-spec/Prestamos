@@ -82,4 +82,15 @@ export interface ClientDossier {
   monthlyPlan?: string;
 }
 
+export const PRESTAMOS_FIJOS = [
+  { capital: 3000, interest: 1200, label: "$3,000 para pagar $4,200" },
+  { capital: 4000, interest: 1600, label: "$4,000 para pagar $5,600" },
+  { capital: 5000, interest: 2000, label: "$5,000 para pagar $7,000" },
+  { capital: 6000, interest: 2400, label: "$6,000 para pagar $8,400" },
+  { capital: 7000, interest: 2800, label: "$7,000 para pagar $9,800" },
+  { capital: 8000, interest: 3200, label: "$8,000 para pagar $11,200" },
+  { capital: 9000, interest: 3600, label: "$9,000 para pagar $12,600" },
+  { capital: 10000, interest: 4000, label: "$10,000 para pagar $14,000" },
+];
+
 
