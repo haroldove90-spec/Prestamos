@@ -22,7 +22,7 @@ interface AmortizationRow {
 
 export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, currentUser }) => {
   // Input states
-  const [amount, setAmount] = useState<number>(50000);
+  const [amount, setAmount] = useState<number>(10000);
   const [rate, setRate] = useState<number>(14.5);
   const [months, setMonths] = useState<number>(12);
   const [frequency, setFrequency] = useState<'Mensual' | 'Quincenal' | 'Semanal'>('Mensual');
@@ -40,7 +40,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
       const client = clients.find(c => c.id === selectedClientId);
       if (client) {
         // Suggested values based on real client stats
-        setAmount(Math.max(10000, client.totalCreditGranted || 50000));
+        setAmount(Math.min(50000, Math.max(10000, client.totalCreditGranted || 10000)));
         
         let baseRate = 14.5; // base
         if (client.membership === 'Premium') baseRate = 12.5; // VIP discount
@@ -363,17 +363,17 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
               </div>
               <input
                 type="range"
-                min="5000"
-                max="500000"
-                step="5000"
+                min="1000"
+                max="50000"
+                step="1000"
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
                 className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
               />
               <div className="flex justify-between text-[9px] text-slate-500 font-mono">
-                <span>$5,000</span>
-                <span>$250,000</span>
-                <span>$500,000</span>
+                <span>$1,000</span>
+                <span>$25,000</span>
+                <span>$50,000</span>
               </div>
             </div>
 

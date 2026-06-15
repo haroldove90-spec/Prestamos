@@ -380,8 +380,10 @@ export const AsesorDashboard: React.FC<AsesorDashboardProps> = ({
                     <label className="block text-[10px] text-slate-450 font-mono mb-1">MONTO DE CRÉDITO</label>
                     <input
                       type="number"
+                      min={1000}
+                      max={50000}
                       value={loanAmount}
-                      onChange={(e) => setLoanAmount(Math.max(1000, Number(e.target.value)))}
+                      onChange={(e) => setLoanAmount(Math.min(50000, Math.max(1000, Number(e.target.value))))}
                       className="w-full text-xs font-mono font-bold p-2.5 border border-slate-850 rounded-lg bg-slate-900 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>

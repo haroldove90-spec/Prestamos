@@ -380,16 +380,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     }
 
     const finalAmount = reqCustomAmount;
-    const reqFee = Math.round((finalAmount / 1000) * 135);
+    const weeksCount = reqLoanType === '12 semanas' ? 12 : 4;
+    const reqFee = Math.round((finalAmount / 1000) * 135 * weeksCount);
     const reqTotalPayable = finalAmount + reqFee;
     let descPlan = '';
 
     if (reqLoanType === '1 mes') {
-      descPlan = `Plan Mensual de Pago Único de $${reqTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo: $${reqFee.toLocaleString('es-MX')} MXN)`;
+      descPlan = `Plan Mensual de Pago Único de $${reqTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo de Financiamiento: $${reqFee.toLocaleString('es-MX')} MXN por 4 semanas)`;
     } else {
-      const parts = reqWeeklyPlan.split('_');
       const abonoSemanal = Math.round(reqTotalPayable / 12);
-      descPlan = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${reqTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo: $${reqFee.toLocaleString('es-MX')} MXN)`;
+      descPlan = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${reqTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${finalAmount.toLocaleString('es-MX')} MXN + Costo: $${reqFee.toLocaleString('es-MX')} MXN por 12 semanas)`;
     }
 
     // Call state handlers
@@ -1280,7 +1280,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         <h4 className="text-[10px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-850 pb-1.5 mb-2.5 flex items-center justify-between">
                           <span>📊 Desglose de Solicitud</span>
                           <span className="text-[9px] text-[#a3c90e]/85 lowercase font-normal italic">
-                            ($135 por cada $1,000)
+                            ($135 sem. por cada $1,000)
                           </span>
                         </h4>
 
@@ -1293,16 +1293,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           </div>
 
                           <div className="flex justify-between items-center py-0.5">
-                            <span className="text-slate-400 text-[11px]">Costo de Financiamiento</span>
+                            <span className="text-slate-400 text-[11px]">
+                              Interés ({reqLoanType === '12 semanas' ? '12 Semanas' : '4 semanas'})
+                            </span>
                             <span className="text-[#a3c90e] font-mono font-bold">
-                              + {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135))}
+                              + {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
                             </span>
                           </div>
 
                           <div className="border-t border-slate-850 my-2 pt-2 flex justify-between items-center">
                             <span className="text-white font-black text-xs uppercase tracking-wider">Total a Pagar</span>
                             <span className="text-[#a3c90e] text-sm font-black font-mono">
-                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135))}
+                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
                             </span>
                           </div>
                         </div>
@@ -1317,7 +1319,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="text-xs text-slate-300 font-sans">
                             <strong>12 pagos semanales</strong> de{" "}
                             <span className="text-white font-black font-mono">
-                              {formatMXN(Math.round(((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135)) / 12))}
+                              {formatMXN(Math.round(((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * 12)) / 12))}
                             </span>{" "}
                             MXN.
                           </div>
@@ -1325,7 +1327,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="text-xs text-slate-300 font-sans">
                             <strong>1 pago único mensual</strong> al término de 30 días de{" "}
                             <span className="text-white font-black font-mono">
-                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135))}
+                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * 4))}
                             </span>{" "}
                             MXN.
                           </div>

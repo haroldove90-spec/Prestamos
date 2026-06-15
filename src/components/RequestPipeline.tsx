@@ -19,7 +19,7 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
   
   // Simulation Form State
   const [candName, setCandName] = useState('');
-  const [amount, setAmount] = useState(250000);
+  const [amount, setAmount] = useState(10000);
   const [purpose, setPurpose] = useState('');
   const [score, setScore] = useState(710);
   const [category, setCategory] = useState<'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario'>('Personal');
@@ -129,10 +129,15 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
       alert('Ingresa el nombre del solicitante y el propósito del crédito.');
       return;
     }
+    const amt = Number(amount);
+    if (amt < 1000 || amt > 50000) {
+      alert('La cantidad solicitada debe estar entre $1,000 y $50,000 MXN.');
+      return;
+    }
 
     onAddRequest({
       clientName: candName,
-      requestedAmount: Number(amount),
+      requestedAmount: amt,
       purpose: purpose,
       score: Number(score),
       category: category
@@ -140,7 +145,7 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
 
     // Reset Form
     setCandName('');
-    setAmount(250000);
+    setAmount(10000);
     setPurpose('');
     setScore(710);
     setCategory('Personal');
@@ -221,10 +226,11 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
               <input
                 type="number"
                 required
-                min="10000"
-                placeholder="Ej. 150000"
+                min="1000"
+                max="50000"
+                placeholder="Ej. 15000"
                 value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={(e) => setAmount(Math.min(50000, Math.max(0, Number(e.target.value))))}
                 className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white font-mono focus:ring-1 focus:ring-indigo-500 focus:outline-none"
               />
             </div>

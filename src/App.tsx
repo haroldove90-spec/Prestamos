@@ -1574,6 +1574,10 @@ export default function App() {
                     alert('Por favor, rellena los campos marcados con (*).');
                     return;
                   }
+                  if (regRequestedAmount < 1000 || regRequestedAmount > 50000) {
+                    alert('Error: El monto del préstamo solicitado debe ser de un mínimo de $1,000 MXN hasta un máximo de $50,000 MXN.');
+                    return;
+                  }
                   if (regPassword !== regConfirmPassword) {
                     alert('Error: Las contraseñas ingresadas no coinciden. Por favor, verifíquelas.');
                     return;
@@ -1585,14 +1589,15 @@ export default function App() {
                   const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
                   const finalProof = regProofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
 
-                  const regFee = Math.round((regRequestedAmount / 1000) * 135);
+                  const regWeeksCount = regLoanType === '12 semanas' ? 12 : 4;
+                  const regFee = Math.round((regRequestedAmount / 1000) * 135 * regWeeksCount);
                   const regTotalPayable = regRequestedAmount + regFee;
                   let planDesc = '';
                   if (regLoanType === '1 mes') {
-                    planDesc = `Plan Mensual de Pago Único de $${regTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN)`;
+                    planDesc = `Plan Mensual de Pago Único de $${regTotalPayable.toLocaleString('es-MX')} MXN (Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN por 4 semanas)`;
                   } else {
                     const abonoSemanal = Math.round(regTotalPayable / 12);
-                    planDesc = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${regTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN)`;
+                    planDesc = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${regTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${regRequestedAmount.toLocaleString('es-MX')} MXN + Costo: $${regFee.toLocaleString('es-MX')} MXN por 12 semanas)`;
                   }
 
                   const newDossier: ClientDossier = {
@@ -1852,7 +1857,7 @@ export default function App() {
                           value={regRequestedAmount || ''}
                           onChange={(e) => {
                             const val = Number(e.target.value);
-                            setRegRequestedAmount(val);
+                            setRegRequestedAmount(Math.min(50000, val));
                           }}
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-7 pr-3 py-2 text-xs text-[#a3c90e] font-black focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
                         />
@@ -1884,7 +1889,7 @@ export default function App() {
                       <h4 className="text-[10px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
                         <span>📊 Análisis de Cuotas</span>
                         <span className="text-[9px] text-[#a3c90e]/80 font-normal italic">
-                          ($135 x cada $1,000)
+                          ($135 sem. x cada $1,000)
                         </span>
                       </h4>
 
@@ -1897,16 +1902,16 @@ export default function App() {
                         </div>
 
                         <div className="flex justify-between py-0.5">
-                          <span className="text-slate-400">Comisión / Interés (13.5%):</span>
+                          <span className="text-slate-400">Interés Estimado ({regLoanType === '12 semanas' ? '12 Semanas' : '4 Semanas'}):</span>
                           <span className="text-[#a3c90e] font-mono font-bold">
-                            + ${(Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')} MXN
+                            + ${(Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
 
                         <div className="border-t border-slate-800 mt-2 pt-2 flex justify-between select-none">
                           <span className="text-white font-bold uppercase tracking-wider text-[10px]">Adeudo Total:</span>
                           <span className="text-[#a3c90e] font-extrabold font-mono">
-                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')} MXN
+                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
                       </div>
@@ -1920,7 +1925,7 @@ export default function App() {
                         <div className="text-[11px] text-slate-300">
                           <strong>12 pagos semanales</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${Math.round(((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)) / 12).toLocaleString('es-MX')}
+                            ${Math.round(((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * 12)) / 12).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>
@@ -1928,7 +1933,7 @@ export default function App() {
                         <div className="text-[11px] text-slate-300">
                           <strong>1 pago mensual único</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135)).toLocaleString('es-MX')}
+                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * 4)).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>
