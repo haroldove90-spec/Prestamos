@@ -1297,7 +1297,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                               Interés ({reqLoanType === '12 semanas' ? '12 Semanas' : '4 semanas'})
                             </span>
                             <span className="text-[#a3c90e] font-mono font-bold">
-                              + {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
+                              {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
                             </span>
                           </div>
                         </div>

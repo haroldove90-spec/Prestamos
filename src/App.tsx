@@ -1904,7 +1904,7 @@ export default function App() {
                         <div className="flex justify-between py-0.5">
                           <span className="text-slate-400">Interés Estimado ({regLoanType === '12 semanas' ? '12 Semanas' : '4 Semanas'}):</span>
                           <span className="text-[#a3c90e] font-mono font-bold">
-                            + ${(Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
+                            ${(Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
                       </div>
