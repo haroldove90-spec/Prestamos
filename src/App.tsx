@@ -931,16 +931,18 @@ export default function App() {
     // 1. Update dossier status to APROBADO
     setDossiers(prev => prev.map(d => d.id === dossier.id ? { ...d, status: 'APROBADO', adminNotes: dossier.adminNotes } : d));
 
-    // 2. Create an authorized credit request in requests pipeline
+    // 2. Create an authorized credit request in requests pipeline with full plan synchronization
     const newRequest: CreditRequest = {
       id: 'REQ-' + Math.floor(10000 + Math.random() * 90000),
       clientName: dossier.clientName,
       requestedAmount: dossier.requestedAmount,
-      purpose: 'Préstamo vía Expediente Digital Autorizado',
+      purpose: dossier.loanType ? `Préstamo asignado: ${dossier.loanType}` : 'Préstamo vía Expediente Digital Autorizado',
       score: 710,
       category: 'Personal',
       dateSubmitted: dossier.createdAt,
-      status: 'APROBADO'
+      status: 'APROBADO',
+      loanType: dossier.loanType,
+      monthlyPlan: dossier.monthlyPlan
     };
     setRequests(prev => [newRequest, ...prev]);
 
@@ -1215,7 +1217,7 @@ export default function App() {
       queriedClientName: requestItem.clientName,
       requestedBy: 'admin_harold',
       scoreFound: requestItem.score,
-      resolution: `SOLICITUD Y PRÉSTAMO ${id} APROBADOS POR HAROLD. Alta automática en Cartera Activa con ID unificado para el Cliente, Contrato de Préstamo y Referencia de Pagos: ${requestItem.id} por un monto de $${requestItem.requestedAmount.toLocaleString('es-MX')} MXN.`
+      resolution: `SOLICITUD Y PRÉSTAMO ${id} APROBADOS POR HAROLD. Plan: ${requestItem.loanType || 'Personal estándar'} ${requestItem.monthlyPlan ? `(${requestItem.monthlyPlan})` : ''}. Alta automática en Cartera Activa con ID unificado para el Cliente, Contrato de Préstamo y Referencia de Pagos: ${requestItem.id} por un monto de $${requestItem.requestedAmount.toLocaleString('es-MX')} MXN.`
     };
     setQueries(prev => [newLog, ...prev]);
   };

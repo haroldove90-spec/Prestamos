@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, User, DollarSign, Bell, RefreshCw, 
   Eye, EyeOff, ShieldCheck, Sparkles, Send, Trash2
 } from 'lucide-react';
-import { ClientDossier, Client } from '../types';
+import { ClientDossier, Client, PRESTAMOS_FIJOS } from '../types';
 
 interface ExpedientesModuleProps {
   currentUser: string;
@@ -29,7 +29,8 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
   const [clientName, setClientName] = useState('');
   const [address, setAddress] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [requestedAmount, setRequestedAmount] = useState<number>(30000);
+  const [loanType, setLoanType] = useState<'12 semanas' | 'Préstamo Fijo'>('12 semanas');
+  const [requestedAmount, setRequestedAmount] = useState<number>(10000);
   
   // Document base64 contents
   const [ineFront, setIneFront] = useState<string>('');
@@ -131,6 +132,23 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
     const finalIneBack = ineBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
     const finalProof = proofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
 
+    let reqFee = 0;
+    if (loanType === 'Préstamo Fijo') {
+      const match = PRESTAMOS_FIJOS.find(p => p.capital === requestedAmount);
+      reqFee = match ? match.interest : 1200;
+    } else {
+      reqFee = Math.round((requestedAmount / 1000) * 135 * 12);
+    }
+    const reqTotalPayable = requestedAmount + reqFee;
+    let descPlan = '';
+
+    if (loanType === 'Préstamo Fijo') {
+      descPlan = `Préstamo Fijo de $${requestedAmount.toLocaleString('es-MX')} MXN para pagar $${reqTotalPayable.toLocaleString('es-MX')} MXN (Interés: $${reqFee.toLocaleString('es-MX')} MXN en 4 semanas)`;
+    } else {
+      const abonoSemanal = Math.round(reqTotalPayable / 12);
+      descPlan = `Plan Semanal a 12 Semanas con 12 pagos de $${abonoSemanal.toLocaleString('es-MX')} MXN (Total: $${reqTotalPayable.toLocaleString('es-MX')} MXN, Capital: $${requestedAmount.toLocaleString('es-MX')} MXN + Costo: $${reqFee.toLocaleString('es-MX')} MXN por 12 semanas)`;
+    }
+
     const newDossier: ClientDossier = {
       id: 'EXP-' + Math.floor(1000 + Math.random() * 9000),
       clientName,
@@ -142,7 +160,9 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
       requestedAmount,
       status: 'ANALIZANDO',
       createdAt: new Date().toISOString().split('T')[0],
-      notificationDismissed: false
+      notificationDismissed: false,
+      loanType: loanType,
+      monthlyPlan: descPlan
     };
 
     onAddDossier(newDossier);
@@ -298,7 +318,7 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
                 />
               </div>
 
-              {/* DOB & Requested Amount */}
+              {/* DOB & Loan Type Selection & Requested Amount */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono uppercase font-black text-slate-400 flex items-center gap-1">
@@ -315,18 +335,72 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
 
                 <div className="space-y-1">
                   <label className="text-[10px] font-mono uppercase font-black text-slate-400 flex items-center gap-1">
-                    <DollarSign className="w-3 h-3 text-emerald-400" /> Préstamo Solicitado *
+                    Tipo de Préstamo *
                   </label>
-                  <input
-                    type="number"
-                    required
-                    min={1000}
-                    max={500000}
-                    value={requestedAmount || ''}
-                    onChange={(e) => setRequestedAmount(Number(e.target.value))}
-                    className="w-full bg-slate-950/70 text-slate-100 font-mono text-xs px-3.5 py-2.5 rounded-xl border border-slate-800 focus:border-[#a3c90e]/75 focus:ring-0 outline-none transition font-extrabold text-emerald-400"
-                  />
+                  <select
+                    value={loanType}
+                    onChange={(e) => {
+                      const val = e.target.value as '12 semanas' | 'Préstamo Fijo';
+                      setLoanType(val);
+                      if (val === 'Préstamo Fijo') {
+                        setRequestedAmount(3000); // Default to first available option
+                      } else {
+                        setRequestedAmount(10000);
+                      }
+                    }}
+                    className="w-full bg-slate-950/70 text-slate-100 font-sans text-xs px-3.5 py-2.5 rounded-xl border border-slate-800 focus:border-[#a3c90e]/75 focus:ring-0 outline-none transition cursor-pointer"
+                  >
+                    <option value="12 semanas">12 Semanas (Planes Semanales)</option>
+                    <option value="Préstamo Fijo">Préstamo Fijo (Planes Mensuales)</option>
+                  </select>
                 </div>
+              </div>
+
+              <div className="space-y-1 bg-slate-950/40 p-3 border border-slate-850 rounded-xl">
+                {loanType === 'Préstamo Fijo' ? (
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-[#a3c90e]" /> Seleccionar Préstamo Fijo *
+                    </label>
+                    <select
+                      value={requestedAmount}
+                      onChange={(e) => setRequestedAmount(Number(e.target.value))}
+                      className="w-full bg-slate-950 text-slate-100 font-mono text-xs px-3 py-2 border border-slate-800 rounded-xl focus:border-[#a3c90e]/75 text-[#a3c90e] font-black focus:outline-none cursor-pointer"
+                    >
+                      {PRESTAMOS_FIJOS.map((item) => (
+                        <option key={item.capital} value={item.capital}>
+                          {item.label} (Abono de ${((item.capital + item.interest) / 4).toLocaleString('es-MX')} x4)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-[#a3c90e]" /> Monto Solicitado (MXN entre $1,000 y $50,000) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1000}
+                      max={50000}
+                      value={requestedAmount}
+                      onChange={(e) => setRequestedAmount(Math.min(50000, Math.max(0, Number(e.target.value))))}
+                      className="w-full bg-slate-950/70 text-slate-100 font-mono text-xs px-3 py-2 rounded-xl border border-slate-800 focus:border-[#a3c90e]/75 focus:outline-none font-extrabold text-[#a3c90e]"
+                    />
+                    <div className="flex gap-2 items-center mt-2.5">
+                      <input
+                        type="range"
+                        min="1000"
+                        max="50000"
+                        step="1000"
+                        value={requestedAmount}
+                        onChange={(e) => setRequestedAmount(Number(e.target.value))}
+                        className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#a3c90e]"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* DOCUMENT UPLOAD PANELS */}
@@ -762,7 +836,15 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
 
                     <div className="space-y-1 bg-slate-900 border border-slate-850/60 p-2.5 rounded-xl text-left">
                       <span className="text-slate-500 uppercase font-black block text-[8px]">Monto del Préstamo:</span>
-                      <p className="text-emerald-400 text-sm font-black mt-1">{formatMXN(activeAdminDossier.requestedAmount)}</p>
+                      <p className="text-[#a3c90e] text-sm font-black mt-1">{formatMXN(activeAdminDossier.requestedAmount)}</p>
+                      {activeAdminDossier.loanType && (
+                        <div className="mt-1 pt-1 border-t border-slate-800">
+                          <span className="text-[10px] text-indigo-400 font-bold block">{activeAdminDossier.loanType}</span>
+                          {activeAdminDossier.monthlyPlan && (
+                            <span className="text-[9px] text-slate-400 block font-sans italic max-w-xs">{activeAdminDossier.monthlyPlan}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -314,6 +314,18 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
                         <div className="text-[9px] font-mono font-bold text-slate-500 uppercase">{req.id} • {req.dateSubmitted}</div>
                         <h4 className="font-bold text-white text-sm mt-0.5">{req.clientName}</h4>
                         <div className="text-[10px] text-slate-400 italic mt-0.5">Motivo: {req.purpose}</div>
+                        {req.loanType && (
+                          <div className="mt-2.5 flex flex-col gap-0.5 bg-indigo-950/25 border border-indigo-900/40 p-2 rounded-lg">
+                            <span className="text-[9.5px] uppercase font-mono font-bold text-indigo-300">
+                              Tipo: {req.loanType}
+                            </span>
+                            {req.monthlyPlan && (
+                              <span className="text-[9.5px] text-slate-300 font-sans leading-tight">
+                                {req.monthlyPlan}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-right">
@@ -402,6 +414,11 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
                       </div>
 
                       <h4 className="font-bold text-xs text-slate-200 truncate">{req.clientName}</h4>
+                      {req.loanType && (
+                        <div className="text-[9.5px] text-indigo-400 font-mono font-bold leading-tight">
+                          {req.loanType} {req.monthlyPlan && <span className="text-[9px] text-slate-400 font-sans font-normal italic">({req.monthlyPlan})</span>}
+                        </div>
+                      )}
                       
                       <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-dotted border-slate-800 font-mono">
                         <span className="font-bold text-slate-300">{formatMXN(req.requestedAmount)}</span>
