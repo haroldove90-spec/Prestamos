@@ -1907,13 +1907,6 @@ export default function App() {
                             + ${(Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
-
-                        <div className="border-t border-slate-800 mt-2 pt-2 flex justify-between select-none">
-                          <span className="text-white font-bold uppercase tracking-wider text-[10px]">Adeudo Total:</span>
-                          <span className="text-[#a3c90e] font-extrabold font-mono">
-                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * (regLoanType === '12 semanas' ? 12 : 4))).toLocaleString('es-MX')} MXN
-                          </span>
-                        </div>
                       </div>
                     </div>
 
@@ -1925,15 +1918,15 @@ export default function App() {
                         <div className="text-[11px] text-slate-300">
                           <strong>12 pagos semanales</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${Math.round(((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * 12)) / 12).toLocaleString('es-MX')}
+                            ${Math.round(Math.round(((regRequestedAmount || 0) / 1000) * 135 * 12) / 12).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>
                       ) : (
                         <div className="text-[11px] text-slate-300">
-                          <strong>1 pago mensual único</strong> de{" "}
+                          <strong>4 pagos semanales</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${((regRequestedAmount || 0) + Math.round(((regRequestedAmount || 0) / 1000) * 135 * 4)).toLocaleString('es-MX')}
+                            ${Math.round(Math.round(((regRequestedAmount || 0) / 1000) * 135 * 4) / 4).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>

@@ -1300,13 +1300,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                               + {formatMXN(Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
                             </span>
                           </div>
-
-                          <div className="border-t border-slate-850 my-2 pt-2 flex justify-between items-center">
-                            <span className="text-white font-black text-xs uppercase tracking-wider">Total a Pagar</span>
-                            <span className="text-[#a3c90e] text-sm font-black font-mono">
-                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * (reqLoanType === '12 semanas' ? 12 : 4)))}
-                            </span>
-                          </div>
                         </div>
                       </div>
 
@@ -1319,15 +1312,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="text-xs text-slate-300 font-sans">
                             <strong>12 pagos semanales</strong> de{" "}
                             <span className="text-white font-black font-mono">
-                              {formatMXN(Math.round(((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * 12)) / 12))}
+                              {formatMXN(Math.round(Math.round(((reqCustomAmount || 0) / 1000) * 135 * 12) / 12))}
                             </span>{" "}
                             MXN.
                           </div>
                         ) : (
                           <div className="text-xs text-slate-300 font-sans">
-                            <strong>1 pago único mensual</strong> al término de 30 días de{" "}
+                            <strong>4 pagos semanales</strong> de{" "}
                             <span className="text-white font-black font-mono">
-                              {formatMXN((reqCustomAmount || 0) + Math.round(((reqCustomAmount || 0) / 1000) * 135 * 4))}
+                              {formatMXN(Math.round(Math.round(((reqCustomAmount || 0) / 1000) * 135 * 4) / 4))}
                             </span>{" "}
                             MXN.
                           </div>
