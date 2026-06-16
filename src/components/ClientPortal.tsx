@@ -4,12 +4,13 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle
+  PlusCircle, Printer
 } from 'lucide-react';
-import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS } from '../types';
+import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract } from '../types';
 
 interface ClientPortalProps {
   clients: Client[];
+  contracts: ClientContract[];
   onRegisterPayment: (payment: ClientPayment) => void;
   activeClientPayment?: ClientPayment | null;
   dossiers?: ClientDossier[];
@@ -44,6 +45,7 @@ const MOCK_RECEIPT_TEMPLATES = [
 
 export const ClientPortal: React.FC<ClientPortalProps> = ({ 
   clients, 
+  contracts,
   onRegisterPayment,
   dossiers,
   setDossiers,
@@ -90,7 +92,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const activeClient = clients.find(c => c.id === selectedClientId);
 
   // Tabs layout
-  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan' | 'profile'>('my_loan');
+  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan' | 'profile' | 'contract'>('my_loan');
 
   // Form states inside "Mis pagos"
   const [amount, setAmount] = useState<string>('');
@@ -801,6 +803,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         >
           <User className="w-4 h-4" />
           Mi Perfil
+        </button>
+
+        <button
+          onClick={() => {
+            setPortalTab('contract');
+            setReqSuccessMsg(null);
+          }}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition duration-250 cursor-pointer ${
+            portalTab === 'contract' 
+              ? 'border-[#a3c90e] bg-[#a3c90e]/5 text-[#a3c90e]' 
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-[#a3c90e]" />
+          Contrato
         </button>
       </div>
 
@@ -1755,6 +1772,255 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               </div>
             </div>
           )}
+
+          {/* 5. VIEW "CONTRATO" CUSTOMER PORTAL CONTAINER */}
+          {portalTab === 'contract' && activeClient && (() => {
+            const clientContract = contracts.find(c => c.clientId === activeClient.id);
+            
+            const handlePrintLocal = (contractId: string) => {
+              const printContent = document.getElementById(`printable-client-contract-${contractId}`);
+              if (!printContent) return;
+              
+              const printWindow = window.open('', '_blank');
+              if (printWindow) {
+                printWindow.document.write(`
+                  <html>
+                    <head>
+                      <title>Contrato Oficial Salda App - ${contractId}</title>
+                      <script src="https://cdn.tailwindcss.com"></script>
+                      <style>
+                        body { font-family: 'Inter', system-ui, sans-serif; background-color: white; color: black; padding: 40px; }
+                        @media print {
+                          body { padding: 0; }
+                        }
+                      </style>
+                    </head>
+                    <body onload="window.print(); window.close();">
+                      <div class="max-w-4xl mx-auto border-2 border-slate-900 p-8 rounded-lg relative">
+                        ${printContent.innerHTML}
+                      </div>
+                    </body>
+                  </html>
+                `);
+                printWindow.document.close();
+              }
+            };
+
+            if (clientContract) {
+              return (
+                <div className="space-y-6 animate-fadeIn text-left">
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-[#a3c90e]" />
+                        Tu Contrato Digital Emitido
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-mono mt-1">
+                        Código Único Federal: <span className="text-[#a3c90e] font-semibold">{clientContract.id}</span> • Estatus: <span className="text-emerald-400 font-bold uppercase">{clientContract.status}</span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handlePrintLocal(clientContract.id)}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4.5 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shadow border-none cursor-pointer transition active:scale-95 select-none"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Visualizar y Exportar PDF
+                    </button>
+                  </div>
+
+                  {/* PREMIUM PRINTABLE CONTRACT CANVAS */}
+                  <div 
+                    className="bg-white text-slate-900 rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl overflow-y-auto max-h-[550px] leading-relaxed relative"
+                    id={`printable-client-contract-${clientContract.id}`}
+                  >
+                    {/* Background Watermark/Graphic */}
+                    <div className="absolute inset-0 bg-contain bg-center opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url('https://cossma.com.mx/saldaapplogo.png')` }}></div>
+
+                    {/* Corporate Header Block */}
+                    <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
+                      <div className="flex items-center gap-2.5">
+                        <img 
+                          src="https://cossma.com.mx/saldaapplogo.png" 
+                          alt="Salda Logo" 
+                          className="h-10 w-auto object-contain" 
+                          referrerPolicy="no-referrer"
+                        />
+                        <div>
+                          <h1 className="font-sans font-black tracking-tight text-lg text-slate-950 uppercase leading-none">Salda App</h1>
+                          <span className="text-[9px] uppercase tracking-wider font-mono text-slate-500 font-bold block mt-1">Fideicomiso Express Mexicana S.A. de C.V.</span>
+                        </div>
+                      </div>
+                      <div className="text-right text-[10px] font-mono text-slate-600">
+                        <div className="font-bold text-slate-900">CERTIFICACIÓN VIGENTE</div>
+                        <div>Ref: {clientContract.paymentReference}</div>
+                        <div>Reg: CNBV-FID-2026</div>
+                      </div>
+                    </div>
+
+                    {/* Official Title Section */}
+                    <div className="text-center space-y-1 mb-6">
+                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 underline">
+                        {clientContract.contractType === 'Contrato Express'
+                          ? 'CONTRATO EXPRESO DE CRÉDITO DE CONSUMO INMEDIATO'
+                          : 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES'}
+                      </h2>
+                      <p className="text-[9.5px] text-slate-500 font-mono tracking-wider">
+                        DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN
+                      </p>
+                    </div>
+
+                    {/* Substantive Declared Body Text */}
+                    <div className="text-[10.5px] text-slate-800 space-y-2.5 text-justify leading-relaxed">
+                      <p>
+                        <strong>DECLARACIONES:</strong> El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día <strong className="text-slate-950 font-black">{clientContract.dateGenerated}</strong> por y entre las partes señaladas a continuación:
+                      </p>
+                      <p className="pl-3 border-l pb-1 border-slate-300">
+                        Por una parte, <strong>Fideicomiso de Recaudación Salda App S.A.</strong> como el <strong>"Acreedor fiduciario unificado"</strong>, y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:
+                      </p>
+
+                      {/* Client Metadata block */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-205 grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[9.5px] my-3 leading-loose text-slate-900">
+                        <div>
+                          <span className="text-slate-500 uppercase block text-[8px] font-black">MUTUATARIO / CLIENTE:</span>
+                          <strong className="text-slate-950 text-[10.5px] font-sans">{clientContract.clientName}</strong>
+                          <div className="mt-1">ID Contrato: <span className="font-bold text-indigo-750">{clientContract.id}</span></div>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 uppercase block text-[8px] font-black">MONTO MUTUADO / LÍNEA DE CRÉDITO:</span>
+                          <strong className="text-[#8dae09] text-[10.5px] font-bold">${clientContract.amount.toLocaleString('es-MX')} MXN</strong>
+                          <div className="mt-1">Referencia Bancaria Sincronizada: <span className="bg-slate-900 text-white font-bold font-mono px-1.5 py-0.2 rounded">{clientContract.paymentReference}</span></div>
+                        </div>
+                      </div>
+
+                      <p>
+                        Las partes manifiestan de común acuerdo someterse al tenor de las siguientes cláusulas obligatorias bajo las leyes de la República Mexicana:
+                      </p>
+
+                      {clientContract.contractType === 'Contrato Express' ? (
+                        <div className="space-y-2">
+                          <p>
+                            <strong>CLÁUSULA PRIMERA (Entrega y Destino del Crédito):</strong> Salda App pone a la disposición de la Parte Acreditada la suma autorizada de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong>. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.
+                          </p>
+                          <p>
+                            <strong>CLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos):</strong> El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
+                          </p>
+                          <p>
+                            <strong>CLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito):</strong> En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p>
+                            <strong>CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo):</strong> El Mutuante transmite la propiedad de la cantidad líquida de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong> al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados de conformidad con el calendario regulado.
+                          </p>
+                          <p>
+                            <strong>CLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria):</strong> El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
+                          </p>
+                          <p>
+                            <strong>CLÁUSULA TERCERA (Vencimiento Anticipado):</strong> El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata por la vía ejecutiva mercantil.
+                          </p>
+                        </div>
+                      )}
+
+                      <p>
+                        <strong>SELLO DIGITAL CENTRAL DE LA PLATAFORMA:</strong>
+                        <span className="block font-mono text-[8px] bg-slate-100 p-2 text-slate-600 rounded-lg break-all mt-1">
+                          SHA256::A1B9392BC876251EF9302A0931B2A1{clientContract.id}FE::FirmaDigitalSincronizadaConComiteEspecialSaldaAppFisicoJuridico2026CE73A2B1C9D2EBC918
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Digital Stamps / Authorized Signatures panels */}
+                    <div className="grid grid-cols-2 gap-6 border-t border-slate-205 pt-6 mt-6 text-[9.5px] font-sans">
+                      <div className="text-center">
+                        <p className="text-slate-450 text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold">Por el Acreedor (Salda App)</p>
+                        <div className="h-10 flex items-center justify-center italic text-blue-800 font-serif font-black">
+                          Harold Salazar S.
+                        </div>
+                        <div className="border-t border-slate-400 pt-1 text-slate-700">
+                          <strong>LIC. HAROLD SALAZAR RUIZ</strong>
+                          <span className="block text-[8px] text-slate-500 font-mono">Apoderado General de Crédito</span>
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <p className="text-slate-450 text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold">Por el Mutuatario (Acreditado)</p>
+                        <div className="h-10 flex items-center justify-center italic text-slate-650 font-serif font-mono text-xs text-slate-700">
+                          FIRMADO ELECTRÓNICAMENTE
+                        </div>
+                        <div className="border-t border-slate-400 pt-1 text-slate-700">
+                          <strong>{clientContract.clientName}</strong>
+                          <span className="block text-[8px] text-slate-500 font-mono">Firma Biométrica Validada</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 border border-slate-805 rounded-xl flex items-center gap-3">
+                    <ShieldCheck className="w-5 h-5 text-[#a3c90e] shrink-0" />
+                    <span className="text-[11px] text-slate-400 leading-snug">
+                      Este contrato virtual se sincroniza perfectamente con tu saldo deudor. Puedes realizar abonos o pagos puntuales usando tu Referencia Única <strong className="text-white font-mono">{clientContract.paymentReference}</strong>.
+                    </span>
+                  </div>
+                </div>
+              );
+            } else {
+              // Status steps: no contract generated yet
+              return (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6 text-left animate-fadeIn">
+                  <div className="text-center max-w-lg mx-auto py-4 space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-slate-950/60 flex items-center justify-center border border-slate-800 text-indigo-400 font-bold animate-pulse mx-auto">
+                      <FileText className="w-6 h-6 text-[#a3c90e]" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-white text-base">Contrato Digital en Trámite</h3>
+                      <p className="text-xs text-slate-450 text-slate-400 mt-1 font-sans leading-relaxed">
+                        Tu contrato fiduciario se encuentra en fase de instrumentación legal y validación de firmas por nuestro super administrador <strong className="text-white">Harold Salazar</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Horizontal visual stepper milestones */}
+                  <div className="bg-slate-950/55 p-5 border border-slate-850 rounded-2xl">
+                    <h4 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-4">Etapas de Validación y Generación</h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-2 text-[11px] leading-tight relative">
+                      <div className="space-y-1.5 p-3 rounded-xl bg-[#a3c90e]/5 border border-[#a3c90e]/20 text-[#a3c90e]">
+                        <div className="font-bold font-mono">ETAPA 1</div>
+                        <div className="font-black">Crédito Aprobado</div>
+                        <span className="bg-[#a3c90e]/20 text-[#a3c90e] text-[8px] font-mono uppercase px-1 py-0.2 rounded font-bold">Completado</span>
+                      </div>
+
+                      <div className="space-y-1.5 p-3 rounded-xl bg-[#a3c90e]/5 border border-[#a3c90e]/20 text-[#a3c90e]">
+                        <div className="font-bold font-mono">ETAPA 2</div>
+                        <div className="font-black">Expediente Validado</div>
+                        <span className="bg-[#a3c90e]/20 text-[#a3c90e] text-[8px] font-mono uppercase px-1 py-0.2 rounded font-bold">Completado</span>
+                      </div>
+
+                      <div className="space-y-1.5 p-3 rounded-xl bg-slate-900 border border-slate-800 text-indigo-400 animate-pulse">
+                        <div className="font-bold font-mono">ETAPA 3</div>
+                        <div className="font-bold text-white">Generación de Cláusulas</div>
+                        <span className="bg-indigo-505 bg-indigo-500/15 text-indigo-400 text-[8px] font-mono uppercase px-1 py-0.2 rounded font-bold">En Proceso</span>
+                      </div>
+
+                      <div className="space-y-1.5 p-3 rounded-xl bg-slate-950/20 border border-slate-900 text-slate-600">
+                        <div className="font-bold font-mono">ETAPA 4</div>
+                        <div className="font-bold">Emisión del PDF</div>
+                        <span className="border border-slate-850 text-[8px] font-mono uppercase px-1 py-0.2 rounded font-mono">Pendiente</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-indigo-600/5 border border-indigo-600/20 rounded-xl">
+                    <p className="text-xs text-slate-350 leading-relaxed">
+                      💡 <strong>¿Qué sucede después de la generación?</strong> Se agregará automáticamente la Referencia única de pago bancaria para que puedas realizar abonos recurrentes con conciliación automatizada en tiempo real. Recibirás una notificación instantánea en pantalla una vez asignado.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+          })()}
 
         </div>
 

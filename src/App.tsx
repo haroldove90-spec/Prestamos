@@ -13,7 +13,8 @@ import { ClientPortal } from './components/ClientPortal';
 import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS } from './types';
+import { ContractsModule } from './components/ContractsModule';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract } from './types';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
@@ -218,7 +219,7 @@ export default function App() {
     return user;
   };
 
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation'>('portfolio');
+  const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts'>('portfolio');
 
   const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
     const local = localStorage.getItem('buro_dossiers');
@@ -292,6 +293,30 @@ export default function App() {
         status: 'PAGO_REALIZADO',
         notes: 'Pago extraordinario en sucursal de Oxxo. Ticket de depósito adjunto.',
         reference: 'OXXO-SAFE-882103'
+      }
+    ];
+  });
+
+  const [contracts, setContracts] = useState<ClientContract[]>(() => {
+    const local = localStorage.getItem('buro_contracts');
+    if (local) {
+      try {
+        return JSON.parse(local) as ClientContract[];
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      {
+        id: 'CON-298310',
+        clientId: 'PM-327072',
+        clientName: 'Esperanza Escobedo Guzman',
+        contractType: 'Contrato Express',
+        amount: 25000,
+        paymentReference: 'PM-327072',
+        dateGenerated: '2026-06-15',
+        monthlyPlan: 'Plan Semanal a 12 Semanas',
+        status: 'ACTIVO'
       }
     ];
   });
@@ -564,6 +589,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
   }, [clientPayments]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_contracts', JSON.stringify(contracts));
+  }, [contracts]);
 
   // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
   const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
@@ -1240,6 +1269,43 @@ export default function App() {
       resolution: `SOLICITUD ${id} RECHAZADA POR EXCISO DE RIESGO DE BURÓ (Score obtenido: ${requestItem.score}).`
     };
     setQueries(prev => [newLog, ...prev]);
+  };
+
+  // CONTRACT HANDLERS
+  const handleAddContract = (newContract: ClientContract) => {
+    setContracts(prev => [newContract, ...prev]);
+
+    addNotificationAndPopup(
+      '📄 Contrato Generado y Asignado',
+      `Se ha emitido y certificado legalmente el contrato (${newContract.contractType}) para ${newContract.clientName} con Ref: ${newContract.paymentReference} por un monto de $${newContract.amount.toLocaleString('es-MX')} MXN.`,
+      'success',
+      'success',
+      `admin_harold,cliente_esperanza,cliente_${newContract.clientName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+      true
+    );
+
+    const newLog: BureauQueryLog = {
+      id: 'CTR-LOG-' + Math.floor(10000 + Math.random() * 90000),
+      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      queriedClientName: newContract.clientName,
+      requestedBy: 'admin_harold',
+      scoreFound: 810,
+      resolution: `✓ CONTRATO ASIGNADO: Plantilla "${newContract.contractType}" instrumentada para el expediente ${newContract.clientId}. ID de Contrato: ${newContract.id} por $${newContract.amount.toLocaleString('es-MX')} MXN. Referencia única de pagos: ${newContract.paymentReference}.`
+    };
+    setQueries(prev => [newLog, ...prev]);
+  };
+
+  const handleDeleteContract = (contractId: string) => {
+    setContracts(prev => prev.filter(c => c.id !== contractId));
+
+    addNotificationAndPopup(
+      '🚫 Contrato Eliminado',
+      `Se ha cancelado y retirado la certificación del contrato ${contractId} del sistema central fiduciario.`,
+      'warning',
+      'warning',
+      'admin_harold',
+      true
+    );
   };
 
   // ADD INDEPENDENT QUERY LOG
@@ -2521,6 +2587,27 @@ export default function App() {
                       </div>
                     </button>
                   )}
+
+                  {/* ASIGNACION DE CONTRATOS */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-contracts"
+                      onClick={() => setActiveTab('contracts')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'contracts'
+                          ? 'bg-indigo-650 text-white font-bold border-[#a3c90e] shadow-lg shadow-indigo-600/15'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className={`w-4 h-4 ${activeTab === 'contracts' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                        <span className="text-xs font-semibold">Asignación de Contratos</span>
+                      </div>
+                      <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] border border-[#a3c90e]/20 px-1.5 py-0.5 rounded font-mono font-black">
+                        ADMIN
+                      </span>
+                    </button>
+                  )}
                 </nav>
 
                 {/* PWA INSTALLATION WIDGET (MOBILE DRAWER) */}
@@ -2824,6 +2911,27 @@ export default function App() {
               </button>
             )}
 
+            {/* TAB OPTION: ASIGNACION DE CONTRATOS */}
+            {currentUser === 'admin_harold' && (
+              <button
+                id="tab-contracts"
+                onClick={() => setActiveTab('contracts')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'contracts'
+                    ? 'bg-indigo-600 font-extrabold border-[#a3c90e] shadow-lg text-white'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className={`w-4 h-4 ${activeTab === 'contracts' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                  <span className="text-xs font-semibold">Asignación de Contratos</span>
+                </div>
+                <span className="text-[9px] bg-[#a3c90e]/15 text-[#a3c90e] border border-[#a3c90e]/20 px-1.5 py-0.5 rounded font-mono font-black">
+                  ADMIN
+                </span>
+              </button>
+            )}
+
             {/* MOCK ADVICE TILE IN SIDEBAR */}
             <div className="p-5 bg-slate-900 rounded-3xl border border-slate-800 space-y-2 mt-4 hidden lg:block shadow-md">
               <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 font-mono">
@@ -2978,6 +3086,7 @@ export default function App() {
                 {activeTab === 'client_portal' && (
                   <ClientPortal 
                     clients={clients} 
+                    contracts={contracts}
                     payments={clientPayments} 
                     onRegisterPayment={handleRegisterClientPayment} 
                     dossiers={dossiers}
@@ -3018,6 +3127,16 @@ export default function App() {
                       };
                       setSecurityAlerts(prev => [alertItem, ...prev]);
                     }}
+                  />
+                )}
+
+                {activeTab === 'contracts' && (
+                  <ContractsModule 
+                    currentUser={currentUser}
+                    clients={clients}
+                    contracts={contracts}
+                    onAddContract={handleAddContract}
+                    onDeleteContract={handleDeleteContract}
                   />
                 )}
               </>

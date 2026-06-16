@@ -65,6 +65,18 @@ export interface ClientPayment {
   reference?: string;
 }
 
+export interface ClientContract {
+  id: string;
+  clientId: string;
+  clientName: string;
+  contractType: 'Contrato Express' | 'Contrato de préstamo entre particulares';
+  amount: number;
+  paymentReference: string;
+  dateGenerated: string;
+  monthlyPlan?: string;
+  status: 'ACTIVO' | 'FIRMADO' | 'PENDIENTE';
+}
+
 export interface ClientDossier {
   id: string;
   clientName: string;
