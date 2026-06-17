@@ -4,7 +4,7 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle, Printer, Lock
+  PlusCircle, Printer, Lock, Percent
 } from 'lucide-react';
 import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract } from '../types';
 import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
@@ -854,64 +854,112 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
               {activeClient ? (
                 <div className="space-y-6">
-                  {/* Big figures blocks */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Capital Granted Box */}
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
-                      <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-slate-400" /> Capital Otorgado
-                      </span>
-                      <span className="text-base font-extrabold text-white">
-                        {formatMXN(activeClient.totalCreditGranted)}
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-500">Monto del crédito original</span>
-                    </div>
+                  {/* Simplified "Análisis de Cuotas" dashboard card - representing original credit parameters & real-time payment results */}
+                  {(() => {
+                    const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                    const totalWeeks = isFixed ? 4 : 12;
 
-                    {/* Pending balance Box */}
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
-                      <span className="text-[9px] font-mono font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-amber-500" /> Saldo Base Insoluto
-                      </span>
-                      <span className="text-base font-black text-amber-400">
-                        {formatMXN(activeClient.balanceOwed)}
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-500">Amortización base sin moratorios</span>
-                    </div>
+                    // Original interest calculated when registering / requesting
+                    const originalInterest = isFixed 
+                      ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                      : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
 
-                    {/* Delinquency Status */}
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
-                      <span className="text-[9px] font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400 animate-pulse" /> Recargos de Atraso
-                      </span>
-                      <span className={`text-base font-black ${activeClient.delinquencyDays > 0 ? 'text-red-400 font-extrabold' : 'text-emerald-400'}`}>
-                        {activeClient.delinquencyDays > 0 
-                          ? `+${formatMXN(getLateFeeConfig(activeClient).totalFee)}` 
-                          : 'Sin Moratorios'}
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-500">
-                        {activeClient.delinquencyDays > 0 
-                          ? `${activeClient.delinquencyDays} días × ${formatMXN(getLateFeeConfig(activeClient).ratePerDay)}/día`
-                          : 'Abonos al corriente'}
-                      </span>
-                    </div>
+                    const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                    const cuotaOriginal = Math.round(originalTotal / totalWeeks);
 
-                    {/* Effective Total Debt Card */}
-                    <div className={`p-4 rounded-xl border flex flex-col gap-1.5 shadow-lg ${
-                      activeClient.delinquencyDays > 0 
-                        ? 'bg-rose-950/20 border-rose-500/30' 
-                        : 'bg-slate-950 border-slate-850'
-                    }`}>
-                      <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-wider flex items-center gap-1">
-                        <Zap className="w-3.5 h-3.5 text-[#a3c90e]" /> Deuda Total Consolidada
-                      </span>
-                      <span className={`text-xl font-black ${activeClient.delinquencyDays > 0 ? 'text-rose-400' : 'text-white'}`}>
-                        {formatMXN(getEffectiveTotalDebt(activeClient))}
-                      </span>
-                      <span className="text-[9px] font-mono text-slate-400">
-                        {activeClient.delinquencyDays > 0 ? 'Saldo amortizable + Moratorios' : 'Saldo total vigente'}
-                      </span>
-                    </div>
-                  </div>
+                    // Current remaining balance
+                    const currentBalance = activeClient.balanceOwed;
+
+                    // Proportional distribution of current balance between capital and interest
+                    // This dynamically updates/reduces both values as payments are registered!
+                    const capitalRatio = originalTotal > 0 ? (activeClient.totalCreditGranted / originalTotal) : 0;
+                    const currentCapitalPending = Math.round(currentBalance * capitalRatio);
+                    const currentInterestPending = Math.max(0, currentBalance - currentCapitalPending);
+
+                    // Calculation of remaining weekly payments
+                    const remainingPayments = Math.ceil(currentBalance / cuotaOriginal);
+
+                    return (
+                      <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-[#a3c90e]/5 rounded-full blur-3xl pointer-events-none" />
+                        
+                        <div>
+                          <h4 className="text-[11px] uppercase font-mono font-black text-[#a3c90e] tracking-wider border-b border-slate-800 pb-2.5 mb-4 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 font-bold text-sm">
+                              📊 ANÁLISIS DE CUOTAS
+                            </span>
+                            <span className="text-[10px] text-[#a3c90e]/90 font-mono italic font-bold">
+                              {isFixed ? 'PRÉSTAMO FIJO' : '($135 SEM. X CADA $1,000)'}
+                            </span>
+                          </h4>
+
+                          <div className="space-y-4 text-xs leading-normal">
+                            {/* Capital Row */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-800/40 gap-1.5">
+                              <span className="text-slate-400 font-medium">Capital Solicitado / Pendiente:</span>
+                              <div className="flex items-baseline gap-2">
+                                {activeClient.totalCreditGranted > currentCapitalPending && (
+                                  <span className="text-slate-500 line-through text-[10px] font-mono">
+                                    {formatMXN(activeClient.totalCreditGranted)}
+                                  </span>
+                                )}
+                                <span className="text-white font-mono font-black text-base">
+                                  {formatMXN(currentCapitalPending)} <span className="text-[10px] text-slate-400 font-normal">MXN</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Interest Row */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-800/40 gap-1.5">
+                              <span className="text-slate-400 font-medium">Interés Estimado ({totalWeeks} Semanas):</span>
+                              <div className="flex items-baseline gap-2">
+                                {originalInterest > currentInterestPending && (
+                                  <span className="text-slate-500 line-through text-[10px] font-mono">
+                                    {formatMXN(originalInterest)}
+                                  </span>
+                                )}
+                                <span className="text-[#a3c90e] font-mono font-black text-base">
+                                  {formatMXN(currentInterestPending)} <span className="text-[10px] text-[#a3c90e]/70 font-normal">MXN</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Amortization/Installments detail box */}
+                        <div className="mt-6 p-4 bg-[#0284c7]/5 border border-[#0284c7]/10 rounded-xl">
+                          <div className="text-[10px] uppercase font-mono text-[#38bdf8] font-black tracking-wide mb-1.5">
+                            Plan de Amortización Vigente:
+                          </div>
+                          {currentBalance === 0 ? (
+                            <div className="text-xs text-emerald-400 font-mono font-bold flex items-center gap-1.5">
+                              <span className="text-base">🎉</span>¡Crédito completamente liquidado y pagado!
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-300 font-sans leading-relaxed">
+                              {remainingPayments === totalWeeks ? (
+                                <span>
+                                  <strong>{totalWeeks} pagos semanales</strong> de{" "}
+                                  <span className="text-white font-black font-mono text-sm">
+                                    {formatMXN(cuotaOriginal)}
+                                  </span>{" "}
+                                  MXN.
+                                </span>
+                              ) : (
+                                <span>
+                                  Llevas pagos realizados. Queda(n) <strong className="text-white font-bold">{remainingPayments} pago(s) pendiente(s)</strong> de{" "}
+                                  <span className="text-[#38bdf8] font-black font-mono text-sm">
+                                    {formatMXN(Math.min(currentBalance, cuotaOriginal))}
+                                  </span>{" "}
+                                  MXN para liquidar la deuda.
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Latency / Late surcharge notification banner if overdue */}
                   {activeClient.delinquencyDays > 0 && (
@@ -2089,18 +2137,77 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-850 pt-2.5 space-y-1.5 text-[11px] leading-relaxed">
+                  <div className="border-t border-slate-850 pt-2.5 space-y-1.5 text-[11px] leading-relaxed font-mono">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Total Otorgado:</span>
+                      <span className="text-slate-400">Capital Solicitado:</span>
                       <span className="text-white font-bold">{formatMXN(activeClient.totalCreditGranted)}</span>
                     </div>
+                    <div className="flex justify-between items-center text-slate-350 pr-0.5">
+                      <span className="text-slate-400">Capital Pendiente:</span>
+                      <span className="text-slate-200 font-extrabold text-[#38bdf8]">
+                        {(() => {
+                          const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                          const originalInterest = isFixed 
+                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
+                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                          const capitalRatio = originalTotal > 0 ? (activeClient.totalCreditGranted / originalTotal) : 0;
+                          return formatMXN(Math.round(activeClient.balanceOwed * capitalRatio));
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-350 pr-0.5">
+                      <span className="text-slate-400">Interés Estimado:</span>
+                      <span className="text-slate-400">
+                        {(() => {
+                          const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                          const interest = isFixed 
+                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
+                          return formatMXN(interest);
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-350 pr-0.5">
+                      <span className="text-slate-400">Interés Pendiente:</span>
+                      <span className="text-[#a3c90e] font-bold">
+                        {(() => {
+                          const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                          const originalInterest = isFixed 
+                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
+                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                          const capitalRatio = originalTotal > 0 ? (activeClient.totalCreditGranted / originalTotal) : 0;
+                          const currentCapitalPending = Math.round(activeClient.balanceOwed * capitalRatio);
+                          return formatMXN(Math.max(0, activeClient.balanceOwed - currentCapitalPending));
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-350 pr-0.5">
+                      <span className="text-slate-400">Plan de Pagos:</span>
+                      <span className="text-[#38bdf8] font-bold font-sans">
+                        {(() => {
+                          const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                          const originalInterest = isFixed 
+                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
+                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                          const totalWeeks = isFixed ? 4 : 12;
+                          const cuotaOriginal = Math.round(originalTotal / totalWeeks);
+                          const remainingPayments = Math.ceil(activeClient.balanceOwed / cuotaOriginal);
+                          
+                          if (activeClient.balanceOwed === 0) return 'Liquidado';
+                          return `${remainingPayments} de ${totalWeeks} sem.`;
+                        })()}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Saldo Pendiente:</span>
+                      <span className="text-slate-400">Deuda Total:</span>
                       <span className="text-amber-400 font-extrabold">{formatMXN(activeClient.balanceOwed)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Tipo Membresía:</span>
-                      <span className="text-slate-205 text-white font-bold">{activeClient.membership || 'Ninguna'}</span>
+                      <span className="text-white font-bold">{activeClient.membership || 'Ninguna'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Estatus de Buró:</span>
