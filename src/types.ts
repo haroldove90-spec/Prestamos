@@ -25,6 +25,8 @@ export interface Client {
   profileImage?: string;
   facebookProfile?: string;
   locationLink?: string;
+  loanType?: string;
+  monthlyPlan?: string;
 }
 
 export interface CreditRequest {

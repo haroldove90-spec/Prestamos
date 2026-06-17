@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Search, UserPlus, FileText, CheckCircle, AlertTriangle, HelpCircle, X, ShieldAlert, Plus, Layers, Crown, Award, User, Sparkles, Upload, Edit, Trash2, Eye, Printer } from 'lucide-react';
 import { Client, BureauStatus } from '../types';
+import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 export function generateNextClientId(currentClients: Client[], baseRef?: string): string {
   let reference = baseRef ? baseRef.trim() : "";
@@ -107,6 +108,22 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   const [newOwed, setNewOwed] = useState(0);
   const [newDelinquency, setNewDelinquency] = useState(0);
   const [newCat, setNewCat] = useState<'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario'>('Personal');
+
+  const handleApplyLateFees = (client: Client) => {
+    if (!onUpdateClient) return;
+    const config = getLateFeeConfig(client);
+    if (config.totalFee <= 0) return;
+    
+    const updatedClient: Client = {
+      ...client,
+      balanceOwed: client.balanceOwed + config.totalFee,
+      delinquencyDays: 0,
+      bureauStatus: client.balanceOwed + config.totalFee > 0 ? client.bureauStatus : 'EXCELENTE'
+    };
+    
+    onUpdateClient(updatedClient, client.id);
+    setSelectedClient(updatedClient);
+  };
 
   const filteredClients = clients.filter(c => {
     const matchesSearch = 
@@ -1129,7 +1146,14 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
 
                     {/* Balance owed */}
                     <td className="py-4 px-5 text-right font-mono text-slate-400">
-                      {formatMXN(c.balanceOwed)}
+                      <div className="text-slate-200 font-bold">{formatMXN(getEffectiveTotalDebt(c))}</div>
+                      {c.delinquencyDays > 0 ? (
+                        <div className="text-[9px] text-red-405 text-red-400 font-medium">
+                          Base: {formatMXN(c.balanceOwed)} + {formatMXN(getLateFeeConfig(c).totalFee)} mora
+                        </div>
+                      ) : (
+                        <div className="text-[8px] text-slate-500">Sin cargos adicionales</div>
+                      )}
                     </td>
 
                     {/* Delinquency Days */}
@@ -1137,6 +1161,11 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
                       <span className={`px-2 py-0.5 rounded text-[10px] border ${getRiskClass(c.delinquencyDays)}`}>
                         {c.delinquencyDays === 0 ? 'Vigente al corriente' : `${c.delinquencyDays} días`}
                       </span>
+                      {c.delinquencyDays > 0 && (
+                        <div className="text-[8px] text-slate-400 font-sans mt-0.5">
+                          {getLateFeeConfig(c).isWeekly ? '$100/día (Sem.)' : '$400/día (Fijo)'}
+                        </div>
+                      )}
                     </td>
 
                     {/* Active/Inactive Estado */}
@@ -1319,9 +1348,34 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
                   <span className="font-mono text-slate-100 font-bold">{formatMXN(selectedClient.totalCreditGranted)}</span>
                 </div>
                 <div className="flex justify-between border-b border-slate-800/50 pb-1.5">
-                  <span className="text-slate-450">Saldo por liquidar:</span>
-                  <span className="font-mono text-slate-300 font-bold">{formatMXN(selectedClient.balanceOwed)}</span>
+                  <span className="text-slate-455">Saldo Base Insoluto:</span>
+                  <span className="font-mono text-amber-500 font-bold">{formatMXN(selectedClient.balanceOwed)}</span>
                 </div>
+                {selectedClient.delinquencyDays > 0 && (
+                  <>
+                    <div className="flex justify-between border-b border-slate-800/50 pb-1.5 bg-red-950/20 px-1 py-0.5 rounded">
+                      <span className="text-red-400 font-bold flex items-center gap-1">⚠️ Recargo por {selectedClient.delinquencyDays} días:</span>
+                      <span className="font-mono text-red-400 font-black">+{formatMXN(getLateFeeConfig(selectedClient).totalFee)}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-800/50 pb-1.5 text-[10px] text-slate-450 italic px-1">
+                      <span>Tarifa por mora diaria:</span>
+                      <span>{getLateFeeConfig(selectedClient).isWeekly ? '$100 por día (Weekly)' : '$400 por día (Fijo)'}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between border-b border-[#a3c90e]/20 pb-1.5 bg-[#a3c90e]/5 px-1 py-0.5 rounded">
+                  <span className="text-slate-200 font-bold">Deuda Unificada Real:</span>
+                  <span className="font-mono text-[#a3c90e] font-extrabold">{formatMXN(getEffectiveTotalDebt(selectedClient))}</span>
+                </div>
+                {selectedClient.delinquencyDays > 0 && onUpdateClient && (
+                  <button
+                    onClick={() => handleApplyLateFees(selectedClient)}
+                    className="w-full bg-red-650/40 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 py-2 px-3 rounded-lg font-bold font-mono text-[9px] uppercase tracking-wide transition cursor-pointer select-none mt-1 mb-2 shadow block text-center"
+                    title="Capitalizar el recargo acumulado y sumarlo permanentemente a la deuda del cliente"
+                  >
+                    ⚡ Capitalizar Recargo Moratorio (+{formatMXN(getLateFeeConfig(selectedClient).totalFee)})
+                  </button>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-455">Afiliado desde:</span>
                   <span className="text-slate-300">{selectedClient.joinDate}</span>

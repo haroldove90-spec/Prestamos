@@ -5,6 +5,7 @@ import {
   Menu, X, ShieldCheck, User, Users, Clock, Flame 
 } from 'lucide-react';
 import { Client, BureauQueryLog } from '../types';
+import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 interface CajeraDashboardProps {
   clients: Client[];
@@ -47,25 +48,48 @@ export const CajeraDashboard: React.FC<CajeraDashboardProps> = ({
     setExecutionLogs(prev => [...prev, "💳 [PAYMENT] Iniciando procesamiento de abono por " + formatMXN(paymentAmount)]);
 
     setTimeout(() => {
-      // Deduct balance
+      let finalClientState: Client | null = null;
+      
+      // Deduct balance with smart late fee allocation
       setClients(prev => prev.map(c => {
         if (c.id === selectedClient.id) {
-          return {
+          const config = getLateFeeConfig(c);
+          let remainingPayment = paymentAmount;
+          let newDelinquency = c.delinquencyDays;
+          
+          if (config.totalFee > 0) {
+            if (remainingPayment >= config.totalFee) {
+              remainingPayment -= config.totalFee;
+              newDelinquency = 0;
+            } else {
+              const daysPaid = Math.floor(remainingPayment / config.ratePerDay);
+              newDelinquency = Math.max(0, c.delinquencyDays - daysPaid);
+              remainingPayment = remainingPayment % config.ratePerDay;
+            }
+          }
+          
+          const newBalance = Math.max(0, c.balanceOwed - remainingPayment);
+          const finalClient = {
             ...c,
-            balanceOwed: Math.max(0, c.balanceOwed - paymentAmount)
+            balanceOwed: newBalance,
+            delinquencyDays: newBalance === 0 ? 0 : newDelinquency
           };
+          finalClientState = finalClient;
+          return finalClient;
         }
         return c;
       }));
       
       // Update local state copy
-      setSelectedClient(prev => prev ? { ...prev, balanceOwed: Math.max(0, prev.balanceOwed - paymentAmount) } : null);
+      setSelectedClient(finalClientState || selectedClient);
       
       setIsProcessingPayment(false);
       setIsPaymentConfirmed(true);
+      
+      const restValue = finalClientState ? getEffectiveTotalDebt(finalClientState) : 0;
       setExecutionLogs(prev => [
         ...prev, 
-        `✓ [PAYMENT] Transacción aprobada. Balance restante actual: ${formatMXN(Math.max(0, selectedClient.balanceOwed - paymentAmount))}`
+        `✓ [PAYMENT] Transacción aprobada. Deuda restante unificada actual (incl. moratorios): ${formatMXN(restValue)}`
       ]);
     }, 1200);
   };
@@ -343,8 +367,20 @@ export const CajeraDashboard: React.FC<CajeraDashboardProps> = ({
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-[9px] text-slate-500 uppercase font-mono">Deuda Vigente:</span>
-                      <strong className="font-mono text-emerald-400 text-sm">{formatMXN(selectedClient.balanceOwed)}</strong>
+                      <span className="text-[9px] text-slate-500 uppercase font-mono">Saldo Base:</span>
+                      <span className="font-mono text-slate-300 font-bold">{formatMXN(selectedClient.balanceOwed)}</span>
+                    </div>
+
+                    {selectedClient.delinquencyDays > 0 && (
+                      <div className="flex justify-between items-center text-red-400 font-medium">
+                        <span className="text-[9px] uppercase font-mono">Moratorios ({selectedClient.delinquencyDays}d):</span>
+                        <span className="font-mono text-xs">+{formatMXN(getLateFeeConfig(selectedClient).totalFee)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center border-t border-slate-850 pt-1.5 mt-1">
+                      <span className="text-[9px] text-[#a3c90e] uppercase font-mono font-bold">Deuda Unificada Real:</span>
+                      <strong className="font-mono text-[#a3c90e] text-sm font-black">{formatMXN(getEffectiveTotalDebt(selectedClient))}</strong>
                     </div>
 
                     <div className="flex justify-between items-center">
@@ -470,12 +506,22 @@ export const CajeraDashboard: React.FC<CajeraDashboardProps> = ({
                     </div>
                     <div className="flex justify-between py-1 border-b border-slate-900/50">
                       <span className="text-slate-400">Saldo insoluto antes abono:</span>
-                      <span className="font-mono text-white font-bold text-right">$350,000.00 MXN</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-slate-900/50">
-                      <span className="text-slate-400">Saldo insoluto restante:</span>
-                      <span className="font-mono text-emerald-450 text-emerald-400 font-black text-right">
+                      <span className="font-mono text-white font-bold text-right">
                         {selectedClient ? formatMXN(selectedClient.balanceOwed) : "$0.00"}
+                      </span>
+                    </div>
+                    {selectedClient && selectedClient.delinquencyDays > 0 && (
+                      <div className="flex justify-between py-1 border-b border-rose-950/40 bg-rose-950/10 px-1.5 rounded">
+                        <span className="text-red-400 font-bold">Intereses Moratorios ({selectedClient.delinquencyDays}d):</span>
+                        <span className="font-mono text-red-400 font-bold text-right">
+                          +{formatMXN(getLateFeeConfig(selectedClient).totalFee)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-1 border-b border-slate-900/50 bg-[#a3c90e]/5 px-1.5 rounded">
+                      <span className="text-slate-350 font-bold">Deuda Unificada Real:</span>
+                      <span className="font-mono text-[#a3c90e] font-black text-right">
+                        {selectedClient ? formatMXN(getEffectiveTotalDebt(selectedClient)) : "$0.00"}
                       </span>
                     </div>
                   </div>

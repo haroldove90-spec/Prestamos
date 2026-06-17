@@ -7,6 +7,7 @@ import {
   PlusCircle, Printer, Lock
 } from 'lucide-react';
 import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract } from '../types';
+import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 interface ClientPortalProps {
   clients: Client[];
@@ -854,7 +855,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               {activeClient ? (
                 <div className="space-y-6">
                   {/* Big figures blocks */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Capital Granted Box */}
                     <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
                       <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -863,31 +864,71 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <span className="text-base font-extrabold text-white">
                         {formatMXN(activeClient.totalCreditGranted)}
                       </span>
-                      <span className="text-[9px] font-mono text-slate-500">Plan Inicial Comercial</span>
+                      <span className="text-[9px] font-mono text-slate-500">Monto del crédito original</span>
                     </div>
 
                     {/* Pending balance Box */}
                     <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
                       <span className="text-[9px] font-mono font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse" /> Saldo Pendiente Oxxo/SPEI
+                        <Clock className="w-3.5 h-3.5 text-amber-500" /> Saldo Base Insoluto
                       </span>
-                      <span className="text-xl font-black text-amber-400">
+                      <span className="text-base font-black text-amber-400">
                         {formatMXN(activeClient.balanceOwed)}
                       </span>
-                      <span className="text-[9px] font-mono text-slate-500">Capital + Intereses pendientes</span>
+                      <span className="text-[9px] font-mono text-slate-500">Amortización base sin moratorios</span>
                     </div>
 
                     {/* Delinquency Status */}
                     <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 flex flex-col gap-1.5 shadow-inner">
                       <span className="text-[9px] font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400" /> Período de Gracia / Atraso
+                        <AlertCircle className="w-3.5 h-3.5 text-red-400 animate-pulse" /> Recargos de Atraso
                       </span>
-                      <span className={`text-base font-black ${activeClient.delinquencyDays > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        {activeClient.delinquencyDays > 0 ? `${activeClient.delinquencyDays} Días Hábiles` : 'Abono al Día'}
+                      <span className={`text-base font-black ${activeClient.delinquencyDays > 0 ? 'text-red-400 font-extrabold' : 'text-emerald-400'}`}>
+                        {activeClient.delinquencyDays > 0 
+                          ? `+${formatMXN(getLateFeeConfig(activeClient).totalFee)}` 
+                          : 'Sin Moratorios'}
                       </span>
-                      <span className="text-[9px] font-mono text-slate-500">Días transcurridos después del límite</span>
+                      <span className="text-[9px] font-mono text-slate-500">
+                        {activeClient.delinquencyDays > 0 
+                          ? `${activeClient.delinquencyDays} días × ${formatMXN(getLateFeeConfig(activeClient).ratePerDay)}/día`
+                          : 'Abonos al corriente'}
+                      </span>
+                    </div>
+
+                    {/* Effective Total Debt Card */}
+                    <div className={`p-4 rounded-xl border flex flex-col gap-1.5 shadow-lg ${
+                      activeClient.delinquencyDays > 0 
+                        ? 'bg-rose-950/20 border-rose-500/30' 
+                        : 'bg-slate-950 border-slate-850'
+                    }`}>
+                      <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-wider flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-[#a3c90e]" /> Deuda Total Consolidada
+                      </span>
+                      <span className={`text-xl font-black ${activeClient.delinquencyDays > 0 ? 'text-rose-400' : 'text-white'}`}>
+                        {formatMXN(getEffectiveTotalDebt(activeClient))}
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400">
+                        {activeClient.delinquencyDays > 0 ? 'Saldo amortizable + Moratorios' : 'Saldo total vigente'}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Latency / Late surcharge notification banner if overdue */}
+                  {activeClient.delinquencyDays > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex gap-3 text-xs text-red-300">
+                      <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5 animate-bounce" />
+                      <div>
+                        <span className="font-bold block uppercase tracking-wide mb-0.5">⚠️ Penalización por Incumplimiento de Pago Aplicada</span>
+                        Tu cuenta presenta un retraso de <span className="font-bold text-white">{activeClient.delinquencyDays} días</span>. En cumplimiento con los términos de SALDA APP, se aplican recargos de <span className="font-bold text-white">{formatMXN(getLateFeeConfig(activeClient).ratePerDay)} MXN</span> por cada día de mora acumulado. 
+                        {getLateFeeConfig(activeClient).isWeekly ? (
+                          <span className="block mt-1 text-slate-300">Tipo de Préstamo: <strong className="text-[#a3c90e]">Plan Semanal (12 semanas)</strong>. Penalización correspondiente: <strong className="text-white">$100 pesos diarios</strong>.</span>
+                        ) : (
+                          <span className="block mt-1 text-slate-300">Tipo de Préstamo: <strong className="text-[#a3c90e]">Préstamo Comercial / Fijo</strong>. Penalización correspondiente: <strong className="text-white">$400 pesos diarios</strong>.</span>
+                        )}
+                        <span className="block mt-1 font-semibold text-white">Por favor regulariza tu saldo para evitar reportes negativos adicionales en Buró de Crédito.</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Payment Calendar Simulation */}
                   <div className="space-y-3">
@@ -1020,6 +1061,26 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           className="w-full bg-slate-950 border border-slate-850 rounded-xl pl-7 pr-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
                         />
                       </div>
+                      {activeClient && (
+                        <div className="flex gap-1.5 mt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setAmount(activeClient.balanceOwed.toString())}
+                            className="text-[9px] font-mono bg-slate-950 hover:bg-slate-850 text-amber-400 border border-slate-800 px-2 py-1 rounded cursor-pointer transition select-none"
+                          >
+                            Pagar Saldo Base ({formatMXN(activeClient.balanceOwed)})
+                          </button>
+                          {getLateFeeConfig(activeClient).totalFee > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAmount(getEffectiveTotalDebt(activeClient).toString())}
+                              className="text-[9px] font-mono bg-slate-950 hover:bg-slate-850 text-[#a3c90e] border border-slate-800 px-2 py-1 rounded cursor-pointer transition select-none"
+                            >
+                              Pagar Total con Moratorios ({formatMXN(getEffectiveTotalDebt(activeClient))})
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>

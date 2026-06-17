@@ -22,6 +22,7 @@ import {
   INITIAL_RISK_PARAMS,
   getBureauStatusByScore 
 } from './data';
+import { getLateFeeConfig, getEffectiveTotalDebt } from './utils/lateFees';
 import { 
   verifyTablesExist,
   fetchClientsCloud,
@@ -840,13 +841,25 @@ export default function App() {
     if (!payment) return;
 
     if (newStatus === 'PAGO_REALIZADO') {
-      // Apply payment deduction from balanceOwed
+      // Apply payment deduction from balanceOwed with smart late fee allocation
       setClients(prev => prev.map(c => {
         if (c.id === payment.clientId) {
-          const newBalance = Math.max(0, c.balanceOwed - payment.amount);
+          const config = getLateFeeConfig(c);
+          let remainingPayment = payment.amount;
+          let newDelinquency = c.delinquencyDays;
           
-          // Auto-calculate if they fully settled their delinquency
-          const newDelinquency = newBalance === 0 ? 0 : c.delinquencyDays;
+          if (config.totalFee > 0) {
+            if (remainingPayment >= config.totalFee) {
+              remainingPayment -= config.totalFee;
+              newDelinquency = 0;
+            } else {
+              const daysPaid = Math.floor(remainingPayment / config.ratePerDay);
+              newDelinquency = Math.max(0, c.delinquencyDays - daysPaid);
+              remainingPayment = remainingPayment % config.ratePerDay;
+            }
+          }
+          
+          const newBalance = Math.max(0, c.balanceOwed - remainingPayment);
           const newStatusVal = newBalance === 0 ? 'EXCELENTE' : c.bureauStatus;
           
           return {

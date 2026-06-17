@@ -5,6 +5,7 @@ import {
   Sparkles, RefreshCw, Landmark, Layers, Calendar, ChevronRight, CheckCircle
 } from 'lucide-react';
 import { Client, RiskParameters, CreditRequest, BureauQueryLog } from '../types';
+import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 interface AsesorDashboardProps {
   clients: Client[];
@@ -370,6 +371,11 @@ export const AsesorDashboard: React.FC<AsesorDashboardProps> = ({
                 <div className="bg-slate-900/50 p-2 rounded-xl border border-slate-800/50">
                   <span className="text-[8px] font-mono text-slate-500 uppercase block">Mora Registrada</span>
                   <strong className="text-base font-mono text-rose-400 block mt-0.5">{selectedClient.delinquencyDays} días</strong>
+                  {selectedClient.delinquencyDays > 0 && (
+                    <span className="text-[8px] text-red-400 font-sans font-bold block mt-0.5 leading-none">
+                      Recargo: {getLateFeeConfig(selectedClient).isWeekly ? '+$100/día' : '+$400/día'}
+                    </span>
+                  )}
                 </div>
               </div>
 
