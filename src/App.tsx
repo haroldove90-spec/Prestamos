@@ -348,6 +348,8 @@ export default function App() {
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regAddress, setRegAddress] = useState('');
   const [regBirthDate, setRegBirthDate] = useState('');
+  const [regFacebookProfile, setRegFacebookProfile] = useState('');
+  const [regLocationLink, setRegLocationLink] = useState('');
   const [regRequestedAmount, setRegRequestedAmount] = useState<number>(10000);
   const [regLoanType, setRegLoanType] = useState<'12 semanas' | 'Préstamo Fijo'>('12 semanas');
   const [regMonthlyPlan, setRegMonthlyPlan] = useState<string>('3000_4200');
@@ -1628,18 +1630,22 @@ export default function App() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#a3c90e]/5 rounded-full blur-2xl" />
               
               <div className="border-b border-slate-800 pb-4 text-center sm:text-left">
-                <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block">FORMULARIO DE EXPEDIENTE DIGITAL</span>
+                <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block font-sans">FORMULARIO DE EXPEDIENTE DIGITAL</span>
                 <h3 className="text-lg font-bold text-white mt-1">Alta de Cliente y Solicitud de Préstamo</h3>
                 <p className="text-xs text-slate-400 mt-1 leading-normal">
-                  Rellena los campos para darte de alta y subir tu expediente en línea. Al finalizar, tu préstamo quedará activo y personalizado con tu nombre.
+                  Rellena los campos para darte de alta y subir tu expediente en línea. Al finalizar, tu préstamo quedará activo y personalizado con tu nombre. Todos los campos de este formulario son estrictamente obligatorios.
                 </p>
               </div>
 
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!regName || !regAddress || !regBirthDate || !regRequestedAmount) {
-                    alert('Por favor, rellena los campos marcados con (*).');
+                  if (!regName || !regAddress || !regBirthDate || !regRequestedAmount || !regFacebookProfile || !regLocationLink || !regUsername || !regPassword || !regConfirmPassword) {
+                    alert('Por favor, rellena todos los campos de información obligatorios.');
+                    return;
+                  }
+                  if (!regIneFront || !regIneBack || !regProofOfAddress) {
+                    alert('Por favor, sube todos los documentos obligatorios de tu expediente digital (INE Frente, INE Reverso y Comprobante de Domicilio).');
                     return;
                   }
                   if (regRequestedAmount < 1000 || regRequestedAmount > 50000) {
@@ -1653,9 +1659,9 @@ export default function App() {
                   
                   const cleanUsername = regUsername.toLowerCase().trim() || regName.toLowerCase().replace(/[^a-z0-9]/g, '_');
                   const dossierId = 'EXP-' + Math.floor(1000 + Math.random() * 9000);
-                  const finalIneFront = regIneFront || 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=800&auto=format&fit=crop&q=80';
-                  const finalIneBack = regIneBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
-                  const finalProof = regProofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
+                  const finalIneFront = regIneFront;
+                  const finalIneBack = regIneBack;
+                  const finalProof = regProofOfAddress;
 
                   let regFee = 0;
                   if (regLoanType === 'Préstamo Fijo') {
@@ -1686,7 +1692,9 @@ export default function App() {
                     createdAt: new Date().toISOString().split('T')[0],
                     notificationDismissed: false,
                     loanType: regLoanType,
-                    monthlyPlan: planDesc
+                    monthlyPlan: planDesc,
+                    facebookProfile: regFacebookProfile,
+                    locationLink: regLocationLink
                   };
 
                   const newClientId = generateNextClientId(clients, nextClientNumberBase);
@@ -1705,7 +1713,9 @@ export default function App() {
                     delinquencyDays: 0,
                     category: 'Personal',
                     joinDate: new Date().toISOString().split('T')[0],
-                    membership: 'Ninguna'
+                    membership: 'Ninguna',
+                    facebookProfile: regFacebookProfile,
+                    locationLink: regLocationLink
                   };
 
                   setClients(prev => {
@@ -1741,7 +1751,7 @@ export default function App() {
                     actionBlocked: 'EXPEDIENTE_SOLICITADO',
                     targetClient: regName,
                     status: 'PENDIENTE',
-                    notes: `El nuevo cliente ${regName} ha completado exitosamente su registro de expediente con número ${newClientId} y solicitado una línea de crédito comercial.`
+                    notes: `El nuevo cliente ${regName} ha completado exitosamente su registro de expediente con número ${newClientId} y solicitado una línea de crédito comercial. Facebook: ${regFacebookProfile}, Ubicación: ${regLocationLink}`
                   };
                   setSecurityAlerts(prev => [alertItem, ...prev]);
 
@@ -1769,6 +1779,8 @@ export default function App() {
                   setShowRegConfirmPassword(false);
                   setRegAddress('');
                   setRegBirthDate('');
+                  setRegFacebookProfile('');
+                  setRegLocationLink('');
                   setRegIneFront('');
                   setRegIneBack('');
                   setRegProofOfAddress('');
@@ -1897,6 +1909,31 @@ export default function App() {
                     onChange={(e) => setRegAddress(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Perfil de Facebook *:</label>
+                    <input
+                      type="url"
+                      required
+                      placeholder="Ej. https://www.facebook.com/tu.perfil"
+                      value={regFacebookProfile}
+                      onChange={(e) => setRegFacebookProfile(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Link de Ubicación (Google Maps) *:</label>
+                    <input
+                      type="url"
+                      required
+                      placeholder="Ej. https://maps.app.goo.gl/4sJZJhZcYeqYhmHA7"
+                      value={regLocationLink}
+                      onChange={(e) => setRegLocationLink(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    />
+                  </div>
                 </div>
 
                 {/* Dynamic Onboarding Loan Details */}

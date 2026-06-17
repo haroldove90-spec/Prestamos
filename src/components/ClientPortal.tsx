@@ -4,7 +4,7 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle, Printer
+  PlusCircle, Printer, Lock
 } from 'lucide-react';
 import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract } from '../types';
 
@@ -111,6 +111,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [tempIneFront, setTempIneFront] = useState('');
   const [tempIneBack, setTempIneBack] = useState('');
   const [tempProofOfAddress, setTempProofOfAddress] = useState('');
+  const [tempFacebookProfile, setTempFacebookProfile] = useState('');
+  const [tempLocationLink, setTempLocationLink] = useState('');
 
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
   const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
@@ -133,6 +135,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       setTempEmail(activeClient.email || '');
       setTempPassword(activeClient.password || '');
       setTempProfileImage(activeClient.profileImage || '');
+      setTempFacebookProfile(activeClient.facebookProfile || myDossier?.facebookProfile || '');
+      setTempLocationLink(activeClient.locationLink || myDossier?.locationLink || '');
 
       setProfileSuccessMsg(null);
       setProfileErrorMsg(null);
@@ -1428,69 +1432,65 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
               <div>
                 <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <User className="w-5 h-5 text-[#a3c90e]" />
-                  Configurar Datos de Cuenta y Expediente Digital
+                  <Lock className="w-5 h-5 text-[#a3c90e]" />
+                  Expediente Digital Verificado
                 </h3>
                 <p className="text-[11px] text-slate-400 font-mono mt-1">
-                  ID de Cliente: {activeClient.id} • Modifica tus registros contractuales y personales.
+                  ID de Cliente: {activeClient.id} • Consulta tus registros contractuales y personales protegidos.
                 </p>
               </div>
 
-              {/* Success / Error Messages */}
-              {profileSuccessMsg && (
-                <div className="flex gap-2.5 items-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-sans text-xs animate-pulse">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{profileSuccessMsg}</span>
+              {/* Security Lock Banner */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3 text-xs text-amber-400">
+                <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block uppercase tracking-wide mb-0.5">Expediente Certificado y Bloqueado 🔒</span>
+                  Por políticas de seguridad de SALDA APP y cumplimiento legal ante de buró de crédito, toda la información personal, credenciales de acceso y expediente digital quedan bloqueados una vez completado el registro. Solo es posible su visualización. Si requieres alguna rectificación, solicita soporte con un asesor.
                 </div>
-              )}
-
-              {profileErrorMsg && (
-                <div className="flex gap-2.5 items-center p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-sans text-xs animate-bounce">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{profileErrorMsg}</span>
-                </div>
-              )}
+              </div>
 
               {/* Form container divided in responsive columns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* Panel: Datos Personales */}
                 <div className="bg-slate-950/50 border border-slate-850 p-4 rounded-xl space-y-3.5">
-                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5">
-                    1. Datos Personales de Identidad
+                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5 flex justify-between items-center">
+                    <span>1. Datos Personales de Identidad</span>
+                    <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] px-1.5 py-0.5 rounded uppercase font-mono flex items-center gap-1 font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> BLOQUEADO
+                    </span>
                   </h4>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre Completo *:</label>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre Completo:</label>
                     <input
                       type="text"
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
                       value={tempName}
-                      onChange={(e) => setTempName(e.target.value)}
-                      placeholder="Ej. Esperanza Gomez Gomez"
+                      placeholder="Sin registrar"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">RFC Oficial *:</label>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">RFC Oficial:</label>
                     <input
                       type="text"
-                      maxLength={13}
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-[#a3c90e] uppercase focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-slate-400 uppercase cursor-not-allowed"
                       value={tempRfc}
-                      onChange={(e) => setTempRfc(e.target.value)}
-                      placeholder="Ej. GOME800101XYZ"
+                      placeholder="Sin registrar"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Teléfono Móvil (A 10 digitos):</label>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Teléfono Móvil:</label>
                     <input
                       type="tel"
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
                       value={tempPhone}
-                      onChange={(e) => setTempPhone(e.target.value)}
-                      placeholder="Ej. 811000223"
+                      placeholder="Sin registrar"
                     />
                   </div>
 
@@ -1498,10 +1498,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección de Correo Electrónico:</label>
                     <input
                       type="email"
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
                       value={tempEmail}
-                      onChange={(e) => setTempEmail(e.target.value)}
-                      placeholder="ejemplo@saldaapp.com"
+                      placeholder="Sin registrar"
                     />
                   </div>
 
@@ -1509,9 +1509,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Fecha de Nacimiento:</label>
                     <input
                       type="date"
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 cursor-not-allowed"
                       value={tempBirthDate}
-                      onChange={(e) => setTempBirthDate(e.target.value)}
                     />
                   </div>
 
@@ -1519,18 +1519,55 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección Domiciliaria:</label>
                     <textarea
                       rows={2}
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed resize-none"
                       value={tempAddress}
-                      onChange={(e) => setTempAddress(e.target.value)}
-                      placeholder="Ej. Av. Hidalgo #104, Col. Centro, Monterrey"
+                      placeholder="Sin registrar"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Perfil de Facebook:</label>
+                    <input
+                      type="text"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+                      value={tempFacebookProfile}
+                      placeholder="Sin registrar"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Link de Ubicación (Google Maps):</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        disabled
+                        className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed pr-12"
+                        value={tempLocationLink}
+                        placeholder="Sin registrar"
+                      />
+                      {tempLocationLink && (
+                        <a 
+                          href={tempLocationLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="absolute right-3 top-2 text-[#a3c90e] hover:underline text-[10px] font-mono cursor-pointer"
+                        >
+                          Abrir
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Panel: Credenciales / Contraseña de acceso */}
                 <div className="bg-slate-950/50 border border-slate-850 p-4 rounded-xl space-y-4">
-                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5">
-                    2. Contraseña del Sistema
+                  <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5 flex justify-between items-center">
+                    <span>2. Contraseña del Sistema</span>
+                    <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] px-1.5 py-0.5 rounded uppercase font-mono flex items-center gap-1 font-semibold">
+                      <Lock className="w-2.5 h-2.5" /> ENCRIPTADO
+                    </span>
                   </h4>
 
                   <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 space-y-1.5 text-[11px] leading-relaxed">
@@ -1547,16 +1584,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso:</label>
                     <input
                       type="text"
-                      className="w-full bg-slate-950 border border-[#a3c90e]/30 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      disabled
+                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-slate-550 cursor-not-allowed select-all"
                       value={tempPassword}
-                      onChange={(e) => setTempPassword(e.target.value)}
                       placeholder="Contraseña del cliente"
                     />
                   </div>
 
                   {/* Panel For Profile Avatar Upload */}
                   <div className="border-t border-slate-850 pt-4 space-y-3">
-                    <h5 className="text-[10px] uppercase font-mono font-black text-white">Fotografía de Perfil (Avatar)</h5>
+                    <h5 className="text-[10px] uppercase font-mono font-black text-white flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-[#a3c90e]" /> Fotografía de Perfil (Avatar)
+                    </h5>
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-full border border-slate-850 bg-slate-950 overflow-hidden flex items-center justify-center relative shadow-inner">
                         {tempProfileImage ? (
@@ -1566,26 +1605,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         )}
                       </div>
 
-                      <div className="flex-1 flex gap-2">
-                        <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-2 px-3.5 rounded-xl border border-slate-705 flex items-center gap-1.5 select-none transition">
-                          <Upload className="w-3.5 h-3.5 text-[#a3c90e]" />
-                          Subir Foto
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={(e) => handleProfileFileChange('profileImage', e)}
-                          />
-                        </label>
-
-                        {tempProfileImage && (
-                          <button
-                            onClick={() => handleClearImage('profileImage')}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold py-2 px-3.5 border border-red-500/20 active:scale-95 transition rounded-xl flex items-center gap-1 cursor-pointer"
-                          >
-                            Eliminar
-                          </button>
-                        )}
+                      <div className="flex-1 text-[11px] text-slate-400 leading-normal">
+                        La fotografía de perfil se encuentra locked por seguridad. Si requieres actualizar tu foto, ponte en contacto con administración.
                       </div>
                     </div>
                   </div>
@@ -1596,14 +1617,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               {/* Section 3: Expedientes Digitales (INE, Comprobante de domicilio, etc) */}
               <div className="bg-slate-950/40 border border-slate-850 p-4 rounded-xl space-y-4">
                 <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-2 flex justify-between items-center">
-                  <span>3. Expediente del Expediente Contractual (Expediente Digital)</span>
-                  <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 font-normal px-2 py-0.5 rounded-full uppercase tracking-normal">
-                    Formatos JPG, PNG, Base64
+                  <span>3. Expediente Contractual (Expediente Digital)</span>
+                  <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1 font-mono font-semibold">
+                    <Lock className="w-2.5 h-2.5" /> ARCHIVO RESGUARDADO
                   </span>
                 </h4>
 
-                <p className="text-[11px] text-slate-350">
-                  Visualiza, sube, reemplaza o borra las imágenes oficiales de tu identificación oficial (INE) y comprobante de domicilio.
+                <p className="text-[11px] text-slate-350 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#a3c90e]" />
+                  Tus documentos oficiales y probatorios del expediente comercial han sido validados y resguardados con éxito.
                 </p>
 
                 {/* Grid display for the images */}
@@ -1611,7 +1633,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                   
                   {/* INE Frontal */}
                   <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
-                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">INE Anverso (Delante)</span>
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400 flex items-center justify-between">
+                      <span>INE Anverso (Delante)</span>
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    </span>
                     
                     <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
                       {tempIneFront ? (
@@ -1620,47 +1645,27 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
                             <button 
                               onClick={() => setZoomedImg({ src: tempIneFront, title: 'INE - Anverso (Frente)' })}
-                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
-                              title="Zoom"
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer text-xs"
                             >
                               Ver Grande
                             </button>
                           </div>
                         </>
                       ) : (
-                        <div className="text-center p-3 text-slate-600 flex flex-col items-center gap-1.5">
+                        <div className="text-center p-3 text-slate-600 flex flex-col items-center gap-1.55">
                           <ImageIcon className="w-8 h-8 opacity-40 text-slate-500" />
                           <span className="text-[9px] font-mono">Sin Imagen de INE</span>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-1.5 mt-auto">
-                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
-                        <Upload className="w-3 h-3 text-[#a3c90e]" />
-                        Cambiar
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handleProfileFileChange('ineFront', e)}
-                        />
-                      </label>
-                      {tempIneFront && (
-                        <button
-                          onClick={() => handleClearImage('ineFront')}
-                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
-                          title="Eliminar registro"
-                        >
-                          Borrar
-                        </button>
                       )}
                     </div>
                   </div>
 
                   {/* INE Reverso */}
                   <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
-                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">INE Reverso (Detrás)</span>
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400 flex items-center justify-between">
+                      <span>INE Reverso (Detrás)</span>
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    </span>
                     
                     <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
                       {tempIneBack ? (
@@ -1669,8 +1674,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
                             <button 
                               onClick={() => setZoomedImg({ src: tempIneBack, title: 'INE - Reverso (Atrás)' })}
-                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
-                              title="Zoom"
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer text-xs"
                             >
                               Ver Grande
                             </button>
@@ -1683,33 +1687,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         </div>
                       )}
                     </div>
-
-                    <div className="flex gap-1.5 mt-auto">
-                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
-                        <Upload className="w-3 h-3 text-[#a3c90e]" />
-                        Cambiar
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handleProfileFileChange('ineBack', e)}
-                        />
-                      </label>
-                      {tempIneBack && (
-                        <button
-                          onClick={() => handleClearImage('ineBack')}
-                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
-                          title="Eliminar registro"
-                        >
-                          Borrar
-                        </button>
-                      )}
-                    </div>
                   </div>
 
                   {/* Comprobante de Domicilio */}
                   <div className="bg-slate-900/60 border border-slate-850 rounded-xl p-3 flex flex-col gap-2.5">
-                    <span className="text-[10px] uppercase font-mono font-black text-amber-400">Comprobante de Domicilio</span>
+                    <span className="text-[10px] uppercase font-mono font-black text-amber-400 flex items-center justify-between">
+                      <span>Comprobante de Domicilio</span>
+                      <Lock className="w-3 h-3 text-slate-400" />
+                    </span>
                     
                     <div className="aspect-[4/3] w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-850 flex items-center justify-center relative group">
                       {tempProofOfAddress ? (
@@ -1718,8 +1703,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                           <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition duration-150 flex items-center justify-center gap-2">
                             <button 
                               onClick={() => setZoomedImg({ src: tempProofOfAddress, title: 'Comprobante de Domicilio' })}
-                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-slate-950 text-white transition cursor-pointer"
-                              title="Zoom"
+                              className="p-1.5 rounded-lg bg-slate-900 hover:bg-[#a3c90e] hover:text-[#a3c90e]/80 transition cursor-pointer text-xs"
                             >
                               Ver Grande
                             </button>
@@ -1732,43 +1716,25 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         </div>
                       )}
                     </div>
-
-                    <div className="flex gap-1.5 mt-auto">
-                      <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 active:scale-95 text-white text-[10px] font-bold py-1.5 rounded-lg border border-slate-700 flex items-center justify-center gap-1 select-none transition">
-                        <Upload className="w-3 h-3 text-[#a3c90e]" />
-                        Cambiar
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={(e) => handleProfileFileChange('proofOfAddress', e)}
-                        />
-                      </label>
-                      {tempProofOfAddress && (
-                        <button
-                          onClick={() => handleClearImage('proofOfAddress')}
-                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg active:scale-95 transition"
-                          title="Eliminar registro"
-                        >
-                          Borrar
-                        </button>
-                      )}
-                    </div>
                   </div>
 
                 </div>
               </div>
 
-              {/* Botón de Guardado General */}
-              <div className="border-t border-slate-800 pt-5 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveProfileChanges}
-                  className="bg-[#a3c90e] hover:bg-[#acd113] active:scale-95 text-slate-950 font-black px-7 py-3 rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-lg select-none border-none transition"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Guardar Actualizaciones de Perfil
-                </button>
+              {/* Locked/Saved Indicators Bottom Bar */}
+              <div className="border-t border-slate-800/80 pt-5">
+                <div className="bg-[#a3c90e]/5 border border-[#a3c90e]/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                  <div className="flex items-center gap-2.5 text-[#a3c90e] text-xs text-center sm:text-left">
+                    <ShieldCheck className="w-5 h-5 text-[#a3c90e] shrink-0" />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wide">ESTATUS: EXPEDIENTE CERRADO Y SEGURO</span>
+                      Toda tu información está protegida mediante encriptación SSL y certificaciones de SALDA APP.
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-slate-950 border border-slate-850 text-slate-400 font-mono py-1.5 px-3 rounded-lg uppercase flex items-center gap-1.5 font-semibold select-none">
+                    <Lock className="w-3 h-3 text-[#a3c90e]" /> PROTEGIDO CON CANDADOS
+                  </span>
+                </div>
               </div>
             </div>
           )}

@@ -23,6 +23,8 @@ export interface Client {
   username?: string;
   password?: string;
   profileImage?: string;
+  facebookProfile?: string;
+  locationLink?: string;
 }
 
 export interface CreditRequest {
@@ -92,6 +94,8 @@ export interface ClientDossier {
   notificationDismissed: boolean;
   loanType?: string;
   monthlyPlan?: string;
+  facebookProfile?: string;
+  locationLink?: string;
 }
 
 export const PRESTAMOS_FIJOS = [

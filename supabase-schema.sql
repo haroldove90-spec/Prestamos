@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS public.clients (
   "delinquencyDays" INT NOT NULL,
   category TEXT NOT NULL,
   "joinDate" TEXT NOT NULL,
-  membership TEXT NOT NULL DEFAULT 'Ninguna'
+  membership TEXT NOT NULL DEFAULT 'Ninguna',
+  "facebookProfile" TEXT,
+  "locationLink" TEXT
 );
 
 -- 2. TABLA: requests
@@ -89,7 +91,9 @@ CREATE TABLE IF NOT EXISTS public.dossiers (
   status TEXT NOT NULL,
   "createdAt" TEXT NOT NULL,
   "adminNotes" TEXT,
-  "notificationDismissed" BOOLEAN NOT NULL DEFAULT false
+  "notificationDismissed" BOOLEAN NOT NULL DEFAULT false,
+  "facebookProfile" TEXT,
+  "locationLink" TEXT
 );
 
 -- 8. TABLA: system_notifications
@@ -159,3 +163,12 @@ BEGIN
     END IF;
 END
 $$;
+
+-- ============================================================================
+-- MIGRACIÓN ADICIONAL (Para bases de datos ya existentes)
+-- Ejecuta estas líneas si ya tenías las tablas consolidadas del sistema anterior:
+-- ============================================================================
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
