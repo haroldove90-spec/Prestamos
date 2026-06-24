@@ -351,4 +351,29 @@ export async function bulkInsertSystemNotificationsCloud(notifications: DbSystem
   }
 }
 
+// LANDING CONFIG
+export async function fetchLandingConfigCloud(): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from('landing_config')
+      .select('*')
+      .limit(1);
+    if (error || !data || data.length === 0) return null;
+    return data[0].config;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLandingConfigCloud(config: any): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('landing_config')
+      .upsert({ id: 'LANDING_SINGLETON', config });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 

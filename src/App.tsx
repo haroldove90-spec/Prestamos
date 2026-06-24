@@ -14,7 +14,8 @@ import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
 import { ContractsModule } from './components/ContractsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG } from './types';
+import { WebLanding } from './components/WebLanding';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
@@ -43,9 +44,11 @@ import {
   bulkInsertDossiersCloud,
   fetchSystemNotificationsCloud,
   bulkInsertSystemNotificationsCloud,
-  DbSystemNotification
+  DbSystemNotification,
+  fetchLandingConfigCloud,
+  saveLandingConfigCloud
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings } from 'lucide-react';
 
 export function generateNextClientId(currentClients: Client[], baseRef?: string): string {
   let reference = baseRef ? baseRef.trim() : "";
@@ -220,7 +223,12 @@ export default function App() {
     return user;
   };
 
-  const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts'>('portfolio');
+  const [landingConfig, setLandingConfig] = useState<LandingPageConfig>(() => {
+    const local = localStorage.getItem('buro_landing_config');
+    return local ? JSON.parse(local) : DEFAULT_LANDING_CONFIG;
+  });
+
+  const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts' | 'web_landing' | 'admin_web'>('web_landing');
 
   const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
     const local = localStorage.getItem('buro_dossiers');
@@ -737,6 +745,15 @@ export default function App() {
           }
         }
 
+        // 10. Sincronizar Landing Page Config
+        const cloudLanding = await fetchLandingConfigCloud();
+        if (cloudLanding !== null) {
+          setLandingConfig(cloudLanding);
+          localStorage.setItem('buro_landing_config', JSON.stringify(cloudLanding));
+        } else {
+          await saveLandingConfigCloud(landingConfig);
+        }
+
         setSupabaseStatus('CONNECTED');
       } catch (err: any) {
         console.error('Supabase Setup error:', err);
@@ -1118,6 +1135,14 @@ export default function App() {
     setQueries(prev => [newQueryLog, ...prev]);
   };
 
+  const handleUpdateLandingConfig = async (newConfig: LandingPageConfig) => {
+    setLandingConfig(newConfig);
+    localStorage.setItem('buro_landing_config', JSON.stringify(newConfig));
+    if (supabaseStatus === 'CONNECTED') {
+      await saveLandingConfigCloud(newConfig);
+    }
+  };
+
   // ADD NEW CLIENT
   const handleAddClient = (newClientData: Omit<Client, 'id' | 'joinDate'>) => {
     // Generate unique unified registration number (ID de Cliente, ID de Préstamo e Identificador de Pago)
@@ -1452,9 +1477,9 @@ export default function App() {
           />
 
           {homeSubView === 'roles' && (
-            <div className="space-y-6 w-full max-w-2xl mx-auto animate-fadeIn">
-              <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block text-center">Seleccione su Rol de Acceso</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+            <div className="space-y-6 w-full max-w-3xl mx-auto animate-fadeIn">
+              <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-widest block text-center">Seleccione su Rol de Acceso o Visite el Portal</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 {/* ADMIN ACCESS CARD */}
                 <button
                   onClick={() => {
@@ -1500,6 +1525,31 @@ export default function App() {
                       Cliente
                     </h2>
                     <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight font-bold text-[#a3c90e]">Autoservicio</p>
+                  </div>
+                </button>
+
+                {/* PUBLIC PORTAL ACCESS CARD */}
+                <button
+                  onClick={() => {
+                    setCurrentUser('public_visitor');
+                    setActiveTab('web_landing');
+                    setIsHome(false);
+                    playSynthesizedSound('success');
+                  }}
+                  className="group relative bg-[#0c1c13]/60 hover:bg-[#132c1e] border border-white/10 hover:border-[#a3c90e]/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
+                  id="role-box-public-landing"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#a3c90e]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <div className="w-14 h-14 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[#a3c90e] group-hover:bg-[#a3c90e]/10 group-hover:border-[#a3c90e]/20 transition-all duration-300 shadow-inner">
+                    <Sparkles className="w-7 h-7 group-hover:scale-110 transition-transform duration-305" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-[#a3c90e] transition-colors duration-200">
+                      Sitio Web Público
+                    </h2>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight font-bold text-emerald-400">Landing Page & Portal</p>
                   </div>
                 </button>
               </div>
@@ -2243,6 +2293,25 @@ export default function App() {
     );
   }
 
+  if (!isHome && currentUser === 'public_visitor') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" id="public-landing-view">
+        <WebLanding 
+          config={landingConfig}
+          onUpdateConfig={handleUpdateLandingConfig}
+          isAdminMode={false}
+          onAddRequest={handleAddRequest}
+          onSwitchTab={(tab) => {
+            if (tab === 'home') {
+              setIsHome(true);
+            }
+          }}
+          onGoHome={() => setIsHome(true)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col font-sans selection:bg-indigo-600 selection:text-white">
       {/* IMMERSIVE UNENCAPSULATED SPLASH SCREEN */}
@@ -2420,6 +2489,46 @@ export default function App() {
                   <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
                     Módulos Disponibles
                   </span>
+
+                  {/* TAB OPTION: WEB LANDING (VISIBLE TO ALL) */}
+                  <button
+                    id="mobile-tab-web-landing"
+                    onClick={() => setActiveTab('web_landing')}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                      activeTab === 'web_landing'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold border-teal-500 shadow-lg shadow-teal-500/10'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className={`w-4 h-4 ${activeTab === 'web_landing' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                      <span className="text-xs font-semibold">Sitio Web Público</span>
+                    </div>
+                    <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] border border-[#a3c90e]/20 px-1.5 py-0.5 rounded font-mono font-black">
+                      WEB
+                    </span>
+                  </button>
+
+                  {/* TAB OPTION: ADMIN WEB (ONLY FOR ADMIN) */}
+                  {currentUser === 'admin_harold' && (
+                    <button
+                      id="mobile-tab-admin-web"
+                      onClick={() => setActiveTab('admin_web')}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                        activeTab === 'admin_web'
+                          ? 'bg-gradient-to-r from-[#a3c90e] to-emerald-600 text-slate-950 font-black border-[#a3c90e] shadow-lg shadow-[#a3c90e]/10'
+                          : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Settings className={`w-4 h-4 ${activeTab === 'admin_web' ? 'text-slate-950' : 'text-[#a3c90e]'}`} />
+                        <span className="text-xs font-semibold">Administración Web</span>
+                      </div>
+                      <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-black">
+                        CMS
+                      </span>
+                    </button>
+                  )}
 
                   {/* TAB OPTION 6: FINANCIAL METRICS (MOVED TO TOP) */}
                   {currentUser === 'admin_harold' && (
@@ -2743,6 +2852,46 @@ export default function App() {
             <span className="block text-[10px] font-bold font-mono text-slate-500 uppercase tracking-widest px-3 mb-2">
               Módulos Disponibles
             </span>
+
+            {/* TAB OPTION: WEB LANDING (VISIBLE TO ALL) */}
+            <button
+              id="tab-web-landing"
+              onClick={() => setActiveTab('web_landing')}
+              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                activeTab === 'web_landing'
+                  ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold border-teal-500 shadow-lg shadow-teal-500/10'
+                  : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles className={`w-4 h-4 ${activeTab === 'web_landing' ? 'text-white' : 'text-[#a3c90e]'}`} />
+                <span className="text-xs font-semibold">Sitio Web Público</span>
+              </div>
+              <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] border border-[#a3c90e]/20 px-1.5 py-0.5 rounded font-mono font-black">
+                WEB
+              </span>
+            </button>
+
+            {/* TAB OPTION: ADMIN WEB (ONLY FOR ADMIN) */}
+            {currentUser === 'admin_harold' && (
+              <button
+                id="tab-admin-web"
+                onClick={() => setActiveTab('admin_web')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-150 cursor-pointer border ${
+                  activeTab === 'admin_web'
+                    ? 'bg-gradient-to-r from-[#a3c90e] to-emerald-600 text-slate-950 font-black border-[#a3c90e] shadow-lg shadow-[#a3c90e]/10'
+                    : 'bg-slate-900 hover:bg-slate-850/80 text-slate-400 hover:text-white border-slate-800 font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Settings className={`w-4 h-4 ${activeTab === 'admin_web' ? 'text-slate-950' : 'text-[#a3c90e]'}`} />
+                  <span className="text-xs font-semibold">Administración Web</span>
+                </div>
+                <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded font-mono font-black">
+                  CMS
+                </span>
+              </button>
+            )}
 
             {/* TAB OPTION 6: FINANCIAL METRICS & MONTH-END CLOSE (MOVED TO TOP) */}
             {currentUser === 'admin_harold' && (
@@ -3187,6 +3336,38 @@ export default function App() {
                     contracts={contracts}
                     onAddContract={handleAddContract}
                     onDeleteContract={handleDeleteContract}
+                  />
+                )}
+
+                {activeTab === 'web_landing' && (
+                  <WebLanding 
+                    config={landingConfig}
+                    onUpdateConfig={handleUpdateLandingConfig}
+                    isAdminMode={false}
+                    onAddRequest={handleAddRequest}
+                    onSwitchTab={(tab) => {
+                      if (tab === 'requests') {
+                        setActiveTab('credit_simulation');
+                      } else {
+                        setActiveTab(tab);
+                      }
+                    }}
+                  />
+                )}
+
+                {activeTab === 'admin_web' && (
+                  <WebLanding 
+                    config={landingConfig}
+                    onUpdateConfig={handleUpdateLandingConfig}
+                    isAdminMode={currentUser === 'admin_harold'}
+                    onAddRequest={handleAddRequest}
+                    onSwitchTab={(tab) => {
+                      if (tab === 'requests') {
+                        setActiveTab('requests');
+                      } else {
+                        setActiveTab(tab);
+                      }
+                    }}
                   />
                 )}
               </>

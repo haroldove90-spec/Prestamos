@@ -111,4 +111,52 @@ export const PRESTAMOS_FIJOS = [
   { capital: 10000, interest: 4000, label: "$10,000 para pagar $14,000" },
 ];
 
+export interface LandingPageConfig {
+  logoUrl: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroCtaText: string;
+  heroBackgroundUrl: string;
+  sliderImages: string[];
+  benefits: {
+    title: string;
+    description: string;
+  }[];
+  howItWorks: {
+    title: string;
+    description: string;
+  }[];
+}
+
+export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
+  logoUrl: "https://cossma.com.mx/saldaapplogo.png",
+  phone: "+52 81 2345 6789",
+  whatsapp: "528123456789",
+  email: "contacto@saldoapp.com",
+  address: "Av. Constelaciones 402, Monterrey, N.L.",
+  heroTitle: "El impulso financiero que necesitas, hoy mismo.",
+  heroSubtitle: "En Saldo app te ofrecemos préstamos mensuales rápidos, claros y sin complicaciones. Elige el monto que necesitas y conoce exactamente cuánto vas a pagar desde el primer día.",
+  heroCtaText: "¡Solicita tu Préstamo Aquí!",
+  heroBackgroundUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1600&q=80",
+  sliderImages: [
+    "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?auto=format&fit=crop&w=1600&q=80",
+    "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&w=1600&q=80"
+  ],
+  benefits: [
+    { title: "Transparencia Total", description: "Sin letras chiquitas ni comisiones ocultas. Lo que ves es lo que pagas." },
+    { title: "Plazos Mensuales", description: "Diseñados para que organices tu presupuesto con calma." },
+    { title: "Proceso 100% Digital", description: "Solicita desde tu celular estés donde estés, rápido y seguro." }
+  ],
+  howItWorks: [
+    { title: "Elige tu monto", description: "Revisa nuestras opciones mensuales de $3,000 hasta $10,000 pesos." },
+    { title: "Completa tu solicitud", description: "Llena tus datos básicos de forma rápida y segura desde nuestra plataforma." },
+    { title: "Recibe tu dinero", description: "Una vez autorizado, tendrás el saldo disponible para usarlo en lo que necesites." }
+  ]
+};
+
 
