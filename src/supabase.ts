@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
 import { SecurityIncident } from './components/SecurityAuditModule';
 
-const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
-const SUPABASE_ANON_KEY = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqdGVoaWVpanJkc2FibXZqYmNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjQ3MTgsImV4cCI6MjA5NTkwMDcxOH0.bAiBHS2S_gaqRPovSs7b-89fr3c0xjZJ--k934dCP-o';
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqdGVoaWVpanJkc2FibXZqYmNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjQ3MTgsImV4cCI6MjA5NTkwMDcxOH0.bAiBHS2S_gaqRPovSs7b-89fr3c0xjZJ--k934dCP-o';
 
 // Initialize the Supabase client safely
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

@@ -28,7 +28,14 @@ export const FinancialMetricsModule: React.FC<FinancialMetricsModuleProps> = ({
   const [closeStep, setCloseStep] = useState<number>(0);
   const [isClosed, setIsClosed] = useState<boolean>(() => {
     const local = localStorage.getItem('buro_month_ended');
-    return local ? JSON.parse(local) : false;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_month_ended:', e);
+      }
+    }
+    return false;
   });
 
   const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);

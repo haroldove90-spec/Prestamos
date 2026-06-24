@@ -186,27 +186,62 @@ export default function App() {
 
   const [requests, setRequests] = useState<CreditRequest[]>(() => {
     const local = localStorage.getItem('buro_requests');
-    return local ? JSON.parse(local) : INITIAL_REQUESTS;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_requests:', e);
+      }
+    }
+    return INITIAL_REQUESTS;
   });
 
   const [queries, setQueries] = useState<BureauQueryLog[]>(() => {
     const local = localStorage.getItem('buro_queries');
-    return local ? JSON.parse(local) : INITIAL_BUREAU_QUERIES;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_queries:', e);
+      }
+    }
+    return INITIAL_BUREAU_QUERIES;
   });
 
   const [riskParams, setRiskParams] = useState<RiskParameters>(() => {
     const local = localStorage.getItem('buro_risk_params');
-    return local ? JSON.parse(local) : INITIAL_RISK_PARAMS;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_risk_params:', e);
+      }
+    }
+    return INITIAL_RISK_PARAMS;
   });
 
   const [isAsesorSuspended, setIsAsesorSuspended] = useState<boolean>(() => {
     const local = localStorage.getItem('buro_asesor_suspended');
-    return local ? JSON.parse(local) : false;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_asesor_suspended:', e);
+      }
+    }
+    return false;
   });
 
   const [securityAlerts, setSecurityAlerts] = useState<SecurityIncident[]>(() => {
     const local = localStorage.getItem('buro_security_alerts');
-    return local ? JSON.parse(local) : [];
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_security_alerts:', e);
+      }
+    }
+    return [];
   });
 
   const [currentUser, setCurrentUser] = useState<string>('admin_harold');
@@ -225,7 +260,14 @@ export default function App() {
 
   const [landingConfig, setLandingConfig] = useState<LandingPageConfig>(() => {
     const local = localStorage.getItem('buro_landing_config');
-    return local ? JSON.parse(local) : DEFAULT_LANDING_CONFIG;
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Error parsing buro_landing_config:', e);
+      }
+    }
+    return DEFAULT_LANDING_CONFIG;
   });
 
   const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts' | 'web_landing' | 'admin_web'>('web_landing');
