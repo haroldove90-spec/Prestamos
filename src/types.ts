@@ -159,4 +159,68 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
   ]
 };
 
+export interface ContractTemplate {
+  id: string; // 'express' | 'particulares'
+  name: string; // 'Contrato Express' | 'Contrato de préstamo entre particulares'
+  title: string;
+  subtitle: string;
+  declarations: string;
+  clauses: string;
+}
+
+export const DEFAULT_CONTRACT_TEMPLATES: ContractTemplate[] = [
+  {
+    id: 'express',
+    name: 'Contrato Express',
+    title: 'CONTRATO EXPRESO DE CRÉDITO DE CONSUMO INMEDIATO',
+    subtitle: 'DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN',
+    declarations: 'DECLARACIONES: El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día {fecha_generado} por y entre las partes señaladas a continuación:\n\nPor una parte, Fideicomiso de Recaudación Salda App S.A. como el "Acreedor fiduciario unificado", y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:',
+    clauses: 'CLÁUSULA PRIMERA (Entrega y Destino del Crédito): Salda App pone a la disposición de la Parte Acreditada la suma autorizada de ${monto} MXN. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.\n\nCLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos): El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: {referencia_pago}.\n\nCLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito): En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).'
+  },
+  {
+    id: 'particulares',
+    name: 'Contrato de préstamo entre particulares',
+    title: 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES',
+    subtitle: 'DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN',
+    declarations: 'DECLARACIONES: El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día {fecha_generado} por y entre las partes señaladas a continuación:\n\nPor una parte, Fideicomiso de Recaudación Salda App S.A. como el "Acreedor fiduciario unificado", y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:',
+    clauses: 'CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo): El Mutuante transmite la propiedad de la cantidad líquida de ${monto} MXN al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados y de conformidad con el calendario de pagos de la institución mexicana.\n\nCLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria): El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: {referencia_pago}.\n\nCLÁUSULA TERCERA (Vencimiento Anticipado): El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata de manera legal por la vía ejecutiva mercantil.'
+  }
+];
+
+export function interpolateContractTemplate(
+  template: ContractTemplate,
+  contract: {
+    id: string;
+    clientName: string;
+    amount: number;
+    paymentReference: string;
+    dateGenerated: string;
+  }
+): {
+  title: string;
+  subtitle: string;
+  declarations: string;
+  clauses: string[];
+} {
+  const replaceAll = (text: string) => {
+    return text
+      .replace(/{fecha_generado}/g, contract.dateGenerated)
+      .replace(/{clientName}/g, contract.clientName)
+      .replace(/{nombre_cliente}/g, contract.clientName)
+      .replace(/\${monto}/g, `$${contract.amount.toLocaleString('es-MX')}`)
+      .replace(/{monto}/g, contract.amount.toLocaleString('es-MX'))
+      .replace(/{referencia_pago}/g, contract.paymentReference)
+      .replace(/{contractId}/g, contract.id)
+      .replace(/{id_contrato}/g, contract.id);
+  };
+
+  return {
+    title: replaceAll(template.title),
+    subtitle: replaceAll(template.subtitle),
+    declarations: replaceAll(template.declarations),
+    clauses: replaceAll(template.clauses).split('\n\n')
+  };
+}
+
+
 

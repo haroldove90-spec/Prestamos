@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, ContractTemplate } from './types';
 import { SecurityIncident } from './components/SecurityAuditModule';
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
@@ -402,5 +402,37 @@ export async function saveLandingConfigCloud(config: any): Promise<boolean> {
     return false;
   }
 }
+
+// CONTRACT TEMPLATES (CLOUD PERSISTENCE)
+export async function fetchContractTemplatesCloud(): Promise<ContractTemplate[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('contract_templates')
+      .select('*')
+      .order('id', { ascending: true });
+    if (error) {
+      console.warn('Error fetching contract templates from Supabase:', error);
+      return null;
+    }
+    return data as ContractTemplate[];
+  } catch (err) {
+    console.error('Supabase fetchContractTemplates exception:', err);
+    return null;
+  }
+}
+
+export async function bulkInsertContractTemplatesCloud(templates: ContractTemplate[]): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('contract_templates')
+      .upsert(templates);
+    if (error) console.error('Error bulk saving contract templates in Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase exception bulk saving contract templates:', err);
+    return false;
+  }
+}
+
 
 

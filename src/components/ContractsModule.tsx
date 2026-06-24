@@ -4,7 +4,7 @@ import {
   Download, Printer, Plus, Search, CheckCircle, AlertCircle, 
   Trash2, Layers, Briefcase, FileSignature, Globe, Share2
 } from 'lucide-react';
-import { Client, ClientContract } from '../types';
+import { Client, ClientContract, ContractTemplate, interpolateContractTemplate } from '../types';
 
 interface ContractsModuleProps {
   currentUser: string;
@@ -13,6 +13,8 @@ interface ContractsModuleProps {
   onAddContract: (newContract: ClientContract) => void;
   onDeleteContract: (contractId: string) => void;
   onClearDatabase?: () => Promise<boolean>;
+  templates: ContractTemplate[];
+  onUpdateTemplates: (updated: ContractTemplate[]) => void;
 }
 
 export const ContractsModule: React.FC<ContractsModuleProps> = ({
@@ -21,7 +23,9 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
   contracts,
   onAddContract,
   onDeleteContract,
-  onClearDatabase
+  onClearDatabase,
+  templates,
+  onUpdateTemplates
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
@@ -33,6 +37,42 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
   const [selectedPreviewContract, setSelectedPreviewContract] = useState<ClientContract | null>(
     contracts.length > 0 ? contracts[0] : null
   );
+
+  // Contract Templates Editor State
+  const [isEditingTemplates, setIsEditingTemplates] = useState(false);
+  const [activeTemplateEditId, setActiveTemplateEditId] = useState<'express' | 'particulares'>('express');
+  const [tempTitle, setTempTitle] = useState('');
+  const [tempSubtitle, setTempSubtitle] = useState('');
+  const [tempDeclarations, setTempDeclarations] = useState('');
+  const [tempClauses, setTempClauses] = useState('');
+
+  const openTemplateEditor = (typeId: 'express' | 'particulares') => {
+    const template = templates.find(t => t.id === typeId) || templates[0];
+    setActiveTemplateEditId(typeId);
+    setTempTitle(template.title);
+    setTempSubtitle(template.subtitle);
+    setTempDeclarations(template.declarations);
+    setTempClauses(template.clauses);
+    setIsEditingTemplates(true);
+  };
+
+  const handleSaveTemplate = () => {
+    const updated = templates.map(t => {
+      if (t.id === activeTemplateEditId) {
+        return {
+          ...t,
+          title: tempTitle,
+          subtitle: tempSubtitle,
+          declarations: tempDeclarations,
+          clauses: tempClauses
+        };
+      }
+      return t;
+    });
+    onUpdateTemplates(updated);
+    setIsEditingTemplates(false);
+    alert('✓ Plantilla de contrato actualizada con éxito.');
+  };
 
   // Filter clients to select from (preferably ones with active credit or balanceOwed > 0, but show all)
   const availableClientsForNewContract = clients.filter(c => {
@@ -111,6 +151,21 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
 
   const activeReviewContract = selectedPreviewContract || (contracts.length > 0 ? contracts[0] : null);
 
+  const getInterpolatedContract = () => {
+    if (!activeReviewContract) return null;
+    const matchId = activeReviewContract.contractType === 'Contrato Express' ? 'express' : 'particulares';
+    const activeTemplate = templates.find(t => t.id === matchId) || templates[0];
+    return interpolateContractTemplate(activeTemplate, {
+      id: activeReviewContract.id,
+      clientName: activeReviewContract.clientName,
+      amount: activeReviewContract.amount,
+      paymentReference: activeReviewContract.paymentReference,
+      dateGenerated: activeReviewContract.dateGenerated
+    });
+  };
+
+  const interpolated = getInterpolatedContract();
+
   return (
     <div className="space-y-6" id="contracts-module-container">
       {/* Header Panel */}
@@ -147,6 +202,16 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
             >
               <Trash2 className="w-4 h-4 text-white" />
               Limpiar BD (Pruebas)
+            </button>
+          )}
+
+          {currentUser === 'admin_harold' && (
+            <button
+              onClick={() => openTemplateEditor('express')}
+              className="bg-slate-800 hover:bg-slate-700 text-[#a3c90e] border border-[#a3c90e]/30 hover:border-[#a3c90e]/50 font-black px-4.5 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-lg select-none active:scale-95 transition cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-[#a3c90e]" />
+              Personalizar Plantillas
             </button>
           )}
 
@@ -477,23 +542,33 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                 {/* Official Title Section */}
                 <div className="text-center space-y-1 mb-6">
                   <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 underline">
-                    {activeReviewContract.contractType === 'Contrato Express'
+                    {interpolated ? interpolated.title : (activeReviewContract.contractType === 'Contrato Express'
                       ? 'CONTRATO EXPRESO DE CRÉDITO DE CONSUMO INMEDIATO'
-                      : 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES'}
+                      : 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES')}
                   </h2>
                   <p className="text-[9.5px] text-slate-500 font-mono tracking-wider">
-                    DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN
+                    {interpolated ? interpolated.subtitle : 'DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN'}
                   </p>
                 </div>
 
                 {/* Substantive Declared Body Text */}
                 <div className="text-[10.5px] text-slate-800 space-y-2.5 text-justify leading-relaxed">
-                  <p>
-                    <strong>DECLARACIONES:</strong> El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día <strong className="text-slate-950 font-black">{activeReviewContract.dateGenerated}</strong> por y entre las partes señaladas a continuación:
-                  </p>
-                  <p className="pl-3 border-l pb-1 border-slate-300">
-                    Por una parte, <strong>Fideicomiso de Recaudación Salda App S.A.</strong> como el <strong>"Acreedor fiduciario unificado"</strong>, y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:
-                  </p>
+                  {interpolated ? (
+                    interpolated.declarations.split('\n\n').map((para, pIdx) => (
+                      <p key={pIdx} className={pIdx === 1 ? "pl-3 border-l pb-1 border-slate-300 text-justify" : "text-justify"}>
+                        {para}
+                      </p>
+                    ))
+                  ) : (
+                    <>
+                      <p>
+                        <strong>DECLARACIONES:</strong> El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día <strong className="text-slate-950 font-black">{activeReviewContract.dateGenerated}</strong> por y entre las partes señaladas a continuación:
+                      </p>
+                      <p className="pl-3 border-l pb-1 border-slate-300">
+                        Por una parte, <strong>Fideicomiso de Recaudación Salda App S.A.</strong> como el <strong>"Acreedor fiduciario unificado"</strong>, y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:
+                      </p>
+                    </>
+                  )}
 
                   {/* Client Metadata block */}
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[9.5px] my-3 leading-loose text-slate-900">
@@ -513,30 +588,40 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                     Las partes manifiestan de común acuerdo someterse al tenor de las siguientes cláusulas obligatorias bajo las leyes de la República Mexicana:
                   </p>
 
-                  {activeReviewContract.contractType === 'Contrato Express' ? (
+                  {interpolated ? (
                     <div className="space-y-2">
-                      <p>
-                        <strong>CLÁUSULA PRIMERA (Entrega y Destino del Crédito):</strong> Salda App pone a la disposición de la Parte Acreditada la suma autorizada de <strong>${activeReviewContract.amount.toLocaleString('es-MX')} MXN</strong>. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.
-                      </p>
-                      <p>
-                        <strong>CLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos):</strong> El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: <strong className="font-mono text-slate-950 underline">{activeReviewContract.paymentReference}</strong>.
-                      </p>
-                      <p>
-                        <strong>CLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito):</strong> En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).
-                      </p>
+                      {interpolated.clauses.map((clause, cIdx) => (
+                        <p key={cIdx} className="text-justify">
+                          {clause}
+                        </p>
+                      ))}
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p>
-                        <strong>CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo):</strong> El Mutuante transmite la propiedad de la cantidad líquida de <strong>${activeReviewContract.amount.toLocaleString('es-MX')} MXN</strong> al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados y de conformidad con el calendario de pagos de la institución mexicana.
-                      </p>
-                      <p>
-                        <strong>CLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria):</strong> El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: <strong className="font-mono text-slate-950 underline">{activeReviewContract.paymentReference}</strong>.
-                      </p>
-                      <p>
-                        <strong>CLÁUSULA TERCERA (Vencimiento Anticipado):</strong> El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata de manera legal por la vía ejecutiva mercantil.
-                      </p>
-                    </div>
+                    activeReviewContract.contractType === 'Contrato Express' ? (
+                      <div className="space-y-2">
+                        <p>
+                          <strong>CLÁUSULA PRIMERA (Entrega y Destino del Crédito):</strong> Salda App pone a la disposición de la Parte Acreditada la suma autorizada de <strong>${activeReviewContract.amount.toLocaleString('es-MX')} MXN</strong>. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.
+                        </p>
+                        <p>
+                          <strong>CLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos):</strong> El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: <strong className="font-mono text-slate-950 underline">{activeReviewContract.paymentReference}</strong>.
+                        </p>
+                        <p>
+                          <strong>CLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito):</strong> En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p>
+                          <strong>CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo):</strong> El Mutuante transmite la propiedad de la cantidad líquida de <strong>${activeReviewContract.amount.toLocaleString('es-MX')} MXN</strong> al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados y de conformidad con el calendario de pagos de la institución mexicana.
+                        </p>
+                        <p>
+                          <strong>CLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria):</strong> El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: <strong className="font-mono text-slate-950 underline">{activeReviewContract.paymentReference}</strong>.
+                        </p>
+                        <p>
+                          <strong>CLÁUSULA TERCERA (Vencimiento Anticipado):</strong> El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata de manera legal por la vía ejecutiva mercantil.
+                        </p>
+                      </div>
+                    )
                   )}
 
                   <p>
@@ -592,6 +677,168 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
           )}
         </div>
       </div>
+
+      {/* TEMPLATE EDITOR MODAL */}
+      {isEditingTemplates && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <FileSignature className="w-5 h-5 text-[#a3c90e]" />
+                <div className="text-left">
+                  <h3 className="font-extrabold text-white text-base">Personalizador y Editor de Plantillas de Contratos</h3>
+                  <p className="text-xs text-slate-400">Personaliza los textos legales del fideicomiso, copia y pega tus contratos vigentes.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEditingTemplates(false)}
+                className="text-slate-400 hover:text-white font-mono text-lg cursor-pointer p-1.5 hover:bg-slate-800 rounded-xl transition bg-transparent border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-200 text-left">
+              {/* Template Selector Tabs */}
+              <div className="flex gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => openTemplateEditor('express')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border-none cursor-pointer ${
+                    activeTemplateEditId === 'express'
+                      ? 'bg-indigo-650 bg-indigo-600 text-white shadow'
+                      : 'bg-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Contrato Express (Corto)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openTemplateEditor('particulares')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border-none cursor-pointer ${
+                    activeTemplateEditId === 'particulares'
+                      ? 'bg-indigo-650 bg-indigo-600 text-white shadow'
+                      : 'bg-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Contrato de Mutuo (Particulares)
+                </button>
+              </div>
+
+              {/* Placeholders Help Panel */}
+              <div className="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
+                <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  Códigos Dinámicos (Copy & Paste en tus textos):
+                </h4>
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  Utiliza estos códigos exactos dentro de tus textos. El sistema los reemplazará de forma automática con los datos reales del cliente al generar el contrato:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px] font-mono mt-1">
+                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{id_contrato}"}</span>
+                    <span className="text-slate-500 block text-[9px]">ID del contrato</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{nombre_cliente}"}</span>
+                    <span className="text-slate-500 block text-[9px]">Nombre completo</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{monto}"}</span>
+                    <span className="text-slate-500 block text-[9px]">Monto del préstamo</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{referencia_pago}"}</span>
+                    <span className="text-slate-500 block text-[9px]">Clabe / Referencia</span>
+                  </div>
+                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{fecha_generado}"}</span>
+                    <span className="text-slate-500 block text-[9px]">Fecha de firma</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Inputs */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Título del Contrato</label>
+                    <input 
+                      type="text"
+                      value={tempTitle}
+                      onChange={(e) => setTempTitle(e.target.value)}
+                      placeholder="Ej. CONTRATO EXPRESO DE CRÉDITO..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Subtítulo o Certificación</label>
+                    <input 
+                      type="text"
+                      value={tempSubtitle}
+                      onChange={(e) => setTempSubtitle(e.target.value)}
+                      placeholder="Ej. DOCUMENTO DIGITAL CERTIFICADO..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Declaraciones (Copia y pega aquí)
+                  </label>
+                  <p className="text-[10px] text-slate-500 mb-2">Para separar en párrafos distintos, deja una línea en blanco (doble enter).</p>
+                  <textarea
+                    rows={4}
+                    value={tempDeclarations}
+                    onChange={(e) => setTempDeclarations(e.target.value)}
+                    placeholder="Escribe o pega aquí las declaraciones..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Cláusulas del Contrato (Copia y pega aquí)
+                  </label>
+                  <p className="text-[10px] text-slate-500 mb-2">Pega todas tus cláusulas de corrido. Para que el sistema detecte y enumere/separe cada cláusula individualmente en la visualización, sepáralas dejando un renglón vacío (doble enter).</p>
+                  <textarea
+                    rows={8}
+                    value={tempClauses}
+                    onChange={(e) => setTempClauses(e.target.value)}
+                    placeholder="Ejemplo:&#10;CLÁUSULA PRIMERA: El acreedor entrega la cantidad de...&#10;&#10;CLÁUSULA SEGUNDA: El deudor se obliga a pagar..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-950 px-6 py-4 border-t border-slate-800 flex justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsEditingTemplates(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer border-none"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTemplate}
+                className="bg-[#a3c90e] hover:bg-[#b5df12] text-slate-950 font-black px-5 py-2 rounded-xl text-xs transition cursor-pointer border-none animate-pulse"
+              >
+                Guardar Plantilla
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

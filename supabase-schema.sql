@@ -108,6 +108,16 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
   "soundPlayed" BOOLEAN NOT NULL DEFAULT false
 );
 
+-- 9. TABLA: contract_templates (Plantillas de Contratos)
+CREATE TABLE IF NOT EXISTS public.contract_templates (
+  id TEXT PRIMARY KEY, -- 'express' | 'particulares'
+  name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  subtitle TEXT NOT NULL,
+  declarations TEXT NOT NULL,
+  clauses TEXT NOT NULL
+);
+
 -- Configuración de políticas de seguridad fáciles para el cliente (Anon Key Access)
 -- Desactivar RLS o habilitar libre escritura y lectura para que la app cliente funcione de inmediato:
 ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
@@ -118,6 +128,7 @@ ALTER TABLE public.security_alerts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dossiers DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_notifications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contract_templates DISABLE ROW LEVEL SECURITY;
 
 -- En caso de tener RLS activado por defecto globalmente, creamos políticas permisivas para anon:
 DO $$
@@ -160,6 +171,11 @@ BEGIN
     -- SYSTEM NOTIFICATIONS
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'system_notifications' AND policyname = 'Allow dynamic anon access') THEN
         CREATE POLICY "Allow dynamic anon access" ON public.system_notifications FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+
+    -- CONTRACT TEMPLATES
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'contract_templates' AND policyname = 'Allow dynamic anon access') THEN
+        CREATE POLICY "Allow dynamic anon access" ON public.contract_templates FOR ALL USING (true) WITH CHECK (true);
     END IF;
 END
 $$;

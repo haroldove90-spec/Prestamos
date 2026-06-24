@@ -6,7 +6,7 @@ import {
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
   PlusCircle, Printer, Lock, Percent
 } from 'lucide-react';
-import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract } from '../types';
+import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract, ContractTemplate, interpolateContractTemplate } from '../types';
 import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 interface ClientPortalProps {
@@ -20,6 +20,7 @@ interface ClientPortalProps {
   setClients?: React.Dispatch<React.SetStateAction<Client[]>>;
   onAddRequest?: (request: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => void;
   onAddDossier?: (dossier: ClientDossier) => void;
+  templates?: ContractTemplate[];
 }
 
 // Pre-designed mockup receipt URLs for testing payments
@@ -53,7 +54,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   currentUser = 'cliente_esperanza',
   setClients,
   onAddRequest,
-  onAddDossier
+  onAddDossier,
+  templates = []
 }) => {
   const isCustomUser = currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza';
   const customTargetUsername = currentUser.replace('cliente_', '').toLowerCase().trim();
@@ -1882,6 +1884,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             };
 
             if (clientContract) {
+              const matchId = clientContract.contractType === 'Contrato Express' ? 'express' : 'particulares';
+              const activeTemplate = templates.find(t => t.id === matchId);
+              const interpolated = activeTemplate ? interpolateContractTemplate(activeTemplate, {
+                id: clientContract.id,
+                clientName: clientContract.clientName,
+                amount: clientContract.amount,
+                paymentReference: clientContract.paymentReference,
+                dateGenerated: clientContract.dateGenerated
+              }) : null;
+
               return (
                 <div className="space-y-6 animate-fadeIn text-left">
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md flex justify-between items-center flex-wrap gap-4">
@@ -1936,23 +1948,33 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     {/* Official Title Section */}
                     <div className="text-center space-y-1 mb-6">
                       <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-900 underline">
-                        {clientContract.contractType === 'Contrato Express'
+                        {interpolated ? interpolated.title : (clientContract.contractType === 'Contrato Express'
                           ? 'CONTRATO EXPRESO DE CRÉDITO DE CONSUMO INMEDIATO'
-                          : 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES'}
+                          : 'CONTRATO DE MUTUO CON INTERÉS Y GARANTÍA ENTRE PARTICULARES')}
                       </h2>
                       <p className="text-[9.5px] text-slate-500 font-mono tracking-wider">
-                        DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN
+                        {interpolated ? interpolated.subtitle : 'DOCUMENTO DIGITAL CERTIFICADO CON COMPROMISO FISCAL DE AMORTIZACIÓN'}
                       </p>
                     </div>
 
                     {/* Substantive Declared Body Text */}
                     <div className="text-[10.5px] text-slate-800 space-y-2.5 text-justify leading-relaxed">
-                      <p>
-                        <strong>DECLARACIONES:</strong> El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día <strong className="text-slate-950 font-black">{clientContract.dateGenerated}</strong> por y entre las partes señaladas a continuación:
-                      </p>
-                      <p className="pl-3 border-l pb-1 border-slate-300">
-                        Por una parte, <strong>Fideicomiso de Recaudación Salda App S.A.</strong> como el <strong>"Acreedor fiduciario unificado"</strong>, y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:
-                      </p>
+                      {interpolated ? (
+                        interpolated.declarations.split('\n\n').map((para, pIdx) => (
+                          <p key={pIdx} className={pIdx === 1 ? "pl-3 border-l pb-1 border-slate-300 text-justify" : "text-justify"}>
+                            {para}
+                          </p>
+                        ))
+                      ) : (
+                        <>
+                          <p>
+                            <strong>DECLARACIONES:</strong> El presente contrato (en lo sucesivo, el "Contrato") es celebrado el día <strong className="text-slate-950 font-black">{clientContract.dateGenerated}</strong> por y entre las partes señaladas a continuación:
+                          </p>
+                          <p className="pl-3 border-l pb-1 border-slate-300">
+                            Por una parte, <strong>Fideicomiso de Recaudación Salda App S.A.</strong> como el <strong>"Acreedor fiduciario unificado"</strong>, y por la otra parte, el cliente registrado cuyos datos fiduciarios se autocompletan legalmente:
+                          </p>
+                        </>
+                      )}
 
                       {/* Client Metadata block */}
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-205 grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[9.5px] my-3 leading-loose text-slate-900">
@@ -1972,30 +1994,40 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         Las partes manifiestan de común acuerdo someterse al tenor de las siguientes cláusulas obligatorias bajo las leyes de la República Mexicana:
                       </p>
 
-                      {clientContract.contractType === 'Contrato Express' ? (
+                      {interpolated ? (
                         <div className="space-y-2">
-                          <p>
-                            <strong>CLÁUSULA PRIMERA (Entrega y Destino del Crédito):</strong> Salda App pone a la disposición de la Parte Acreditada la suma autorizada de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong>. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.
-                          </p>
-                          <p>
-                            <strong>CLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos):</strong> El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
-                          </p>
-                          <p>
-                            <strong>CLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito):</strong> En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).
-                          </p>
+                          {interpolated.clauses.map((clause, cIdx) => (
+                            <p key={cIdx} className="text-justify">
+                              {clause}
+                            </p>
+                          ))}
                         </div>
                       ) : (
-                        <div className="space-y-2">
-                          <p>
-                            <strong>CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo):</strong> El Mutuante transmite la propiedad de la cantidad líquida de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong> al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados de conformidad con el calendario regulado.
-                          </p>
-                          <p>
-                            <strong>CLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria):</strong> El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
-                          </p>
-                          <p>
-                            <strong>CLÁUSULA TERCERA (Vencimiento Anticipado):</strong> El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata por la vía ejecutiva mercantil.
-                          </p>
-                        </div>
+                        clientContract.contractType === 'Contrato Express' ? (
+                          <div className="space-y-2">
+                            <p>
+                              <strong>CLÁUSULA PRIMERA (Entrega y Destino del Crédito):</strong> Salda App pone a la disposición de la Parte Acreditada la suma autorizada de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong>. El Acreditado declara recibir a su entera satisfacción dicho capital fiduciario para ser destinado a fines personales lícitos de consumo.
+                            </p>
+                            <p>
+                              <strong>CLÁUSULA SEGUNDA (Compromiso Único de Pago y Abonos):</strong> El cliente se obliga y compromete irrevocablemente a amortizar y liquidar el saldo total, intereses aplicables y recargos, a través de la cuenta fiduciaria habilitada por Salda App, identificando cada depósito indefectiblemente utilizando su Referencia Única de Depósito: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
+                            </p>
+                            <p>
+                              <strong>CLÁUSULA TERCERA (Tasa de Interés Moratorio y Buró de Crédito):</strong> En caso de retraso en los pagos pactados, se aplicará de manera unificada una tasa de interés moratorio del 5.8% mensual. Asimismo, el atraso dará facultad de reportar el comportamiento negativo inmediatamente a las sociedades de información crediticia (Buró de Crédito).
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p>
+                              <strong>CLÁUSULA PRIMERA (Objeto del Contrato de Mutuo):</strong> El Mutuante transmite la propiedad de la cantidad líquida de <strong>${clientContract.amount.toLocaleString('es-MX')} MXN</strong> al Mutuatario, quien la recibe con la obligación expresa de restituirla y liquidarla con los intereses pactados de conformidad con el calendario regulado.
+                            </p>
+                            <p>
+                              <strong>CLÁUSULA SEGUNDA (Tasa de Costo Anual y Referencia de Pago Bancaria):</strong> El mutuo se compromete bajo la tasa fiduciaria de la plataforma, conviniéndose expresamente de manera inalterable que todo abono, amortización y pago ordinario se realizará mediante de transferencias bancarias o SPEI, con el identificador único bancario de pagos SPEI fiduciarios registrado: <strong className="font-mono text-slate-950 underline">{clientContract.paymentReference}</strong>.
+                            </p>
+                            <p>
+                              <strong>CLÁUSULA TERCERA (Vencimiento Anticipado):</strong> El incumplimiento puntual de cualquiera de los abonos facultará al Mutuante para declarar el vencimiento anticipado de toda la obligación, requiriendo el saldo insoluto de manera inmediata por la vía ejecutiva mercantil.
+                            </p>
+                          </div>
+                        )
                       )}
 
                       <p>

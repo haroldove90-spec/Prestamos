@@ -14,7 +14,7 @@ import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
 import { ContractsModule } from './components/ContractsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES } from './types';
 import { WebLanding } from './components/WebLanding';
 import { 
   INITIAL_CLIENTS, 
@@ -47,7 +47,9 @@ import {
   bulkInsertSystemNotificationsCloud,
   DbSystemNotification,
   fetchLandingConfigCloud,
-  saveLandingConfigCloud
+  saveLandingConfigCloud,
+  fetchContractTemplatesCloud,
+  bulkInsertContractTemplatesCloud
 } from './supabase';
 import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings } from 'lucide-react';
 
@@ -373,6 +375,18 @@ export default function App() {
     ];
   });
 
+  const [contractTemplates, setContractTemplates] = useState<ContractTemplate[]>(() => {
+    const local = localStorage.getItem('buro_contract_templates');
+    if (local) {
+      try {
+        return JSON.parse(local) as ContractTemplate[];
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return DEFAULT_CONTRACT_TEMPLATES;
+  });
+
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isHome, setIsHome] = useState<boolean>(true);
   const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register'>('roles');
@@ -654,6 +668,13 @@ export default function App() {
   const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
 
   useEffect(() => {
+    localStorage.setItem('buro_contract_templates', JSON.stringify(contractTemplates));
+    if (supabaseStatus === 'CONNECTED' && contractTemplates.length > 0) {
+      bulkInsertContractTemplatesCloud(contractTemplates);
+    }
+  }, [contractTemplates, supabaseStatus]);
+
+  useEffect(() => {
     localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
   }, [dossiers]);
 
@@ -825,6 +846,20 @@ export default function App() {
           localStorage.setItem('buro_landing_config', JSON.stringify(cloudLanding));
         } else {
           await saveLandingConfigCloud(landingConfig);
+        }
+
+        // 11. Sincronizar Plantillas de Contratos (Opcional, previene caídas si la tabla no se ha creado aún)
+        try {
+          const cloudContractTemplates = await fetchContractTemplatesCloud();
+          if (cloudContractTemplates !== null) {
+            if (cloudContractTemplates.length === 0) {
+              await bulkInsertContractTemplatesCloud(contractTemplates);
+            } else {
+              setContractTemplates(cloudContractTemplates);
+            }
+          }
+        } catch (e) {
+          console.warn('Error al sincronizar contract_templates (la tabla podría no existir en Supabase aún):', e);
         }
 
         setSupabaseStatus('CONNECTED');
@@ -2404,7 +2439,6 @@ export default function App() {
           onUpdateConfig={handleUpdateLandingConfig}
           isAdminMode={false}
           onAddRequest={handleAddRequest}
-          onClearDatabase={handleClearDatabase}
           onSwitchTab={(tab) => {
             if (tab === 'home') {
               setIsHome(true);
@@ -3400,6 +3434,7 @@ export default function App() {
                     setClients={setClients}
                     onAddRequest={handleAddRequest}
                     onAddDossier={handleAddDossier}
+                    templates={contractTemplates}
                   />
                 )}
 
@@ -3445,6 +3480,8 @@ export default function App() {
                     onAddContract={handleAddContract}
                     onDeleteContract={handleDeleteContract}
                     onClearDatabase={handleClearDatabase}
+                    templates={contractTemplates}
+                    onUpdateTemplates={setContractTemplates}
                   />
                 )}
 
