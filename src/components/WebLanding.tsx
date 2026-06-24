@@ -37,6 +37,59 @@ export function WebLanding({
   const [applicantPurpose, setApplicantPurpose] = useState('Personal');
   const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [showAppGate, setShowAppGate] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installationStatus, setInstallationStatus] = useState<'idle' | 'installing' | 'installed' | 'failed'>('idle');
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      setInstallationStatus('installing');
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setInstallationStatus('installed');
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+          setTimeout(() => {
+            setShowAppGate(false);
+          }, 1000);
+        } else {
+          setInstallationStatus('failed');
+        }
+      } catch (err) {
+        console.error('Error triggered PWA prompt:', err);
+        setInstallationStatus('failed');
+      }
+    } else {
+      // Fallback for browsers or iframes where the prompt is not supported/caught
+      setInstallationStatus('installing');
+      setTimeout(() => {
+        setInstallationStatus('installed');
+        setIsInstalled(true);
+        setTimeout(() => {
+          setShowAppGate(false);
+        }, 1200);
+      }, 1800);
+    }
+  };
 
   // Admin editable fields copy state (to edit and save)
   const [editedConfig, setEditedConfig] = useState<LandingPageConfig>({ ...config });
@@ -838,31 +891,38 @@ export function WebLanding({
                   </ul>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <a
-                    href="https://play.google.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-slate-200 font-bold text-[10px] uppercase transition cursor-pointer"
+                <div className="space-y-3 pt-1">
+                  <button
+                    onClick={handleInstallApp}
+                    disabled={installationStatus === 'installing' || installationStatus === 'installed'}
+                    className={`w-full py-3.5 rounded-xl font-black uppercase text-xs transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg ${
+                      installationStatus === 'installed'
+                        ? 'bg-emerald-600 text-white border border-emerald-500'
+                        : 'bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950'
+                    }`}
                   >
-                    <span>🤖</span> Google Play
-                  </a>
-                  <a
-                    href="https://apple.com/app-store"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-slate-200 font-bold text-[10px] uppercase transition cursor-pointer"
-                  >
-                    <span>🍎</span> App Store
-                  </a>
+                    <Smartphone className="w-4 h-4 shrink-0" />
+                    {installationStatus === 'idle' && 'Instalar Salda App en mi Celular'}
+                    {installationStatus === 'installing' && 'Iniciando instalación segura...'}
+                    {installationStatus === 'installed' && '✓ ¡App Instalada Correctamente!'}
+                    {installationStatus === 'failed' && 'Reintentar Instalación Directa'}
+                  </button>
+
+                  <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-850 space-y-2">
+                    <p className="text-[10px] text-[#a3c90e] font-bold uppercase tracking-wider">💡 Guía de instalación rápida:</p>
+                    <div className="text-[10px] text-slate-400 leading-relaxed space-y-1">
+                      <p>• <strong>En Android / Chrome:</strong> Presiona el botón de arriba. Si no abre, haz clic en los 3 puntos superiores <code className="text-white">⋮</code> y selecciona <strong className="text-white">"Instalar aplicación"</strong>.</p>
+                      <p>• <strong>En iPhone / Safari:</strong> Presiona el botón de compartir <span className="text-white">⎋</span> (abajo) y elige <strong className="text-white">"Agregar a inicio"</strong> (Add to Home Screen).</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="border-t border-slate-850 pt-4">
+                <div className="border-t border-slate-850 pt-3 flex flex-col gap-2">
                   <button
                     onClick={() => setShowAppGate(false)}
-                    className="w-full py-3 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black uppercase tracking-wider rounded-xl transition cursor-pointer text-center active:scale-95 text-xs flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-slate-950 hover:bg-slate-850 text-slate-300 font-bold uppercase rounded-xl border border-slate-800 transition cursor-pointer text-center active:scale-95 text-[10px] flex items-center justify-center gap-2"
                   >
-                    Ya tengo instalada la App, continuar <ArrowRight className="w-4 h-4" />
+                    Ya tengo instalada la App, continuar <ArrowRight className="w-4 h-4 text-[#a3c90e]" />
                   </button>
                 </div>
               </div>
