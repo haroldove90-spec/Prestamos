@@ -36,6 +36,7 @@ export function WebLanding({
   const [applicantEmail, setApplicantEmail] = useState('');
   const [applicantPurpose, setApplicantPurpose] = useState('Personal');
   const [requestSubmitted, setRequestSubmitted] = useState(false);
+  const [showAppGate, setShowAppGate] = useState(true);
 
   // Admin editable fields copy state (to edit and save)
   const [editedConfig, setEditedConfig] = useState<LandingPageConfig>({ ...config });
@@ -68,6 +69,7 @@ export function WebLanding({
   const handleOpenApplication = (monto: number) => {
     setSelectedMonto(monto);
     setShowRequestModal(true);
+    setShowAppGate(true);
     setRequestSubmitted(false);
   };
 
@@ -813,7 +815,58 @@ export function WebLanding({
               </div>
             </div>
 
-            {requestSubmitted ? (
+            {showAppGate ? (
+              <div className="space-y-5 animate-fadeIn text-slate-300 text-xs">
+                <div className="bg-[#a3c90e]/10 border border-[#a3c90e]/20 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Smartphone className="w-10 h-10 text-[#a3c90e] shrink-0 animate-bounce mt-1" />
+                    <div>
+                      <h5 className="text-white font-black uppercase text-xs">Paso Requerido Obligatorio</h5>
+                      <p className="text-[11px] leading-relaxed mt-1">
+                        Para registrarte y solicitar tu préstamo de <strong className="text-white">${selectedMonto?.toLocaleString('es-MX')} MXN</strong>, tiene que instalar su app móvil en su celular antes de continuar con la solicitud.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="font-semibold text-slate-200">¿Por qué es necesario instalar la App antes?</p>
+                  <ul className="space-y-1.5 text-[11px] list-disc list-inside text-slate-400">
+                    <li>Validación biométrica e identidad 100% segura.</li>
+                    <li>Firma digital de su contrato fiduciario de amortización.</li>
+                    <li>Desembolso de fondos inmediato a su cuenta bancaria.</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <a
+                    href="https://play.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-slate-200 font-bold text-[10px] uppercase transition cursor-pointer"
+                  >
+                    <span>🤖</span> Google Play
+                  </a>
+                  <a
+                    href="https://apple.com/app-store"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-950 hover:bg-slate-850 rounded-xl border border-slate-800 text-slate-200 font-bold text-[10px] uppercase transition cursor-pointer"
+                  >
+                    <span>🍎</span> App Store
+                  </a>
+                </div>
+
+                <div className="border-t border-slate-850 pt-4">
+                  <button
+                    onClick={() => setShowAppGate(false)}
+                    className="w-full py-3 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black uppercase tracking-wider rounded-xl transition cursor-pointer text-center active:scale-95 text-xs flex items-center justify-center gap-2"
+                  >
+                    Ya tengo instalada la App, continuar <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : requestSubmitted ? (
               <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-fadeIn">
                 <span className="p-3 bg-emerald-500/15 text-emerald-400 rounded-full border border-emerald-500/25">
                   <CheckCircle2 className="w-8 h-8 animate-bounce" />
