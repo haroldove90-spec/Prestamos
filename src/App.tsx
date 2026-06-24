@@ -37,6 +37,7 @@ import {
   fetchSecurityAlertsCloud,
   bulkInsertSecurityAlertsCloud,
   clearSecurityAlertsCloud,
+  clearAllDatabaseTablesCloud,
   fetchPaymentsCloud,
   bulkInsertPaymentsCloud,
   fetchDossiersCloud,
@@ -688,11 +689,17 @@ export default function App() {
 
         setIsCloudSyncInProgress(true);
 
+        const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
+
         // 2. Sincronizar clientes
         const cloudClients = await fetchClientsCloud();
         if (cloudClients !== null) {
           if (cloudClients.length === 0) {
-            await bulkInsertClientsCloud(clients);
+            if (!isCleanDb) {
+              await bulkInsertClientsCloud(clients);
+            } else {
+              setClients([]);
+            }
           } else {
             setClients(cloudClients);
           }
@@ -702,7 +709,11 @@ export default function App() {
         const cloudRequests = await fetchRequestsCloud();
         if (cloudRequests !== null) {
           if (cloudRequests.length === 0) {
-            await bulkInsertRequestsCloud(requests);
+            if (!isCleanDb) {
+              await bulkInsertRequestsCloud(requests);
+            } else {
+              setRequests([]);
+            }
           } else {
             setRequests(cloudRequests);
           }
@@ -712,7 +723,11 @@ export default function App() {
         const cloudQueries = await fetchQueriesCloud();
         if (cloudQueries !== null) {
           if (cloudQueries.length === 0) {
-            await bulkInsertQueriesCloud(queries);
+            if (!isCleanDb) {
+              await bulkInsertQueriesCloud(queries);
+            } else {
+              setQueries([]);
+            }
           } else {
             setQueries(cloudQueries);
           }
@@ -729,8 +744,12 @@ export default function App() {
         // 6. Sincronizar alertas forenses de seguridad
         const cloudAlerts = await fetchSecurityAlertsCloud();
         if (cloudAlerts !== null) {
-          if (cloudAlerts.length === 0 && securityAlerts.length > 0) {
-            await bulkInsertSecurityAlertsCloud(securityAlerts);
+          if (cloudAlerts.length === 0) {
+            if (!isCleanDb && securityAlerts.length > 0) {
+              await bulkInsertSecurityAlertsCloud(securityAlerts);
+            } else {
+              setSecurityAlerts([]);
+            }
           } else {
             setSecurityAlerts(cloudAlerts);
           }
@@ -740,7 +759,11 @@ export default function App() {
         const cloudPayments = await fetchPaymentsCloud();
         if (cloudPayments !== null) {
           if (cloudPayments.length === 0) {
-            await bulkInsertPaymentsCloud(clientPayments);
+            if (!isCleanDb) {
+              await bulkInsertPaymentsCloud(clientPayments);
+            } else {
+              setClientPayments([]);
+            }
           } else {
             setClientPayments(cloudPayments);
           }
@@ -750,7 +773,11 @@ export default function App() {
         const cloudDossiers = await fetchDossiersCloud();
         if (cloudDossiers !== null) {
           if (cloudDossiers.length === 0) {
-            await bulkInsertDossiersCloud(dossiers);
+            if (!isCleanDb) {
+              await bulkInsertDossiersCloud(dossiers);
+            } else {
+              setDossiers([]);
+            }
           } else {
             setDossiers(cloudDossiers);
           }
@@ -760,17 +787,21 @@ export default function App() {
         const cloudNotifications = await fetchSystemNotificationsCloud();
         if (cloudNotifications !== null) {
           if (cloudNotifications.length === 0) {
-            const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
-              id: n.id,
-              title: n.title,
-              message: n.message,
-              type: n.type,
-              targetRoles: n.targetRoles || '',
-              timestamp: n.timestamp,
-              readBy: n.readBy || '',
-              soundPlayed: n.soundPlayed ?? true
-            }));
-            await bulkInsertSystemNotificationsCloud(dbNotifs);
+            if (!isCleanDb) {
+              const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
+                id: n.id,
+                title: n.title,
+                message: n.message,
+                type: n.type,
+                targetRoles: n.targetRoles || '',
+                timestamp: n.timestamp,
+                readBy: n.readBy || '',
+                soundPlayed: n.soundPlayed ?? true
+              }));
+              await bulkInsertSystemNotificationsCloud(dbNotifs);
+            } else {
+              setSystemNotifications([]);
+            }
           } else {
             // Remap database string format back to react state schema
             const decodedNotifs = cloudNotifications.map(n => ({
@@ -1182,6 +1213,36 @@ export default function App() {
     localStorage.setItem('buro_landing_config', JSON.stringify(newConfig));
     if (supabaseStatus === 'CONNECTED') {
       await saveLandingConfigCloud(newConfig);
+    }
+  };
+
+  const handleClearDatabase = async (): Promise<boolean> => {
+    try {
+      localStorage.setItem('buro_database_cleaned_for_prod', 'true');
+
+      localStorage.removeItem('buro_clients');
+      localStorage.removeItem('buro_requests');
+      localStorage.removeItem('buro_queries');
+      localStorage.removeItem('buro_security_alerts');
+      localStorage.removeItem('buro_client_payments');
+      localStorage.removeItem('buro_dossiers');
+      localStorage.removeItem('buro_notifications');
+      localStorage.removeItem('buro_contracts');
+
+      setClients([]);
+      setRequests([]);
+      setQueries([]);
+      setSecurityAlerts([]);
+      setClientPayments([]);
+      setDossiers([]);
+      setSystemNotifications([]);
+      setContracts([]);
+
+      const success = await clearAllDatabaseTablesCloud();
+      return success;
+    } catch (err) {
+      console.error('Error in handleClearDatabase:', err);
+      return false;
     }
   };
 
@@ -2343,6 +2404,7 @@ export default function App() {
           onUpdateConfig={handleUpdateLandingConfig}
           isAdminMode={false}
           onAddRequest={handleAddRequest}
+          onClearDatabase={handleClearDatabase}
           onSwitchTab={(tab) => {
             if (tab === 'home') {
               setIsHome(true);
@@ -3387,6 +3449,7 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={false}
                     onAddRequest={handleAddRequest}
+                    onClearDatabase={handleClearDatabase}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('credit_simulation');
@@ -3403,6 +3466,7 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={currentUser === 'admin_harold'}
                     onAddRequest={handleAddRequest}
+                    onClearDatabase={handleClearDatabase}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('requests');

@@ -231,6 +231,33 @@ export async function clearSecurityAlertsCloud(): Promise<boolean> {
   }
 }
 
+export async function clearAllDatabaseTablesCloud(): Promise<boolean> {
+  try {
+    const tables = [
+      'clients',
+      'requests',
+      'queries',
+      'security_alerts',
+      'client_payments',
+      'dossiers',
+      'system_notifications'
+    ];
+    for (const table of tables) {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .not('id', 'is', null);
+      if (error) {
+        console.warn(`Error clearing table ${table} in Supabase:`, error);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error('Exception clearing all tables in Supabase:', err);
+    return false;
+  }
+}
+
 // PAYMENTS
 export async function fetchPaymentsCloud(): Promise<ClientPayment[] | null> {
   try {
