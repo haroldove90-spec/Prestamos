@@ -4,7 +4,7 @@ import {
   Download, Printer, Plus, Search, CheckCircle, AlertCircle, 
   Trash2, Layers, Briefcase, FileSignature, Globe, Share2
 } from 'lucide-react';
-import { Client, ClientContract, ContractTemplate, interpolateContractTemplate } from '../types';
+import { Client, ClientContract, ContractTemplate, interpolateContractTemplate, TermsConditions } from '../types';
 
 interface ContractsModuleProps {
   currentUser: string;
@@ -15,6 +15,8 @@ interface ContractsModuleProps {
   onClearDatabase?: () => Promise<boolean>;
   templates: ContractTemplate[];
   onUpdateTemplates: (updated: ContractTemplate[]) => void;
+  termsConditions?: TermsConditions;
+  onUpdateTermsConditions?: (updated: TermsConditions) => void;
 }
 
 export const ContractsModule: React.FC<ContractsModuleProps> = ({
@@ -25,7 +27,9 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
   onDeleteContract,
   onClearDatabase,
   templates,
-  onUpdateTemplates
+  onUpdateTemplates,
+  termsConditions,
+  onUpdateTermsConditions
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
@@ -40,38 +44,57 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
 
   // Contract Templates Editor State
   const [isEditingTemplates, setIsEditingTemplates] = useState(false);
-  const [activeTemplateEditId, setActiveTemplateEditId] = useState<'express' | 'particulares'>('express');
+  const [activeTemplateEditId, setActiveTemplateEditId] = useState<'express' | 'particulares' | 'terms'>('express');
   const [tempTitle, setTempTitle] = useState('');
   const [tempSubtitle, setTempSubtitle] = useState('');
   const [tempDeclarations, setTempDeclarations] = useState('');
   const [tempClauses, setTempClauses] = useState('');
 
-  const openTemplateEditor = (typeId: 'express' | 'particulares') => {
-    const template = templates.find(t => t.id === typeId) || templates[0];
+  const openTemplateEditor = (typeId: 'express' | 'particulares' | 'terms') => {
     setActiveTemplateEditId(typeId);
-    setTempTitle(template.title);
-    setTempSubtitle(template.subtitle);
-    setTempDeclarations(template.declarations);
-    setTempClauses(template.clauses);
+    if (typeId === 'terms') {
+      setTempClauses(termsConditions ? termsConditions.content : '');
+      setTempTitle('TÉRMINOS Y CONDICIONES DE USO');
+      setTempSubtitle('Plataforma de Gestión y Solicitud de Créditos – Salda App');
+      setTempDeclarations('');
+    } else {
+      const template = templates.find(t => t.id === typeId) || templates[0];
+      setTempTitle(template.title);
+      setTempSubtitle(template.subtitle);
+      setTempDeclarations(template.declarations);
+      setTempClauses(template.clauses);
+    }
     setIsEditingTemplates(true);
   };
 
   const handleSaveTemplate = () => {
-    const updated = templates.map(t => {
-      if (t.id === activeTemplateEditId) {
-        return {
-          ...t,
-          title: tempTitle,
-          subtitle: tempSubtitle,
-          declarations: tempDeclarations,
-          clauses: tempClauses
-        };
+    if (activeTemplateEditId === 'terms') {
+      if (onUpdateTermsConditions) {
+        onUpdateTermsConditions({
+          id: 'terms_singleton',
+          content: tempClauses,
+          updatedAt: new Date().toISOString().split('T')[0]
+        });
       }
-      return t;
-    });
-    onUpdateTemplates(updated);
-    setIsEditingTemplates(false);
-    alert('✓ Plantilla de contrato actualizada con éxito.');
+      setIsEditingTemplates(false);
+      alert('✓ Términos y condiciones actualizados con éxito.');
+    } else {
+      const updated = templates.map(t => {
+        if (t.id === activeTemplateEditId) {
+          return {
+            ...t,
+            title: tempTitle,
+            subtitle: tempSubtitle,
+            declarations: tempDeclarations,
+            clauses: tempClauses
+          };
+        }
+        return t;
+      });
+      onUpdateTemplates(updated);
+      setIsEditingTemplates(false);
+      alert('✓ Plantilla de contrato actualizada con éxito.');
+    }
   };
 
   // Filter clients to select from (preferably ones with active credit or balanceOwed > 0, but show all)
@@ -709,7 +732,7 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                   onClick={() => openTemplateEditor('express')}
                   className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border-none cursor-pointer ${
                     activeTemplateEditId === 'express'
-                      ? 'bg-indigo-650 bg-indigo-600 text-white shadow'
+                      ? 'bg-indigo-600 text-white shadow'
                       : 'bg-transparent text-slate-400 hover:text-white'
                   }`}
                 >
@@ -721,100 +744,137 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                   onClick={() => openTemplateEditor('particulares')}
                   className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border-none cursor-pointer ${
                     activeTemplateEditId === 'particulares'
-                      ? 'bg-indigo-650 bg-indigo-600 text-white shadow'
+                      ? 'bg-indigo-600 text-white shadow'
                       : 'bg-transparent text-slate-400 hover:text-white'
                   }`}
                 >
                   <Briefcase className="w-4 h-4" />
                   Contrato de Mutuo (Particulares)
                 </button>
+                <button
+                  type="button"
+                  onClick={() => openTemplateEditor('terms')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 border-none cursor-pointer ${
+                    activeTemplateEditId === 'terms'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'bg-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Globe className="w-4 h-4 text-[#a3c90e]" />
+                  Términos y Condiciones (Salda App)
+                </button>
               </div>
 
               {/* Placeholders Help Panel */}
-              <div className="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
-                <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                  Códigos Dinámicos (Copy & Paste en tus textos):
-                </h4>
-                <p className="text-[11px] text-slate-400 leading-normal">
-                  Utiliza estos códigos exactos dentro de tus textos. El sistema los reemplazará de forma automática con los datos reales del cliente al generar el contrato:
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px] font-mono mt-1">
-                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{id_contrato}"}</span>
-                    <span className="text-slate-500 block text-[9px]">ID del contrato</span>
-                  </div>
-                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{nombre_cliente}"}</span>
-                    <span className="text-slate-500 block text-[9px]">Nombre completo</span>
-                  </div>
-                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{monto}"}</span>
-                    <span className="text-slate-500 block text-[9px]">Monto del préstamo</span>
-                  </div>
-                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{referencia_pago}"}</span>
-                    <span className="text-slate-500 block text-[9px]">Clabe / Referencia</span>
-                  </div>
-                  <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[#a3c90e] font-bold block mb-0.5">{"{fecha_generado}"}</span>
-                    <span className="text-slate-500 block text-[9px]">Fecha de firma</span>
+              {activeTemplateEditId !== 'terms' && (
+                <div className="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-xs font-black text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                    Códigos Dinámicos (Copy & Paste en tus textos):
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-normal">
+                    Utiliza estos códigos exactos dentro de tus textos. El sistema los reemplazará de forma automática con los datos reales del cliente al generar el contrato:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px] font-mono mt-1">
+                    <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                      <span className="text-[#a3c90e] font-bold block mb-0.5">{"{id_contrato}"}</span>
+                      <span className="text-slate-500 block text-[9px]">ID del contrato</span>
+                    </div>
+                    <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                      <span className="text-[#a3c90e] font-bold block mb-0.5">{"{nombre_cliente}"}</span>
+                      <span className="text-slate-500 block text-[9px]">Nombre completo</span>
+                    </div>
+                    <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                      <span className="text-[#a3c90e] font-bold block mb-0.5">{"{monto}"}</span>
+                      <span className="text-slate-500 block text-[9px]">Monto del préstamo</span>
+                    </div>
+                    <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                      <span className="text-[#a3c90e] font-bold block mb-0.5">{"{referencia_pago}"}</span>
+                      <span className="text-slate-500 block text-[9px]">Clabe / Referencia</span>
+                    </div>
+                    <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center">
+                      <span className="text-[#a3c90e] font-bold block mb-0.5">{"{fecha_generado}"}</span>
+                      <span className="text-slate-500 block text-[9px]">Fecha de firma</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Form Inputs */}
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeTemplateEditId !== 'terms' ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Título del Contrato</label>
+                        <input 
+                          type="text"
+                          value={tempTitle}
+                          onChange={(e) => setTempTitle(e.target.value)}
+                          placeholder="Ej. CONTRATO EXPRESO DE CRÉDITO..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Subtítulo o Certificación</label>
+                        <input 
+                          type="text"
+                          value={tempSubtitle}
+                          onChange={(e) => setTempSubtitle(e.target.value)}
+                          placeholder="Ej. DOCUMENTO DIGITAL CERTIFICADO..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Declaraciones (Copia y pega aquí)
+                      </label>
+                      <p className="text-[10px] text-slate-500 mb-2">Para separar en párrafos distintos, deja una línea en blanco (doble enter).</p>
+                      <textarea
+                        rows={4}
+                        value={tempDeclarations}
+                        onChange={(e) => setTempDeclarations(e.target.value)}
+                        placeholder="Escribe o pega aquí las declaraciones..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Cláusulas del Contrato (Copia y pega aquí)
+                      </label>
+                      <p className="text-[10px] text-slate-500 mb-2">Pega todas tus cláusulas de corrido. Para que el sistema detecte y enumere/separe cada cláusula individualmente en la visualización, sepáralas dejando un renglón vacío (doble enter).</p>
+                      <textarea
+                        rows={8}
+                        value={tempClauses}
+                        onChange={(e) => setTempClauses(e.target.value)}
+                        placeholder="Ejemplo:&#10;CLÁUSULA PRIMERA: El acreedor entrega la cantidad de...&#10;&#10;CLÁUSULA SEGUNDA: El deudor se obliga a pagar..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
+                      />
+                    </div>
+                  </>
+                ) : (
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Título del Contrato</label>
-                    <input 
-                      type="text"
-                      value={tempTitle}
-                      onChange={(e) => setTempTitle(e.target.value)}
-                      placeholder="Ej. CONTRATO EXPRESO DE CRÉDITO..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Términos y Condiciones de Uso (Copia, Pega y Edita libremente)
+                      </label>
+                      {termsConditions?.updatedAt && (
+                        <span className="text-[10px] text-slate-500 font-mono">Última actualización: {termsConditions.updatedAt}</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mb-2">Edita o actualiza el documento fiduciario de Salda App. Este texto será mostrado a todos los clientes en su portal de cliente para su lectura y consulta.</p>
+                    <textarea
+                      rows={15}
+                      value={tempClauses}
+                      onChange={(e) => setTempClauses(e.target.value)}
+                      placeholder="Copia y pega aquí los Términos y Condiciones..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed h-[360px]"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Subtítulo o Certificación</label>
-                    <input 
-                      type="text"
-                      value={tempSubtitle}
-                      onChange={(e) => setTempSubtitle(e.target.value)}
-                      placeholder="Ej. DOCUMENTO DIGITAL CERTIFICADO..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Declaraciones (Copia y pega aquí)
-                  </label>
-                  <p className="text-[10px] text-slate-500 mb-2">Para separar en párrafos distintos, deja una línea en blanco (doble enter).</p>
-                  <textarea
-                    rows={4}
-                    value={tempDeclarations}
-                    onChange={(e) => setTempDeclarations(e.target.value)}
-                    placeholder="Escribe o pega aquí las declaraciones..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Cláusulas del Contrato (Copia y pega aquí)
-                  </label>
-                  <p className="text-[10px] text-slate-500 mb-2">Pega todas tus cláusulas de corrido. Para que el sistema detecte y enumere/separe cada cláusula individualmente en la visualización, sepáralas dejando un renglón vacío (doble enter).</p>
-                  <textarea
-                    rows={8}
-                    value={tempClauses}
-                    onChange={(e) => setTempClauses(e.target.value)}
-                    placeholder="Ejemplo:&#10;CLÁUSULA PRIMERA: El acreedor entrega la cantidad de...&#10;&#10;CLÁUSULA SEGUNDA: El deudor se obliga a pagar..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono leading-relaxed"
-                  />
-                </div>
+                )}
               </div>
             </div>
 

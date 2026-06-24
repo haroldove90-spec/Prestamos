@@ -222,5 +222,62 @@ export function interpolateContractTemplate(
   };
 }
 
+export interface TermsConditions {
+  id: string; // 'terms_singleton'
+  content: string;
+  updatedAt: string;
+}
+
+export const DEFAULT_TERMS_CONDITIONS = `TÉRMINOS Y CONDICIONES DE USO
+Plataforma de Gestión y Solicitud de Créditos – Salda App
+
+Bienvenido a Salda App. Antes de utilizar nuestra aplicación móvil, plataforma web o cualquiera de nuestros servicios de gestión y solicitud de créditos, le pedimos que lea atentamente los siguientes Términos y Condiciones (en adelante, los "Términos"). Al descargar, registrarse o utilizar Salda App, usted acepta quedar vinculado por este acuerdo. Si no está de acuerdo con estos Términos, deberá abstenerte de utilizar la aplicación de manera inmediata.
+
+1. Naturaleza del Servicio
+Salda App es una plataforma tecnológica que facilita la solicitud, evaluación, otorgamiento y gestión de préstamos personales. Salda App se reserva el derecho de aprobar o rechazar las solicitudes de crédito basándose en sus propios criterios de análisis de riesgo, políticas internas y capacidad de pago del usuario.
+
+2. Requisitos para el Usuario
+Para solicitar un crédito o registrarse en Salda App, el usuario debe cumplir obligatoriamente con los siguientes requisitos mínimos:
+• Ser mayor de edad (18 años o más según la legislación local vigente).
+• Contar con una identificación oficial vigente con fotografía.
+• Proporcionar información real, exacta, actualizada y comprobable.
+• Ser titular de una cuenta bancaria nacional para la recepción y depósito de los fondos.
+
+3. Conditions Financieras, Mora y Gastos
+El usuario acepta expresamente las tasas de interés, plazos y comisiones detallados de manera transparente al momento de firmar su contrato de crédito digital. Adicionalmente, se aplicarán los siguientes cargos extraordinarios:
+
+3.1. Cuota por Incumplimiento (Mora)
+El pago puntual es responsabilidad exclusiva del usuario. En caso de atraso en la fecha de pago pactada, se generará de forma automática una cuota de mora fija de $100 MXN (cien pesos netos) por cada día de atraso. Esta cuota se sumará diariamente al saldo total deudor hasta que el usuario se ponga completamente al corriente con sus obligaciones de pago.
+
+3.2. Gastos Administrativos por Cancelación
+Si el usuario decide realizar una cancelación anticipada del crédito o liquidar el saldo total antes de la fecha de vencimiento final estipulada, Salda App cobrará una cuota fija por concepto de Gastos Administrativos. El monto exacto de esta cuota se calculará y mostrará de forma transparente en la interfaz de la aplicación antes de confirmar la cancelación definitiva del servicio.
+
+Página 1 de 2
+
+4. Reportes a Sociedades de Información Crediticia
+Al aceptar estos Términos, el usuario otorga su autorización expresa para que Salda App consulte su historial crediticio ante las Sociedades de Información Crediticia (tales como Buró de Crédito o Círculo de Crédito). Asimismo, en caso de incurrir en impago prolongado, mora o incumplimiento de las obligaciones contraídas, el usuario acepta que su comportamiento será reportado negativamente ante dichas entidades conforme a la legislación aplicable.
+
+5. Proceso de Cobranza
+• En caso de atraso en el pago, Salda App iniciará acciones de cobranza preventiva y correctiva.
+• El usuario acepta ser contactado y recibir notificaciones de cobro a través de los siguientes canales:
+  - Mensajes de texto (SMS) y notificaciones push dentro de la aplicación.
+  - Correos electrónicos enviados a la dirección registrada.
+  - Llamadas telefónicas y mensajes automáticos a los números provistos en su registro de cuenta.
+
+6. Uso de la Cuenta y Seguridad
+El usuario es el único responsable de mantener la confidencialidad de sus credenciales de acceso (usuario, contraseña y PIN de seguridad). Cualquier movimiento, solicitud de préstamo o transferencia realizada desde la cuenta del usuario se considerará legítima y realizada por él mismo. Salda App no se hace responsable por retiros, transferencias o solicitudes derivadas del descuido o préstamo de la cuenta a terceras personas.
+
+7. Propiedad Intelectual
+Todo el contenido de Salda App (incluyendo pero no limitado a logotipos, interfaces, códigos de programación, textos, desarrollos tecnológicos y marcas comerciales) es propiedad exclusiva de la plataforma. Queda estrictamente prohibida su reproducción, modificación, distribución o ingeniería inversa sin autorización previa y por escrito de los titulares de la aplicación.
+
+8. Modificaciones a los Términos y Condiciones
+Salda App se reserva el derecho de modificar o actualizar estos Términos en cualquier momento para adaptarlos a novedades legislativas o políticas internas de la empresa. Las modificaciones surtirán efecto inmediato a partir de su publicación en la aplicación. El uso continuo de la plataforma tras la publicación de los cambios constituye la aceptación expresa de los nuevos Términos.
+
+Declaración de Consentimiento:
+Al presionar el botón de aceptación o utilizar los servicios de la aplicación, usted manifiesta que ha leído, comprendido y aceptado en su totalidad los presentes Términos y Condiciones de Uso de Salda App.
+
+Nota Legal:
+Este documento sirve como una base estructural y técnica para el funcionamiento de la aplicación móvil Salda App. Se recomienda su revisión periódica ante profesionales legales para su perfecta adecuación con las leyes fintech y de protección al consumidor del territorio correspondiente.`;
+
 
 

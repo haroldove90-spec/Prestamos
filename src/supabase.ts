@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, ContractTemplate } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, ContractTemplate, TermsConditions } from './types';
 import { SecurityIncident } from './components/SecurityAuditModule';
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
@@ -30,7 +30,7 @@ async function checkTableAccessible(tableName: string): Promise<boolean> {
  * Checks if the required tables exist in Supabase.
  */
 export async function verifyTablesExist(): Promise<boolean> {
-  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments', 'dossiers', 'system_notifications'];
+  const essentialTables = ['clients', 'requests', 'queries', 'risk_params', 'security_alerts', 'client_payments', 'dossiers', 'system_notifications', 'contract_templates', 'terms_conditions'];
   for (const table of essentialTables) {
     const ok = await checkTableAccessible(table);
     if (!ok) return false;
@@ -433,6 +433,43 @@ export async function bulkInsertContractTemplatesCloud(templates: ContractTempla
     return false;
   }
 }
+
+// TERMS AND CONDITIONS (CLOUD PERSISTENCE)
+export async function fetchTermsConditionsCloud(): Promise<TermsConditions | null> {
+  try {
+    const { data, error } = await supabase
+      .from('terms_conditions')
+      .select('*')
+      .eq('id', 'terms_singleton')
+      .limit(1);
+    
+    if (error) {
+      console.warn('Error fetching terms and conditions from Supabase:', error);
+      return null;
+    }
+    if (data && data.length > 0) {
+      return data[0] as TermsConditions;
+    }
+    return null;
+  } catch (err) {
+    console.error('Supabase fetchTermsConditions exception:', err);
+    return null;
+  }
+}
+
+export async function saveTermsConditionsCloud(terms: TermsConditions): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('terms_conditions')
+      .upsert(terms);
+    if (error) console.error('Error saving terms and conditions in Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase exception saving terms and conditions:', err);
+    return false;
+  }
+}
+
 
 
 

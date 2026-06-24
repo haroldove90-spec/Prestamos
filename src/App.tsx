@@ -14,7 +14,7 @@ import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
 import { ContractsModule } from './components/ContractsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES, TermsConditions, DEFAULT_TERMS_CONDITIONS } from './types';
 import { WebLanding } from './components/WebLanding';
 import { 
   INITIAL_CLIENTS, 
@@ -49,7 +49,9 @@ import {
   fetchLandingConfigCloud,
   saveLandingConfigCloud,
   fetchContractTemplatesCloud,
-  bulkInsertContractTemplatesCloud
+  bulkInsertContractTemplatesCloud,
+  fetchTermsConditionsCloud,
+  saveTermsConditionsCloud
 } from './supabase';
 import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings } from 'lucide-react';
 
@@ -387,6 +389,22 @@ export default function App() {
     return DEFAULT_CONTRACT_TEMPLATES;
   });
 
+  const [termsConditions, setTermsConditions] = useState<TermsConditions>(() => {
+    const local = localStorage.getItem('buro_terms_conditions');
+    if (local) {
+      try {
+        return JSON.parse(local) as TermsConditions;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      id: 'terms_singleton',
+      content: DEFAULT_TERMS_CONDITIONS,
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+  });
+
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isHome, setIsHome] = useState<boolean>(true);
   const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register'>('roles');
@@ -675,6 +693,13 @@ export default function App() {
   }, [contractTemplates, supabaseStatus]);
 
   useEffect(() => {
+    localStorage.setItem('buro_terms_conditions', JSON.stringify(termsConditions));
+    if (supabaseStatus === 'CONNECTED' && termsConditions) {
+      saveTermsConditionsCloud(termsConditions);
+    }
+  }, [termsConditions, supabaseStatus]);
+
+  useEffect(() => {
     localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
   }, [dossiers]);
 
@@ -860,6 +885,18 @@ export default function App() {
           }
         } catch (e) {
           console.warn('Error al sincronizar contract_templates (la tabla podría no existir en Supabase aún):', e);
+        }
+
+        // 12. Sincronizar Términos y Condiciones (Opcional, previene caídas si la tabla no se ha creado aún)
+        try {
+          const cloudTerms = await fetchTermsConditionsCloud();
+          if (cloudTerms !== null) {
+            setTermsConditions(cloudTerms);
+          } else {
+            await saveTermsConditionsCloud(termsConditions);
+          }
+        } catch (e) {
+          console.warn('Error al sincronizar terms_conditions (la tabla podría no existir en Supabase aún):', e);
         }
 
         setSupabaseStatus('CONNECTED');
@@ -3435,6 +3472,7 @@ export default function App() {
                     onAddRequest={handleAddRequest}
                     onAddDossier={handleAddDossier}
                     templates={contractTemplates}
+                    termsConditions={termsConditions}
                   />
                 )}
 
@@ -3482,6 +3520,8 @@ export default function App() {
                     onClearDatabase={handleClearDatabase}
                     templates={contractTemplates}
                     onUpdateTemplates={setContractTemplates}
+                    termsConditions={termsConditions}
+                    onUpdateTermsConditions={setTermsConditions}
                   />
                 )}
 

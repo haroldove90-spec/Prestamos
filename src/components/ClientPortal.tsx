@@ -4,9 +4,9 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle, Printer, Lock, Percent
+  PlusCircle, Printer, Lock, Percent, Globe
 } from 'lucide-react';
-import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract, ContractTemplate, interpolateContractTemplate } from '../types';
+import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract, ContractTemplate, interpolateContractTemplate, TermsConditions } from '../types';
 import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
 
 interface ClientPortalProps {
@@ -21,6 +21,7 @@ interface ClientPortalProps {
   onAddRequest?: (request: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => void;
   onAddDossier?: (dossier: ClientDossier) => void;
   templates?: ContractTemplate[];
+  termsConditions?: TermsConditions;
 }
 
 // Pre-designed mockup receipt URLs for testing payments
@@ -55,7 +56,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   setClients,
   onAddRequest,
   onAddDossier,
-  templates = []
+  templates = [],
+  termsConditions
 }) => {
   const isCustomUser = currentUser.startsWith('cliente_') && currentUser !== 'cliente_esperanza';
   const customTargetUsername = currentUser.replace('cliente_', '').toLowerCase().trim();
@@ -95,7 +97,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const activeClient = clients.find(c => c.id === selectedClientId);
 
   // Tabs layout
-  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan' | 'profile' | 'contract'>('my_loan');
+  const [portalTab, setPortalTab] = useState<'my_loan' | 'my_payments' | 'request_loan' | 'profile' | 'contract' | 'terms'>('my_loan');
 
   // Form states inside "Mis pagos"
   const [amount, setAmount] = useState<string>('');
@@ -825,6 +827,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
         >
           <FileText className="w-4 h-4 text-[#a3c90e]" />
           Contrato
+        </button>
+
+        <button
+          onClick={() => {
+            setPortalTab('terms');
+            setReqSuccessMsg(null);
+          }}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition duration-250 cursor-pointer ${
+            portalTab === 'terms' 
+              ? 'border-[#a3c90e] bg-[#a3c90e]/5 text-[#a3c90e]' 
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <Globe className="w-4 h-4 text-[#a3c90e]" />
+          Términos de Uso
         </button>
       </div>
 
@@ -2128,6 +2145,71 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               );
             }
           })()}
+
+          {/* 6. VIEW "TÉRMINOS Y CONDICIONES" CUSTOMER PORTAL CONTAINER */}
+          {portalTab === 'terms' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6 text-left animate-fadeIn">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-4 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-[#a3c90e]" />
+                  <h3 className="font-extrabold text-white text-base uppercase tracking-wider">Términos y Condiciones de Uso</h3>
+                </div>
+                {termsConditions?.updatedAt && (
+                  <span className="text-[10px] font-mono text-slate-500">Última actualización: {termsConditions.updatedAt}</span>
+                )}
+              </div>
+
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-850 max-h-[500px] overflow-y-auto space-y-4 text-slate-300 text-xs leading-relaxed font-sans scrollbar-thin">
+                {termsConditions?.content ? (
+                  termsConditions.content.split('\n\n').map((paragraph, pIdx) => {
+                    const cleanP = paragraph.trim();
+                    if (/^\d+\./.test(cleanP)) {
+                      const firstLineEnd = cleanP.indexOf('\n');
+                      const title = firstLineEnd !== -1 ? cleanP.substring(0, firstLineEnd) : cleanP;
+                      const rest = firstLineEnd !== -1 ? cleanP.substring(firstLineEnd + 1) : '';
+                      return (
+                        <div key={pIdx} className="space-y-1.5 pt-2">
+                          <h4 className="text-xs font-black text-white uppercase tracking-wider text-[#a3c90e]">{title}</h4>
+                          {rest && (
+                            <p className="text-slate-400 text-justify leading-relaxed whitespace-pre-wrap">
+                              {rest}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <p key={pIdx} className="text-justify whitespace-pre-wrap text-slate-350">
+                        {paragraph}
+                      </p>
+                    );
+                  })
+                ) : (
+                  <p className="text-slate-500 italic">No se han configurado los términos y condiciones todavía.</p>
+                )}
+              </div>
+
+              <div className="p-4 bg-[#a3c90e]/5 border border-[#a3c90e]/20 rounded-xl flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 max-w-md">
+                  <ShieldCheck className="w-5 h-5 text-[#a3c90e] shrink-0" />
+                  <span className="text-[11px] text-slate-300 leading-snug">
+                    Al utilizar los servicios de Salda App, declaras conocer y aceptar estos términos y condiciones fiduciarios.
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    if (termsConditions?.content) {
+                      navigator.clipboard.writeText(termsConditions.content);
+                      alert('✓ Términos y condiciones copiados al portapapeles.');
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-4 py-2 rounded-xl text-xs cursor-pointer border-none transition select-none active:scale-95"
+                >
+                  Copiar Documento
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
 

@@ -188,3 +188,21 @@ ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
 ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
 ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
+
+-- 10. TABLA: terms_conditions (Términos y Condiciones)
+CREATE TABLE IF NOT EXISTS public.terms_conditions (
+  id TEXT PRIMARY KEY, -- 'terms_singleton'
+  content TEXT NOT NULL,
+  "updatedAt" TEXT NOT NULL
+);
+
+ALTER TABLE public.terms_conditions DISABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'terms_conditions' AND policyname = 'Allow dynamic anon access') THEN
+        CREATE POLICY "Allow dynamic anon access" ON public.terms_conditions FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+END
+$$;
+
