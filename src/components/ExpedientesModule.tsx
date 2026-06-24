@@ -14,6 +14,7 @@ interface ExpedientesModuleProps {
   onUpdateDossier: (dossierId: string, updates: Partial<ClientDossier>) => void;
   onApproveDossier: (dossier: ClientDossier) => void; // Will register them as approved & create requests/client entry
   onAddSystemAlert?: (alert: { actionBlocked: string; targetClient: string; notes: string }) => void;
+  onClearDatabase?: () => Promise<boolean>;
 }
 
 export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
@@ -23,7 +24,8 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
   onAddDossier,
   onUpdateDossier,
   onApproveDossier,
-  onAddSystemAlert
+  onAddSystemAlert,
+  onClearDatabase
 }) => {
   // Client state
   const [clientName, setClientName] = useState('');
@@ -255,7 +257,28 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center flex-wrap">
+            {onClearDatabase && (
+              <button
+                onClick={() => {
+                  if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
+                    onClearDatabase().then((success) => {
+                      if (success) {
+                        alert("✓ Base de datos reiniciada correctamente.");
+                      } else {
+                        alert("✕ Error al restablecer la base de datos.");
+                      }
+                    });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-red-500/50"
+                title="Borrar todos los registros para pruebas limpias"
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpiar BD (Pruebas)
+              </button>
+            )}
+
             <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
               {dossiers.filter(d => d.status === 'ANALIZANDO').length} En Análisis

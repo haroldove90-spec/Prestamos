@@ -245,12 +245,6 @@ export function WebLanding({
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={() => setShowClearConfirm(true)}
-                  className="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-xs uppercase rounded-xl transition shadow-md shadow-red-900/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <Trash className="w-4 h-4" /> Limpiar Base de Datos (Pruebas)
-                </button>
-                <button
                   onClick={handleAdminSave}
                   className="px-5 py-2.5 bg-gradient-to-r from-[#a3c90e] to-emerald-500 hover:from-[#b8e014] hover:to-emerald-400 text-slate-950 font-black text-xs uppercase rounded-xl transition shadow-md shadow-[#a3c90e]/10 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                 >
@@ -1054,89 +1048,6 @@ export function WebLanding({
         </div>
       )}
 
-      {/* ------------------ DATABASE CLEAR CONFIRMATION MODAL ------------------ */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-red-500/30 rounded-2xl max-w-md w-full p-6 relative shadow-2xl space-y-4 text-left">
-            <button
-              onClick={() => { if (!isClearingDb) setShowClearConfirm(false); }}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-              disabled={isClearingDb}
-            >
-              <X className="w-4.5 h-4.5" />
-            </button>
-
-            <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3 text-red-500">
-              <span className="p-1.5 bg-red-500/10 rounded-lg">
-                <Trash className="w-5 h-5 animate-pulse" />
-              </span>
-              <h3 className="text-base font-black uppercase tracking-wide">
-                Restablecer Base de Datos
-              </h3>
-            </div>
-
-            <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
-              <p className="font-semibold text-white">
-                ¿Estás completamente seguro de que deseas vaciar la base de datos?
-              </p>
-              <p>
-                Esta acción eliminará de forma permanente todos los registros de:
-              </p>
-              <ul className="list-disc pl-5 space-y-1 text-slate-400 font-mono">
-                <li>Clientes Registrados</li>
-                <li>Solicitudes de Crédito</li>
-                <li>Consultas de Buró de Crédito</li>
-                <li>Evidencias y Fichas de Abono</li>
-                <li>Expedientes Digitales (Dossiers)</li>
-                <li>Notificaciones del Sistema</li>
-                <li>Contratos de Clientes</li>
-              </ul>
-              <div className="bg-red-950/40 border border-red-900/50 p-3 rounded-lg text-red-400">
-                <strong>⚠️ Advertencia:</strong> Esta operación es irreversible. Los datos serán removidos de la nube en Supabase y localmente en tu navegador para que inicies tus pruebas reales con un entorno 100% limpio.
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                disabled={isClearingDb}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase rounded-xl transition cursor-pointer text-center text-[10px] active:scale-95 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleExecuteClearDb}
-                disabled={isClearingDb}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-black uppercase rounded-xl transition cursor-pointer text-center text-[10px] active:scale-95 flex items-center justify-center gap-1.5 shadow-md shadow-red-900/10 disabled:opacity-50"
-              >
-                {isClearingDb ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                    Vaciando...
-                  </>
-                ) : dbClearSuccess === true ? (
-                  '✓ ¡Éxito!'
-                ) : dbClearSuccess === false ? (
-                  '✕ Falló'
-                ) : (
-                  'Sí, Limpiar Todo'
-                )}
-              </button>
-            </div>
-            
-            {dbClearSuccess === true && (
-              <div className="p-2.5 bg-emerald-950/40 border border-emerald-900 text-emerald-400 text-[11px] font-semibold text-center rounded-lg uppercase animate-fadeIn">
-                ✓ Base de datos reiniciada con éxito para pruebas reales.
-              </div>
-            )}
-            {dbClearSuccess === false && (
-              <div className="p-2.5 bg-red-950/40 border border-red-900 text-red-400 text-[11px] font-semibold text-center rounded-lg uppercase animate-fadeIn">
-                ✕ Error al conectar con Supabase. Inténtalo de nuevo.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

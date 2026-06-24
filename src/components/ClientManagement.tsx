@@ -69,6 +69,7 @@ interface ClientManagementProps {
   onDeleteClient?: (clientId: string) => void;
   nextClientNumberBase: string;
   onUpdateNextClientNumberBase: (val: string) => void;
+  onClearDatabase?: () => Promise<boolean>;
 }
 
 export const ClientManagement: React.FC<ClientManagementProps> = ({ 
@@ -78,7 +79,8 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   onUpdateClient,
   onDeleteClient,
   nextClientNumberBase,
-  onUpdateNextClientNumberBase
+  onUpdateNextClientNumberBase,
+  onClearDatabase
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<BureauStatus | 'ALL'>('ALL');
@@ -729,6 +731,27 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         </div>
         
         <div className="flex gap-2 flex-wrap items-center">
+          {onClearDatabase && (
+            <button
+              onClick={() => {
+                if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
+                  onClearDatabase().then((success) => {
+                    if (success) {
+                      alert("✓ Base de datos reiniciada correctamente.");
+                    } else {
+                      alert("✕ Error al restablecer la base de datos.");
+                    }
+                  });
+                }
+              }}
+              className="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-red-500/50 shrink-0"
+              title="Borrar todos los registros para pruebas limpias"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar BD (Pruebas)
+            </button>
+          )}
+
           <button
             onClick={() => setIsAdding(true)}
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-indigo-500/50 shrink-0"

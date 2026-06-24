@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight, Sparkles } from 'lucide-react';
+import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight, Sparkles, Trash2 } from 'lucide-react';
 import { CreditRequest } from '../types';
 
 interface RequestPipelineProps {
@@ -7,6 +7,7 @@ interface RequestPipelineProps {
   onApproveRequest: (id: string) => void;
   onRejectRequest: (id: string) => void;
   onAddRequest: (newReq: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => void;
+  onClearDatabase?: () => Promise<boolean>;
 }
 
 export const RequestPipeline: React.FC<RequestPipelineProps> = ({
@@ -14,6 +15,7 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
   onApproveRequest,
   onRejectRequest,
   onAddRequest,
+  onClearDatabase
 }) => {
   const [isSimulatingReq, setIsSimulatingReq] = useState(false);
   
@@ -173,6 +175,27 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {onClearDatabase && (
+              <button
+                onClick={() => {
+                  if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
+                    onClearDatabase().then((success) => {
+                      if (success) {
+                        alert("✓ Base de datos reiniciada correctamente.");
+                      } else {
+                        alert("✕ Error al restablecer la base de datos.");
+                      }
+                    });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white text-[11px] font-semibold px-3 py-2 rounded-xl transition duration-150 flex items-center gap-1.5 shadow-md cursor-pointer border border-red-500/50"
+                title="Borrar todos los registros para pruebas limpias"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Limpiar BD (Pruebas)
+              </button>
+            )}
+
             <button
               onClick={exportRequestsCSV}
               className="border border-slate-700 bg-slate-800 hover:bg-slate-705 bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-semibold px-3 py-2 rounded-xl transition duration-150 flex items-center gap-1.5 cursor-pointer"

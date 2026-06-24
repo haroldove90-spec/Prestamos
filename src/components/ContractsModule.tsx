@@ -12,6 +12,7 @@ interface ContractsModuleProps {
   contracts: ClientContract[];
   onAddContract: (newContract: ClientContract) => void;
   onDeleteContract: (contractId: string) => void;
+  onClearDatabase?: () => Promise<boolean>;
 }
 
 export const ContractsModule: React.FC<ContractsModuleProps> = ({
@@ -19,7 +20,8 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
   clients,
   contracts,
   onAddContract,
-  onDeleteContract
+  onDeleteContract,
+  onClearDatabase
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
@@ -126,13 +128,36 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsAssigning(true)}
-          className="bg-[#a3c90e] hover:bg-[#b5df12] text-slate-950 font-black px-4.5 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-lg select-none active:scale-95 transition cursor-pointer border-none"
-        >
-          <Plus className="w-4 h-4 text-slate-950" />
-          Generar y Asignar Contrato
-        </button>
+        <div className="flex gap-2.5 items-center flex-wrap">
+          {onClearDatabase && (
+            <button
+              onClick={() => {
+                if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
+                  onClearDatabase().then((success) => {
+                    if (success) {
+                      alert("✓ Base de datos reiniciada correctamente.");
+                    } else {
+                      alert("✕ Error al restablecer la base de datos.");
+                    }
+                  });
+                }
+              }}
+              className="bg-red-600 hover:bg-red-500 text-white font-black px-4.5 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-lg select-none active:scale-95 transition cursor-pointer border-none"
+              title="Borrar todos los registros para pruebas limpias"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+              Limpiar BD (Pruebas)
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsAssigning(true)}
+            className="bg-[#a3c90e] hover:bg-[#b5df12] text-slate-950 font-black px-4.5 py-2.5 rounded-2xl text-xs flex items-center gap-1.5 shadow-lg select-none active:scale-95 transition cursor-pointer border-none"
+          >
+            <Plus className="w-4 h-4 text-slate-950" />
+            Generar y Asignar Contrato
+          </button>
+        </div>
       </div>
 
       {isAssigning && (

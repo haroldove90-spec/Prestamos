@@ -3328,6 +3328,7 @@ export default function App() {
                     onDeleteClient={handleDeleteClient}
                     nextClientNumberBase={nextClientNumberBase}
                     onUpdateNextClientNumberBase={handleUpdateNextClientNumberBase}
+                    onClearDatabase={handleClearDatabase}
                   />
                 )}
 
@@ -3339,6 +3340,7 @@ export default function App() {
                     onApproveRequest={handleApproveRequest} 
                     onRejectRequest={handleRejectRequest} 
                     onAddRequest={handleAddRequest} 
+                    onClearDatabase={handleClearDatabase}
                   />
                 )}
 
@@ -3406,6 +3408,7 @@ export default function App() {
                     payments={clientPayments} 
                     onVerifyPayment={handleVerifyPayment} 
                     currentUser={currentUser}
+                    onClearDatabase={handleClearDatabase}
                   />
                 )}
 
@@ -3430,6 +3433,7 @@ export default function App() {
                       };
                       setSecurityAlerts(prev => [alertItem, ...prev]);
                     }}
+                    onClearDatabase={handleClearDatabase}
                   />
                 )}
 
@@ -3440,6 +3444,7 @@ export default function App() {
                     contracts={contracts}
                     onAddContract={handleAddContract}
                     onDeleteContract={handleDeleteContract}
+                    onClearDatabase={handleClearDatabase}
                   />
                 )}
 
@@ -3449,7 +3454,6 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={false}
                     onAddRequest={handleAddRequest}
-                    onClearDatabase={handleClearDatabase}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('credit_simulation');
@@ -3466,7 +3470,6 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={currentUser === 'admin_harold'}
                     onAddRequest={handleAddRequest}
-                    onClearDatabase={handleClearDatabase}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('requests');

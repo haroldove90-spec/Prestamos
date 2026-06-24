@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   FileCheck2, XCircle, AlertCircle, Calendar, 
   User, DollarSign, Image as ImageIcon, CheckCircle, 
-  Tag, Info, Eye
+  Tag, Info, Eye, Trash2
 } from 'lucide-react';
 import { ClientPayment } from '../types';
 
@@ -10,12 +10,14 @@ interface PaymentVerificationProps {
   payments: ClientPayment[];
   onVerifyPayment: (paymentId: string, status: 'PAGO_REALIZADO' | 'RECHAZADO') => void;
   currentUser: string;
+  onClearDatabase?: () => Promise<boolean>;
 }
 
 export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
   payments,
   onVerifyPayment,
-  currentUser
+  currentUser,
+  onClearDatabase
 }) => {
   const [filter, setFilter] = useState<'TODOS' | 'PENDIENTE' | 'PAGO_REALIZADO' | 'RECHAZADO'>('PENDIENTE');
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
@@ -148,6 +150,27 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
 
           {/* Quick Counter Badges & Export Buttons */}
           <div className="flex gap-2 font-mono text-[10px] items-center flex-wrap">
+            {onClearDatabase && (
+              <button
+                onClick={() => {
+                  if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
+                    onClearDatabase().then((success) => {
+                      if (success) {
+                        alert("✓ Base de datos reiniciada correctamente.");
+                      } else {
+                        alert("✕ Error al restablecer la base de datos.");
+                      }
+                    });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer font-sans text-[11px] border border-red-500/50"
+                title="Borrar todos los registros para pruebas limpias"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Limpiar BD (Pruebas)
+              </button>
+            )}
+
             <button
               onClick={exportPaymentsCSV}
               className="bg-slate-950 hover:bg-slate-800 text-slate-100 border border-slate-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer font-sans text-[11px]"
