@@ -647,22 +647,39 @@ export default function App() {
   };
 
 
-  // Push updates to localStorage
+  // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
+  const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
+  const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
+
+  // Push updates to localStorage and Supabase Cloud
   useEffect(() => {
     localStorage.setItem('buro_clients', JSON.stringify(clients));
-  }, [clients]);
+    if (supabaseStatus === 'CONNECTED' && clients.length > 0) {
+      bulkInsertClientsCloud(clients);
+    }
+  }, [clients, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_requests', JSON.stringify(requests));
-  }, [requests]);
+    if (supabaseStatus === 'CONNECTED' && requests.length > 0) {
+      bulkInsertRequestsCloud(requests);
+    }
+  }, [requests, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_queries', JSON.stringify(queries));
-  }, [queries]);
+    if (supabaseStatus === 'CONNECTED' && queries.length > 0) {
+      bulkInsertQueriesCloud(queries);
+    }
+  }, [queries, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_risk_params', JSON.stringify(riskParams));
-  }, [riskParams]);
+    if (supabaseStatus === 'CONNECTED' && riskParams) {
+      saveRiskParamsCloud(riskParams);
+    }
+  }, [riskParams, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_asesor_suspended', JSON.stringify(isAsesorSuspended));
@@ -670,20 +687,21 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('buro_security_alerts', JSON.stringify(securityAlerts));
-  }, [securityAlerts]);
+    if (supabaseStatus === 'CONNECTED' && securityAlerts.length > 0) {
+      bulkInsertSecurityAlertsCloud(securityAlerts);
+    }
+  }, [securityAlerts, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
-  }, [clientPayments]);
+    if (supabaseStatus === 'CONNECTED' && clientPayments.length > 0) {
+      bulkInsertPaymentsCloud(clientPayments);
+    }
+  }, [clientPayments, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_contracts', JSON.stringify(contracts));
   }, [contracts]);
-
-  // SUPABASE CLOUD DEPLOYMENT & SYNC ENGINE
-  const [supabaseStatus, setSupabaseStatus] = useState<'LOADING' | 'CONNECTED' | 'ERROR_NO_TABLES' | 'OFFLINE'>('LOADING');
-  const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
-  const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
 
   useEffect(() => {
     localStorage.setItem('buro_contract_templates', JSON.stringify(contractTemplates));
@@ -701,7 +719,10 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
-  }, [dossiers]);
+    if (supabaseStatus === 'CONNECTED' && dossiers.length > 0) {
+      bulkInsertDossiersCloud(dossiers);
+    }
+  }, [dossiers, supabaseStatus]);
 
   useEffect(() => {
     localStorage.setItem('buro_notifications', JSON.stringify(systemNotifications));
