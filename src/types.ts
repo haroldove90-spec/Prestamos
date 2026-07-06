@@ -40,6 +40,8 @@ export interface CreditRequest {
   status: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
   loanType?: string;
   monthlyPlan?: string;
+  approvedAmount?: number;
+  rejectionReason?: string;
 }
 
 export interface BureauQueryLog {

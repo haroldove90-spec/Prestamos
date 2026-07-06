@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminHeader } from './components/AdminHeader';
 import { MetricCardPanel } from './components/MetricCard';
 import { ClientManagement } from './components/ClientManagement';
@@ -25,6 +25,7 @@ import {
 } from './data';
 import { getLateFeeConfig, getEffectiveTotalDebt } from './utils/lateFees';
 import { 
+  supabase,
   verifyTablesExist,
   fetchClientsCloud,
   bulkInsertClientsCloud,
@@ -53,7 +54,7 @@ import {
   fetchTermsConditionsCloud,
   saveTermsConditionsCloud
 } from './supabase';
-import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings } from 'lucide-react';
+import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings, Camera, MapPin } from 'lucide-react';
 
 export function generateNextClientId(currentClients: Client[], baseRef?: string): string {
   let reference = baseRef ? baseRef.trim() : "";
@@ -499,6 +500,168 @@ export default function App() {
 
   const [isNotificationTrayOpen, setIsNotificationTrayOpen] = useState<boolean>(false);
 
+  // Permissions control states
+  const [permissionStates, setPermissionStates] = useState<{
+    camera: 'pending' | 'granted' | 'denied';
+    audio: 'pending' | 'granted' | 'denied';
+    notifications: 'pending' | 'granted' | 'denied';
+    geolocation: 'pending' | 'granted' | 'denied';
+  }>({
+    camera: 'pending',
+    audio: 'pending',
+    notifications: 'pending',
+    geolocation: 'pending'
+  });
+  
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState<boolean>(() => {
+    return localStorage.getItem('buro_permissions_onboarded') !== 'true';
+  });
+
+  // Trigger system checks on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const states = { ...permissionStates };
+      
+      // Camera
+      try {
+        if (navigator.permissions && (navigator.permissions as any).query) {
+          const camPermission = await navigator.permissions.query({ name: 'camera' as any });
+          states.camera = camPermission.state === 'granted' ? 'granted' : camPermission.state === 'denied' ? 'denied' : 'pending';
+          camPermission.onchange = () => {
+            setPermissionStates(prev => ({ ...prev, camera: camPermission.state === 'granted' ? 'granted' : camPermission.state === 'denied' ? 'denied' : 'pending' }));
+          };
+        }
+      } catch (e) { console.log("Camera permission query unsupported:", e); }
+
+      // Geolocation
+      try {
+        if (navigator.permissions && (navigator.permissions as any).query) {
+          const geoPermission = await navigator.permissions.query({ name: 'geolocation' as any });
+          states.geolocation = geoPermission.state === 'granted' ? 'granted' : geoPermission.state === 'denied' ? 'denied' : 'pending';
+          geoPermission.onchange = () => {
+            setPermissionStates(prev => ({ ...prev, geolocation: geoPermission.state === 'granted' ? 'granted' : geoPermission.state === 'denied' ? 'denied' : 'pending' }));
+          };
+        }
+      } catch (e) { console.log("Geolocation permission query unsupported:", e); }
+
+      // Notifications
+      if ('Notification' in window) {
+        states.notifications = Notification.permission === 'granted' ? 'granted' : Notification.permission === 'denied' ? 'denied' : 'pending';
+      }
+
+      // Audio checks
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        try {
+          const testCtx = new AudioCtx();
+          states.audio = testCtx.state === 'running' ? 'granted' : 'pending';
+          testCtx.close();
+        } catch (e) {
+          states.audio = 'pending';
+        }
+      }
+
+      setPermissionStates(states);
+    };
+
+    checkPermissions();
+  }, []);
+
+  const requestCameraPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionStates(prev => ({ ...prev, camera: 'granted' }));
+      addNotificationAndPopup(
+        "📷 Cámara Autorizada con Éxito",
+        "El acceso a la cámara frontal se ha concedido de manera exitosa. El sistema biométrico y de expedientes está listo.",
+        "success",
+        "success",
+        currentUser,
+        true
+      );
+    } catch (err) {
+      setPermissionStates(prev => ({ ...prev, camera: 'denied' }));
+      console.warn("Camera grant failed:", err);
+    }
+  };
+
+  const requestAudioPermission = async () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        ctx.close();
+      }
+      setPermissionStates(prev => ({ ...prev, audio: 'granted' }));
+      playSynthesizedSound('success');
+      addNotificationAndPopup(
+        "🔊 Audio Verificado",
+        "El reproductor de alertas sonoras y chimes de transacción ha sido activado con éxito.",
+        "success",
+        "success",
+        currentUser,
+        true
+      );
+    } catch (err) {
+      console.warn("Audio activation failed:", err);
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert("Este navegador o dispositivo móvil no soporta notificaciones nativas de escritorio.");
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      setPermissionStates(prev => ({ ...prev, notifications: permission === 'granted' ? 'granted' : 'denied' }));
+      if (permission === 'granted') {
+        new Notification("Salda App - Notificaciones", {
+          body: "¡Las notificaciones en tiempo real están activadas con éxito!",
+          icon: "https://cossma.com.mx/saldaappicono.png"
+        });
+        addNotificationAndPopup(
+          "🔔 Alertas de Escritorio Listas",
+          "Has activado las notificaciones del navegador. Recibirás avisos instantáneos de abonos y solicitudes de crédito.",
+          "success",
+          "success",
+          currentUser,
+          true
+        );
+      }
+    } catch (err) {
+      console.warn("Notification grant failed:", err);
+    }
+  };
+
+  const requestGeolocationPermission = async () => {
+    if (!('geolocation' in navigator)) {
+      alert("Este dispositivo no soporta geolocalización.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPermissionStates(prev => ({ ...prev, geolocation: 'granted' }));
+        addNotificationAndPopup(
+          "📍 Ubicación Autorizada",
+          `Coordenadas obtenidas para bitácora forense de prevención de fraudes: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}.`,
+          "success",
+          "success",
+          currentUser,
+          true
+        );
+      },
+      (error) => {
+        setPermissionStates(prev => ({ ...prev, geolocation: 'denied' }));
+        console.warn("Geolocation grant failed:", error);
+      }
+    );
+  };
+
   // Synthesize custom wave audio chimes programmatically without download lag
   const playSynthesizedSound = (type: 'success' | 'warning' | 'alert' | 'submit') => {
     if (!isSoundEnabled) return;
@@ -652,31 +815,55 @@ export default function App() {
   const [isCloudSyncInProgress, setIsCloudSyncInProgress] = useState<boolean>(false);
   const [syncErrorMessage, setSyncErrorMessage] = useState<string>('');
 
-  // Push updates to localStorage and Supabase Cloud
+  // Local Sync Trackers (to prevent infinite loops with polling/realtime updates)
+  const lastClientsSyncRef = useRef<string>('');
+  const lastRequestsSyncRef = useRef<string>('');
+  const lastQueriesSyncRef = useRef<string>('');
+  const lastRiskParamsSyncRef = useRef<string>('');
+  const lastAlertsSyncRef = useRef<string>('');
+  const lastPaymentsSyncRef = useRef<string>('');
+  const lastDossiersSyncRef = useRef<string>('');
+  const lastContractTemplatesSyncRef = useRef<string>('');
+  const lastTermsConditionsSyncRef = useRef<string>('');
+  const lastNotificationsSyncRef = useRef<string>('');
+
+  // Push updates to localStorage and Supabase Cloud (Optimized with refs to prevent loopbacks)
   useEffect(() => {
-    localStorage.setItem('buro_clients', JSON.stringify(clients));
+    const serialized = JSON.stringify(clients);
+    localStorage.setItem('buro_clients', serialized);
     if (supabaseStatus === 'CONNECTED' && clients.length > 0) {
+      if (serialized === lastClientsSyncRef.current) return;
+      lastClientsSyncRef.current = serialized;
       bulkInsertClientsCloud(clients);
     }
   }, [clients, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_requests', JSON.stringify(requests));
+    const serialized = JSON.stringify(requests);
+    localStorage.setItem('buro_requests', serialized);
     if (supabaseStatus === 'CONNECTED' && requests.length > 0) {
+      if (serialized === lastRequestsSyncRef.current) return;
+      lastRequestsSyncRef.current = serialized;
       bulkInsertRequestsCloud(requests);
     }
   }, [requests, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_queries', JSON.stringify(queries));
+    const serialized = JSON.stringify(queries);
+    localStorage.setItem('buro_queries', serialized);
     if (supabaseStatus === 'CONNECTED' && queries.length > 0) {
+      if (serialized === lastQueriesSyncRef.current) return;
+      lastQueriesSyncRef.current = serialized;
       bulkInsertQueriesCloud(queries);
     }
   }, [queries, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_risk_params', JSON.stringify(riskParams));
+    const serialized = JSON.stringify(riskParams);
+    localStorage.setItem('buro_risk_params', serialized);
     if (supabaseStatus === 'CONNECTED' && riskParams) {
+      if (serialized === lastRiskParamsSyncRef.current) return;
+      lastRiskParamsSyncRef.current = serialized;
       saveRiskParamsCloud(riskParams);
     }
   }, [riskParams, supabaseStatus]);
@@ -686,15 +873,25 @@ export default function App() {
   }, [isAsesorSuspended]);
 
   useEffect(() => {
-    localStorage.setItem('buro_security_alerts', JSON.stringify(securityAlerts));
-    if (supabaseStatus === 'CONNECTED' && securityAlerts.length > 0) {
-      bulkInsertSecurityAlertsCloud(securityAlerts);
+    const serialized = JSON.stringify(securityAlerts);
+    localStorage.setItem('buro_security_alerts', serialized);
+    if (supabaseStatus === 'CONNECTED') {
+      if (serialized === lastAlertsSyncRef.current) return;
+      lastAlertsSyncRef.current = serialized;
+      if (securityAlerts.length === 0) {
+        clearSecurityAlertsCloud();
+      } else {
+        bulkInsertSecurityAlertsCloud(securityAlerts);
+      }
     }
   }, [securityAlerts, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_client_payments', JSON.stringify(clientPayments));
+    const serialized = JSON.stringify(clientPayments);
+    localStorage.setItem('buro_client_payments', serialized);
     if (supabaseStatus === 'CONNECTED' && clientPayments.length > 0) {
+      if (serialized === lastPaymentsSyncRef.current) return;
+      lastPaymentsSyncRef.current = serialized;
       bulkInsertPaymentsCloud(clientPayments);
     }
   }, [clientPayments, supabaseStatus]);
@@ -704,29 +901,41 @@ export default function App() {
   }, [contracts]);
 
   useEffect(() => {
-    localStorage.setItem('buro_contract_templates', JSON.stringify(contractTemplates));
+    const serialized = JSON.stringify(contractTemplates);
+    localStorage.setItem('buro_contract_templates', serialized);
     if (supabaseStatus === 'CONNECTED' && contractTemplates.length > 0) {
+      if (serialized === lastContractTemplatesSyncRef.current) return;
+      lastContractTemplatesSyncRef.current = serialized;
       bulkInsertContractTemplatesCloud(contractTemplates);
     }
   }, [contractTemplates, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_terms_conditions', JSON.stringify(termsConditions));
+    const serialized = JSON.stringify(termsConditions);
+    localStorage.setItem('buro_terms_conditions', serialized);
     if (supabaseStatus === 'CONNECTED' && termsConditions) {
+      if (serialized === lastTermsConditionsSyncRef.current) return;
+      lastTermsConditionsSyncRef.current = serialized;
       saveTermsConditionsCloud(termsConditions);
     }
   }, [termsConditions, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_dossiers', JSON.stringify(dossiers));
+    const serialized = JSON.stringify(dossiers);
+    localStorage.setItem('buro_dossiers', serialized);
     if (supabaseStatus === 'CONNECTED' && dossiers.length > 0) {
+      if (serialized === lastDossiersSyncRef.current) return;
+      lastDossiersSyncRef.current = serialized;
       bulkInsertDossiersCloud(dossiers);
     }
   }, [dossiers, supabaseStatus]);
 
   useEffect(() => {
-    localStorage.setItem('buro_notifications', JSON.stringify(systemNotifications));
+    const serialized = JSON.stringify(systemNotifications);
+    localStorage.setItem('buro_notifications', serialized);
     if (supabaseStatus === 'CONNECTED' && systemNotifications.length > 0) {
+      if (serialized === lastNotificationsSyncRef.current) return;
+      lastNotificationsSyncRef.current = serialized;
       const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
         id: n.id,
         title: n.title,
@@ -761,6 +970,7 @@ export default function App() {
         // 2. Sincronizar clientes
         const cloudClients = await fetchClientsCloud();
         if (cloudClients !== null) {
+          lastClientsSyncRef.current = JSON.stringify(cloudClients);
           if (cloudClients.length === 0) {
             if (!isCleanDb) {
               await bulkInsertClientsCloud(clients);
@@ -775,6 +985,7 @@ export default function App() {
         // 3. Sincronizar solicitudes de crédito
         const cloudRequests = await fetchRequestsCloud();
         if (cloudRequests !== null) {
+          lastRequestsSyncRef.current = JSON.stringify(cloudRequests);
           if (cloudRequests.length === 0) {
             if (!isCleanDb) {
               await bulkInsertRequestsCloud(requests);
@@ -789,6 +1000,7 @@ export default function App() {
         // 4. Sincronizar consultas de buró
         const cloudQueries = await fetchQueriesCloud();
         if (cloudQueries !== null) {
+          lastQueriesSyncRef.current = JSON.stringify(cloudQueries);
           if (cloudQueries.length === 0) {
             if (!isCleanDb) {
               await bulkInsertQueriesCloud(queries);
@@ -803,6 +1015,7 @@ export default function App() {
         // 5. Sincronizar parámetros de riesgo
         const cloudParams = await fetchRiskParamsCloud();
         if (cloudParams !== null) {
+          lastRiskParamsSyncRef.current = JSON.stringify(cloudParams);
           setRiskParams(cloudParams);
         } else {
           await saveRiskParamsCloud(riskParams);
@@ -811,6 +1024,7 @@ export default function App() {
         // 6. Sincronizar alertas forenses de seguridad
         const cloudAlerts = await fetchSecurityAlertsCloud();
         if (cloudAlerts !== null) {
+          lastAlertsSyncRef.current = JSON.stringify(cloudAlerts);
           if (cloudAlerts.length === 0) {
             if (!isCleanDb && securityAlerts.length > 0) {
               await bulkInsertSecurityAlertsCloud(securityAlerts);
@@ -825,6 +1039,7 @@ export default function App() {
         // 7. Sincronizar evidencias de abono/pagos
         const cloudPayments = await fetchPaymentsCloud();
         if (cloudPayments !== null) {
+          lastPaymentsSyncRef.current = JSON.stringify(cloudPayments);
           if (cloudPayments.length === 0) {
             if (!isCleanDb) {
               await bulkInsertPaymentsCloud(clientPayments);
@@ -839,6 +1054,7 @@ export default function App() {
         // 8. Sincronizar expedientes (dossiers)
         const cloudDossiers = await fetchDossiersCloud();
         if (cloudDossiers !== null) {
+          lastDossiersSyncRef.current = JSON.stringify(cloudDossiers);
           if (cloudDossiers.length === 0) {
             if (!isCleanDb) {
               await bulkInsertDossiersCloud(dossiers);
@@ -853,6 +1069,7 @@ export default function App() {
         // 9. Sincronizar notificaciones en tiempo real
         const cloudNotifications = await fetchSystemNotificationsCloud();
         if (cloudNotifications !== null) {
+          lastNotificationsSyncRef.current = JSON.stringify(cloudNotifications);
           if (cloudNotifications.length === 0) {
             if (!isCleanDb) {
               const dbNotifs: DbSystemNotification[] = systemNotifications.map(n => ({
@@ -875,7 +1092,7 @@ export default function App() {
               id: n.id,
               title: n.title,
               message: n.message,
-              type: n.type,
+              type: n.type as 'success' | 'warning' | 'info',
               targetRoles: n.targetRoles,
               timestamp: n.timestamp,
               readBy: n.readBy,
@@ -898,6 +1115,7 @@ export default function App() {
         try {
           const cloudContractTemplates = await fetchContractTemplatesCloud();
           if (cloudContractTemplates !== null) {
+            lastContractTemplatesSyncRef.current = JSON.stringify(cloudContractTemplates);
             if (cloudContractTemplates.length === 0) {
               await bulkInsertContractTemplatesCloud(contractTemplates);
             } else {
@@ -912,6 +1130,7 @@ export default function App() {
         try {
           const cloudTerms = await fetchTermsConditionsCloud();
           if (cloudTerms !== null) {
+            lastTermsConditionsSyncRef.current = JSON.stringify(cloudTerms);
             setTermsConditions(cloudTerms);
           } else {
             await saveTermsConditionsCloud(termsConditions);
@@ -933,52 +1152,233 @@ export default function App() {
     initSupabaseSync();
   }, []);
 
-  // Incremental sync effects
+  // REALTIME AND FAST POLLING SYNC ENGINE FOR INSTANT NOTIFICATIONS
   useEffect(() => {
-    if (supabaseStatus === 'CONNECTED' && clients.length > 0) {
-      bulkInsertClientsCloud(clients);
-    }
-  }, [clients, supabaseStatus]);
+    if (supabaseStatus !== 'CONNECTED') return;
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED' && requests.length > 0) {
-      bulkInsertRequestsCloud(requests);
-    }
-  }, [requests, supabaseStatus]);
+    let isSubscribed = true;
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED' && queries.length > 0) {
-      bulkInsertQueriesCloud(queries);
-    }
-  }, [queries, supabaseStatus]);
+    // Helper functions for merging incoming remote data safely without loopback
+    const mergeNotifications = (cloudNotifs: DbSystemNotification[]) => {
+      const serializedCloud = JSON.stringify(cloudNotifs);
+      if (serializedCloud === lastNotificationsSyncRef.current) return;
+      lastNotificationsSyncRef.current = serializedCloud;
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED') {
-      saveRiskParamsCloud(riskParams);
-    }
-  }, [riskParams, supabaseStatus]);
+      setSystemNotifications(prev => {
+        const decodedCloud = cloudNotifs.map(n => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type as 'success' | 'warning' | 'info',
+          targetRoles: n.targetRoles,
+          timestamp: n.timestamp,
+          readBy: n.readBy,
+          soundPlayed: n.soundPlayed
+        }));
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED') {
-      if (securityAlerts.length === 0) {
-        clearSecurityAlertsCloud();
-      } else {
-        bulkInsertSecurityAlertsCloud(securityAlerts);
+        if (prev.length === 0) {
+          decodedCloud.forEach(cn => {
+            const roleMatch = cn.targetRoles.split(',').includes(currentUser);
+            const alreadyRead = cn.readBy.split(',').includes(currentUser);
+            if (roleMatch && !alreadyRead) {
+              playSynthesizedSound(cn.type === 'warning' ? 'alert' : 'success');
+              setActivePopupAlert({
+                id: cn.id,
+                title: cn.title,
+                message: cn.message,
+                soundType: cn.type === 'warning' ? 'alert' : 'success',
+                type: cn.type
+              });
+            }
+          });
+          return decodedCloud;
+        }
+
+        let hasChanged = false;
+        const merged = [...prev];
+
+        decodedCloud.forEach(cn => {
+          const localIdx = merged.findIndex(ln => ln.id === cn.id);
+          if (localIdx === -1) {
+            merged.push(cn);
+            hasChanged = true;
+
+            const roleMatch = cn.targetRoles.split(',').includes(currentUser);
+            const alreadyRead = cn.readBy.split(',').includes(currentUser);
+            if (roleMatch && !alreadyRead) {
+              playSynthesizedSound(cn.type === 'warning' ? 'alert' : 'success');
+              setActivePopupAlert({
+                id: cn.id,
+                title: cn.title,
+                message: cn.message,
+                soundType: cn.type === 'warning' ? 'alert' : 'success',
+                type: cn.type
+              });
+            }
+          } else {
+            if (merged[localIdx].readBy !== cn.readBy) {
+              merged[localIdx] = { ...merged[localIdx], readBy: cn.readBy };
+              hasChanged = true;
+            }
+          }
+        });
+
+        if (hasChanged) {
+          return merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        }
+        return prev;
+      });
+    };
+
+    const mergeRequests = (cloudReqs: CreditRequest[]) => {
+      const serializedCloud = JSON.stringify(cloudReqs);
+      if (serializedCloud === lastRequestsSyncRef.current) return;
+      lastRequestsSyncRef.current = serializedCloud;
+
+      setRequests(prev => {
+        let hasChanged = false;
+        const updated = [...prev];
+
+        cloudReqs.forEach(cr => {
+          const localIdx = updated.findIndex(pr => pr.id === cr.id);
+          if (localIdx === -1) {
+            updated.push(cr);
+            hasChanged = true;
+          } else {
+            const pr = updated[localIdx];
+            if (pr.status !== cr.status || pr.approvedAmount !== cr.approvedAmount || pr.rejectionReason !== cr.rejectionReason) {
+              updated[localIdx] = cr;
+              hasChanged = true;
+            }
+          }
+        });
+
+        return hasChanged ? updated : prev;
+      });
+    };
+
+    const mergeClients = (cloudClients: Client[]) => {
+      const serializedCloud = JSON.stringify(cloudClients);
+      if (serializedCloud === lastClientsSyncRef.current) return;
+      lastClientsSyncRef.current = serializedCloud;
+
+      setClients(prev => {
+        let hasChanged = false;
+        const updated = [...prev];
+
+        cloudClients.forEach(cc => {
+          const localIdx = updated.findIndex(pc => pc.id === cc.id);
+          if (localIdx === -1) {
+            updated.push(cc);
+            hasChanged = true;
+          } else {
+            const pc = updated[localIdx];
+            if (
+              pc.balanceOwed !== cc.balanceOwed ||
+              pc.delinquencyDays !== cc.delinquencyDays ||
+              pc.bureauStatus !== cc.bureauStatus ||
+              pc.totalCreditGranted !== cc.totalCreditGranted ||
+              pc.name !== cc.name
+            ) {
+              updated[localIdx] = cc;
+              hasChanged = true;
+            }
+          }
+        });
+
+        return hasChanged ? updated : prev;
+      });
+    };
+
+    const mergePayments = (cloudPayments: ClientPayment[]) => {
+      const serializedCloud = JSON.stringify(cloudPayments);
+      if (serializedCloud === lastPaymentsSyncRef.current) return;
+      lastPaymentsSyncRef.current = serializedCloud;
+
+      setClientPayments(prev => {
+        let hasChanged = false;
+        const updated = [...prev];
+
+        cloudPayments.forEach(cp => {
+          const localIdx = updated.findIndex(pp => pp.id === cp.id);
+          if (localIdx === -1) {
+            updated.push(cp);
+            hasChanged = true;
+          } else {
+            const pp = updated[localIdx];
+            if (pp.status !== cp.status) {
+              updated[localIdx] = cp;
+              hasChanged = true;
+            }
+          }
+        });
+
+        return hasChanged ? updated : prev;
+      });
+    };
+
+    // A. Realtime Channel Subscription
+    const channel = supabase
+      .channel('public-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_notifications' }, async () => {
+        if (!isSubscribed) return;
+        const cloudNotifs = await fetchSystemNotificationsCloud();
+        if (cloudNotifs && isSubscribed) {
+          mergeNotifications(cloudNotifs);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, async () => {
+        if (!isSubscribed) return;
+        const cloudReqs = await fetchRequestsCloud();
+        if (cloudReqs && isSubscribed) {
+          mergeRequests(cloudReqs);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, async () => {
+        if (!isSubscribed) return;
+        const cloudClients = await fetchClientsCloud();
+        if (cloudClients && isSubscribed) {
+          mergeClients(cloudClients);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_payments' }, async () => {
+        if (!isSubscribed) return;
+        const cloudPayments = await fetchPaymentsCloud();
+        if (cloudPayments && isSubscribed) {
+          mergePayments(cloudPayments);
+        }
+      })
+      .subscribe();
+
+    // B. Fast Polling Loop (guarantees instant delivery regardless of WebSockets state)
+    const pollInterval = setInterval(async () => {
+      if (!isSubscribed) return;
+      try {
+        const [cloudNotifs, cloudReqs, cloudClients, cloudPayments] = await Promise.all([
+          fetchSystemNotificationsCloud(),
+          fetchRequestsCloud(),
+          fetchClientsCloud(),
+          fetchPaymentsCloud()
+        ]);
+
+        if (isSubscribed) {
+          if (cloudNotifs) mergeNotifications(cloudNotifs);
+          if (cloudReqs) mergeRequests(cloudReqs);
+          if (cloudClients) mergeClients(cloudClients);
+          if (cloudPayments) mergePayments(cloudPayments);
+        }
+      } catch (err) {
+        console.warn('Real-time sync poll issue:', err);
       }
-    }
-  }, [securityAlerts, supabaseStatus]);
+    }, 2000); // Poll every 2.0 seconds for true instant updates
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED' && clientPayments.length > 0) {
-      bulkInsertPaymentsCloud(clientPayments);
-    }
-  }, [clientPayments, supabaseStatus]);
+    return () => {
+      isSubscribed = false;
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
+  }, [supabaseStatus, currentUser]);
 
-  useEffect(() => {
-    if (supabaseStatus === 'CONNECTED' && dossiers.length > 0) {
-      bulkInsertDossiersCloud(dossiers);
-    }
-  }, [dossiers, supabaseStatus]);
 
   // REGISTER CLIENT ACTIVE PAYMENT ACTIVITY
   const handleRegisterClientPayment = (newPayment: ClientPayment) => {
@@ -3641,6 +4041,205 @@ export default function App() {
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BOTÓN FLOTANTE PERMANENTE PARA ABRIR EL CENTRO DE PERMISOS */}
+      <button
+        onClick={() => setIsPermissionsModalOpen(true)}
+        className="fixed bottom-6 left-6 z-45 bg-slate-900/95 hover:bg-slate-850 text-white p-3 rounded-full border border-[#a3c90e]/40 shadow-xl flex items-center gap-2 cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 group font-mono text-[10px]"
+        id="system-permissions-floating-btn"
+        title="Centro de Permisos y Notificaciones"
+      >
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a3c90e] opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#a3c90e]"></span>
+        </span>
+        <ShieldCheck className="w-4 h-4 text-[#a3c90e] group-hover:animate-bounce" />
+        <span className="hidden sm:inline font-black tracking-wider uppercase text-[9px] text-slate-300">Permisos del Sistema</span>
+      </button>
+
+      {/* --------------------------------------------------------- */}
+      {/* MODAL DE CONTROL Y AUTORIZACIÓN DE PERMISOS EN TIEMPO REAL */}
+      {/* --------------------------------------------------------- */}
+      {isPermissionsModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in" id="system-permissions-modal">
+          <div className="bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] overflow-y-auto scrollbar-thin">
+            {/* Ambient visual overlay */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#a3c90e]/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-slate-800 pb-4 mb-4">
+              <div className="space-y-1 text-left">
+                <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono uppercase px-2 py-0.5 rounded font-bold tracking-wider">Módulo de Seguridad e Ingress</span>
+                <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight flex items-center gap-1.5 mt-1">
+                  <ShieldCheck className="w-5 h-5 text-[#a3c90e]" />
+                  Permisos de Hardware y Alertas
+                </h3>
+                <p className="text-[11px] text-slate-400 font-sans leading-normal">
+                  Salda App requiere las siguientes capacidades en tu computadora o móvil para asegurar notificaciones inmediatas y biometría segura.
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  localStorage.setItem('buro_permissions_onboarded', 'true');
+                  setIsPermissionsModalOpen(false);
+                }}
+                className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List of Permissions */}
+            <div className="space-y-4 my-2 text-left flex-1">
+              
+              {/* 1. CAMERA */}
+              <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-slate-800">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${permissionStates.camera === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-400'}`}>
+                    <Camera className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wide">Cámara Frontal (Biometría)</h4>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                        permissionStates.camera === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : permissionStates.camera === 'denied' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {permissionStates.camera === 'granted' ? 'AUTORIZADO' : permissionStates.camera === 'denied' ? 'DENEGADO' : 'PENDIENTE'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-sans">
+                      Permitido para tomar la "Prueba de Vida" en el Portal del Cliente ("Biometría Facial") y escanear fotos para cotejo de expedientes fiduciarios.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestCameraPermission}
+                  disabled={permissionStates.camera === 'granted'}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition select-none active:scale-95 cursor-pointer text-center whitespace-nowrap ${
+                    permissionStates.camera === 'granted'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default'
+                      : 'bg-indigo-650 bg-indigo-600 hover:bg-indigo-550 text-white'
+                  }`}
+                >
+                  {permissionStates.camera === 'granted' ? 'Listo' : 'Autorizar'}
+                </button>
+              </div>
+
+              {/* 2. NOTIFICATIONS */}
+              <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-slate-800">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${permissionStates.notifications === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-400'}`}>
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wide">Notificaciones Push</h4>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                        permissionStates.notifications === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : permissionStates.notifications === 'denied' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {permissionStates.notifications === 'granted' ? 'ACTIVO' : permissionStates.notifications === 'denied' ? 'DENEGADO' : 'PENDIENTE'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-sans">
+                      Habilita alertas de abonos validados por la cajera, solicitudes de crédito entrantes e incidentes, visibles en tu celular o PC.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestNotificationPermission}
+                  disabled={permissionStates.notifications === 'granted'}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition select-none active:scale-95 cursor-pointer text-center whitespace-nowrap ${
+                    permissionStates.notifications === 'granted'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default'
+                      : 'bg-indigo-650 bg-indigo-600 hover:bg-indigo-550 text-white'
+                  }`}
+                >
+                  {permissionStates.notifications === 'granted' ? 'Listo' : 'Activar'}
+                </button>
+              </div>
+
+              {/* 3. AUDIO SYNTHESIZER */}
+              <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-slate-800">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${permissionStates.audio === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-400'}`}>
+                    <Volume2 className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wide">Campanadas de Alerta</h4>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                        permissionStates.audio === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {permissionStates.audio === 'granted' ? 'ACTIVO' : 'PENDIENTE'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-sans">
+                      Permite reproducir chimes arpegiados de transacciones y acordes de confirmación sonora instantánea al recibir un abono en vivo.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestAudioPermission}
+                  className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition select-none active:scale-95 cursor-pointer text-center whitespace-nowrap"
+                >
+                  {permissionStates.audio === 'granted' ? 'Probar Tono' : 'Activar'}
+                </button>
+              </div>
+
+              {/* 4. GEOLOCATION */}
+              <div className="bg-slate-950 border border-slate-850 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-slate-800">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${permissionStates.geolocation === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-400'}`}>
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wide">Ubicación (Anti-Fraude)</h4>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                        permissionStates.geolocation === 'granted' ? 'bg-emerald-500/10 text-emerald-400' : permissionStates.geolocation === 'denied' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {permissionStates.geolocation === 'granted' ? 'AUTORIZADO' : permissionStates.geolocation === 'denied' ? 'DENEGADO' : 'PENDIENTE'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-normal mt-1 font-sans">
+                      Registra de forma segura las coordenadas del dispositivo para la bitácora fiduciaria y prevención de suplantación geográfica.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestGeolocationPermission}
+                  disabled={permissionStates.geolocation === 'granted'}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition select-none active:scale-95 cursor-pointer text-center whitespace-nowrap ${
+                    permissionStates.geolocation === 'granted'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 cursor-default'
+                      : 'bg-indigo-650 bg-indigo-600 hover:bg-indigo-550 text-white'
+                  }`}
+                >
+                  {permissionStates.geolocation === 'granted' ? 'Listo' : 'Autorizar'}
+                </button>
+              </div>
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="border-t border-slate-800 pt-4 mt-4 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('buro_permissions_onboarded', 'true');
+                  setIsPermissionsModalOpen(false);
+                }}
+                className="w-full py-3 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition select-none active:scale-95 cursor-pointer shadow-md shadow-[#a3c90e]/10"
+              >
+                ✓ Entendido y Guardar Configuración
+              </button>
+              <p className="text-[9px] text-slate-500 text-center font-mono uppercase">
+                Salda App cumple con la LFPDPPP de protección de datos fiduciarios.
+              </p>
             </div>
           </div>
         </div>
