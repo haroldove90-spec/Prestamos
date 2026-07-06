@@ -622,7 +622,7 @@ export default function App() {
       if (permission === 'granted') {
         new Notification("Salda App - Notificaciones", {
           body: "¡Las notificaciones en tiempo real están activadas con éxito!",
-          icon: "https://cossma.com.mx/saldaappicono.png"
+          icon: "https://appdesignproyectos.com/saldaapp.png"
         });
         addNotificationAndPopup(
           "🔔 Alertas de Escritorio Listas",
@@ -2066,7 +2066,7 @@ export default function App() {
         <div className="max-w-4xl w-full flex flex-col items-center gap-6 text-center animate-fade-in relative z-10 py-6">
           
           <img 
-            src="https://cossma.com.mx/saldaapplogo.png" 
+            src="https://appdesignproyectos.com/saldaapp.png" 
             alt="Salda App" 
             className="h-14 md:h-16 w-auto object-contain block hover:scale-105 transition-transform duration-300 pointer-events-none mb-2" 
             referrerPolicy="no-referrer"
@@ -2920,7 +2920,7 @@ export default function App() {
           <div className="max-w-md w-full flex flex-col items-center gap-6" onClick={(e) => e.stopPropagation()}>
             {/* Splash image - Unencapsulated to display completely */}
             <img 
-              src="https://cossma.com.mx/saldaappsplash.png" 
+              src="https://appdesignproyectos.com/saldaapp.png" 
               alt="Salda App Splash" 
               className="w-full max-h-[45vh] object-contain block" 
               referrerPolicy="no-referrer"
@@ -3043,7 +3043,7 @@ export default function App() {
                   <div className="flex justify-between items-center w-full">
                     <div className="flex items-center gap-2">
                       <img 
-                        src="https://cossma.com.mx/saldaapplogo.png" 
+                        src="https://appdesignproyectos.com/saldaapp.png" 
                         alt="Salda App Logo"
                         className="h-7 w-auto object-contain block"
                         referrerPolicy="no-referrer"
@@ -3369,7 +3369,7 @@ export default function App() {
                 <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left space-y-2 mt-2">
                   <div className="flex items-center gap-2">
                     <img 
-                      src="https://cossma.com.mx/saldaappicono.png" 
+                      src="https://appdesignproyectos.com/saldaapp.png" 
                       alt="Salda App" 
                       className="w-5 h-5 rounded-lg object-contain"
                       referrerPolicy="no-referrer"
@@ -3402,7 +3402,7 @@ export default function App() {
             {/* UNENCAPSULATED DESKTOP BRAND LOGO & SUPABASE SYNC STATUS */}
             <div className="p-4 mb-3 bg-slate-900/40 rounded-3xl border border-slate-800/80 flex flex-col items-center justify-center gap-3 animate-fadeIn">
               <img 
-                src="https://cossma.com.mx/saldaapplogo.png" 
+                src="https://appdesignproyectos.com/saldaapp.png" 
                 alt="Salda App Logo" 
                 className="h-10 w-auto object-contain block" 
                 referrerPolicy="no-referrer"
@@ -3742,7 +3742,7 @@ export default function App() {
               <div className="absolute top-0 right-0 w-24 h-24 bg-[#a3c90e]/5 rounded-full blur-2xl pointer-events-none" />
               <div className="flex items-center gap-2 mb-2">
                 <img 
-                  src="https://cossma.com.mx/saldaappicono.png" 
+                  src="https://appdesignproyectos.com/saldaapp.png" 
                   alt="Icono Salda App" 
                   className="w-5 h-5 rounded-lg object-contain"
                   referrerPolicy="no-referrer"

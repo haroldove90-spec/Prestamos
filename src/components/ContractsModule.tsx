@@ -539,13 +539,13 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                 id={`printable-contract-${activeReviewContract.id}`}
               >
                 {/* Background Watermark/Graphic */}
-                <div className="absolute inset-0 bg-contain bg-center opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url('https://cossma.com.mx/saldaapplogo.png')` }}></div>
+                <div className="absolute inset-0 bg-contain bg-center opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url('https://appdesignproyectos.com/saldaapp.png')` }}></div>
 
                 {/* Corporate Header Block */}
                 <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
                   <div className="flex items-center gap-2.5">
                     <img 
-                      src="https://cossma.com.mx/saldaapplogo.png" 
+                      src="https://appdesignproyectos.com/saldaapp.png" 
                       alt="Salda Logo" 
                       className="h-10 w-auto object-contain no-print" 
                       referrerPolicy="no-referrer"
