@@ -868,7 +868,7 @@ export function WebLanding({
           </p>
           <div className="flex justify-center items-center gap-2">
             <img src={config.logoUrl} alt="Saldo app" className="h-4 w-auto opacity-30 object-contain" referrerPolicy="no-referrer" />
-            <span>• © {new Date().getFullYear()} Saldo app. Todos los derechos reservados.</span>
+            <span>• © {new Date().getFullYear()} Saldo app. Todos los derechos reservados. Desarrollado por App Design.</span>
           </div>
         </div>
       </footer>
