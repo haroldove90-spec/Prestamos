@@ -138,7 +138,7 @@ export interface LandingPageConfig {
 }
 
 export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
-  logoUrl: "https://appdesignproyectos.com/saldaapp.png",
+  logoUrl: "https://appdesign.appdesignproyectos.com/saldaapp1.png",
   phone: "+52 81 2345 6789",
   whatsapp: "528123456789",
   email: "contacto@saldoapp.com",

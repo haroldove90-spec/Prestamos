@@ -507,7 +507,7 @@ export function WebLanding({
               referrerPolicy="no-referrer"
               onError={(e) => {
                 // Fail-safe default logo if user sets invalid logoUrl
-                (e.target as HTMLImageElement).src = "https://appdesignproyectos.com/saldaapp.png";
+                (e.target as HTMLImageElement).src = "https://appdesign.appdesignproyectos.com/saldaapp1.png";
               }}
             />
           </div>

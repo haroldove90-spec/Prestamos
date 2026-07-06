@@ -76,7 +76,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           {/* Logo / Brand container - Unencapsulated to display completely */}
           <div className="flex items-center gap-2">
             <img 
-              src="https://appdesignproyectos.com/saldaapp.png" 
+              src="https://appdesign.appdesignproyectos.com/saldaapp1.png" 
               alt="Salda App" 
               className="h-8 md:h-10 w-auto object-contain block" 
               referrerPolicy="no-referrer"
