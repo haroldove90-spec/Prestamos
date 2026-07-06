@@ -110,6 +110,11 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   const [newOwed, setNewOwed] = useState(0);
   const [newDelinquency, setNewDelinquency] = useState(0);
   const [newCat, setNewCat] = useState<'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario'>('Personal');
+  const [newFacebook, setNewFacebook] = useState('');
+  const [newInstagram, setNewInstagram] = useState('');
+  const [newLinkedin, setNewLinkedin] = useState('');
+  const [newTwitter, setNewTwitter] = useState('');
+  const [newLocation, setNewLocation] = useState('');
 
   const handleApplyLateFees = (client: Client) => {
     if (!onUpdateClient) return;
@@ -162,7 +167,12 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
       totalCreditGranted: Number(newCredit),
       balanceOwed: Number(newOwed),
       delinquencyDays: Number(newDelinquency),
-      category: newCat
+      category: newCat,
+      facebookProfile: newFacebook.trim() || undefined,
+      instagramProfile: newInstagram.trim() || undefined,
+      linkedinProfile: newLinkedin.trim() || undefined,
+      twitterProfile: newTwitter.trim() || undefined,
+      locationLink: newLocation.trim() || undefined
     });
 
     // Reset Form
@@ -175,6 +185,11 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
     setNewOwed(0);
     setNewDelinquency(0);
     setNewCat('Personal');
+    setNewFacebook('');
+    setNewInstagram('');
+    setNewLinkedin('');
+    setNewTwitter('');
+    setNewLocation('');
     setIsAdding(false);
   };
 
@@ -1061,7 +1076,66 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
               />
             </div>
 
-            <div className="flex items-end justify-end lg:col-span-1 gap-2 pt-2">
+            {/* SECCIÓN REDES SOCIALES PARA VERIFICACIÓN DE IDENTIDAD */}
+            <div className="sm:col-span-2 lg:col-span-3 border-t border-slate-800 pt-4 mt-2">
+              <h4 className="text-xs font-bold uppercase font-mono text-[#a3c90e] tracking-wider mb-3">
+                🔗 Redes Sociales y Enlaces de Verificación de Identidad (Links Activos)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Perfil de Facebook (URL Completa)</label>
+                  <input
+                    type="url"
+                    placeholder="https://facebook.com/perfil"
+                    value={newFacebook}
+                    onChange={(e) => setNewFacebook(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Perfil de Instagram (URL Completa)</label>
+                  <input
+                    type="url"
+                    placeholder="https://instagram.com/usuario"
+                    value={newInstagram}
+                    onChange={(e) => setNewInstagram(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Perfil de LinkedIn (URL Completa)</label>
+                  <input
+                    type="url"
+                    placeholder="https://linkedin.com/in/perfil"
+                    value={newLinkedin}
+                    onChange={(e) => setNewLinkedin(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Perfil de Twitter / X (URL Completa)</label>
+                  <input
+                    type="url"
+                    placeholder="https://x.com/usuario"
+                    value={newTwitter}
+                    onChange={(e) => setNewTwitter(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Enlace de Geolocalización o Domicilio (Google Maps Link)</label>
+                  <input
+                    type="url"
+                    placeholder="https://maps.google.com/?q=..."
+                    value={newLocation}
+                    onChange={(e) => setNewLocation(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-end justify-end sm:col-span-2 lg:col-span-3 gap-2 pt-4 border-t border-slate-800/60">
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
@@ -1405,6 +1479,101 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
                 </div>
               </div>
 
+              {/* REDES SOCIALES DE VERIFICACIÓN DE IDENTIDAD (LINKS ACTIVOS) */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-widest">Verificación de Identidad</span>
+                  <span className="text-[9px] bg-[#a3c90e]/10 border border-[#a3c90e]/20 text-[#a3c90e] font-mono font-bold px-2 py-0.5 rounded uppercase">Enlaces Activos</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* Facebook */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 uppercase block font-mono">Facebook</span>
+                    {selectedClient.facebookProfile ? (
+                      <a
+                        href={selectedClient.facebookProfile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-400 hover:text-sky-300 font-bold font-sans mt-1 flex items-center gap-1 hover:underline break-all"
+                      >
+                        🌐 Visitar Perfil
+                      </a>
+                    ) : (
+                      <span className="text-slate-500 italic mt-1 font-sans text-[11px]">No registrado</span>
+                    )}
+                  </div>
+
+                  {/* Instagram */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 uppercase block font-mono">Instagram</span>
+                    {selectedClient.instagramProfile ? (
+                      <a
+                        href={selectedClient.instagramProfile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pink-400 hover:text-pink-300 font-bold font-sans mt-1 flex items-center gap-1 hover:underline break-all"
+                      >
+                        📸 Visitar Perfil
+                      </a>
+                    ) : (
+                      <span className="text-slate-500 italic mt-1 font-sans text-[11px]">No registrado</span>
+                    )}
+                  </div>
+
+                  {/* LinkedIn */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 uppercase block font-mono">LinkedIn</span>
+                    {selectedClient.linkedinProfile ? (
+                      <a
+                        href={selectedClient.linkedinProfile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:text-indigo-300 font-bold font-sans mt-1 flex items-center gap-1 hover:underline break-all"
+                      >
+                        💼 Visitar Perfil
+                      </a>
+                    ) : (
+                      <span className="text-slate-500 italic mt-1 font-sans text-[11px]">No registrado</span>
+                    )}
+                  </div>
+
+                  {/* Twitter */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                    <span className="text-[9px] text-slate-500 uppercase block font-mono">Twitter / X</span>
+                    {selectedClient.twitterProfile ? (
+                      <a
+                        href={selectedClient.twitterProfile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-200 hover:text-white font-bold font-sans mt-1 flex items-center gap-1 hover:underline break-all"
+                      >
+                        🐦 Visitar Perfil
+                      </a>
+                    ) : (
+                      <span className="text-slate-500 italic mt-1 font-sans text-[11px]">No registrado</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Geolocalización / Google Maps */}
+                <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-between text-xs">
+                  <span className="text-[9px] text-slate-500 uppercase block font-mono">Geolocalización / Domicilio Legal</span>
+                  {selectedClient.locationLink ? (
+                    <a
+                      href={selectedClient.locationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#a3c90e] hover:text-[#b8e014] font-bold font-sans mt-1.5 flex items-center gap-1 hover:underline break-all"
+                    >
+                      📍 Abrir Google Maps (Ubicación Georeferenciada)
+                    </a>
+                  ) : (
+                    <span className="text-slate-500 italic mt-1 font-sans text-[11px]">Enlace de mapas no registrado</span>
+                  )}
+                </div>
+              </div>
+
               {/* Segmented Membership logic */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3">
                 <div className="flex justify-between items-center">
@@ -1674,6 +1843,68 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
                     value={editForm.balanceOwed}
                     onChange={(e) => setEditForm({ ...editForm, balanceOwed: Number(e.target.value) })}
                     className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* SOCIAL NETWORKS IN EDIT FORM */}
+              <div className="border-t border-slate-800 pt-3 mt-1 space-y-3">
+                <span className="text-[10px] font-mono font-bold text-[#a3c90e] uppercase tracking-wider block">Redes Sociales (Enlaces Activos de Verificación)</span>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">Facebook Profile</label>
+                    <input
+                      type="url"
+                      placeholder="https://facebook.com/..."
+                      value={editForm.facebookProfile || ''}
+                      onChange={(e) => setEditForm({ ...editForm, facebookProfile: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">Instagram Profile</label>
+                    <input
+                      type="url"
+                      placeholder="https://instagram.com/..."
+                      value={editForm.instagramProfile || ''}
+                      onChange={(e) => setEditForm({ ...editForm, instagramProfile: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">LinkedIn Profile</label>
+                    <input
+                      type="url"
+                      placeholder="https://linkedin.com/in/..."
+                      value={editForm.linkedinProfile || ''}
+                      onChange={(e) => setEditForm({ ...editForm, linkedinProfile: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">Twitter / X Profile</label>
+                    <input
+                      type="url"
+                      placeholder="https://x.com/..."
+                      value={editForm.twitterProfile || ''}
+                      onChange={(e) => setEditForm({ ...editForm, twitterProfile: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-mono text-slate-400 uppercase tracking-wider mb-0.5">Enlace de Ubicación / Geolocalización (Google Maps)</label>
+                  <input
+                    type="url"
+                    placeholder="https://maps.google.com/?q=..."
+                    value={editForm.locationLink || ''}
+                    onChange={(e) => setEditForm({ ...editForm, locationLink: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-800 rounded-lg bg-slate-950 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
                   />
                 </div>
               </div>

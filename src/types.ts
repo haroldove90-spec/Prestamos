@@ -24,6 +24,9 @@ export interface Client {
   password?: string;
   profileImage?: string;
   facebookProfile?: string;
+  instagramProfile?: string;
+  linkedinProfile?: string;
+  twitterProfile?: string;
   locationLink?: string;
   loanType?: string;
   monthlyPlan?: string;

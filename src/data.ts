@@ -29,7 +29,12 @@ export const INITIAL_CLIENTS: Client[] = [
     joinDate: '2024-01-10',
     username: 'carlos',
     password: 'password',
-    membership: 'Premium'
+    membership: 'Premium',
+    facebookProfile: 'https://www.facebook.com/carlos.mendoza.fideicomiso',
+    instagramProfile: 'https://www.instagram.com/carlos_mendoza_finance',
+    linkedinProfile: 'https://www.linkedin.com/in/carlos-mendoza-consultoria',
+    twitterProfile: 'https://twitter.com/carlos_m_mora',
+    locationLink: 'https://maps.google.com/?q=25.6866,-100.3161'
   },
   {
     id: 'CLI-002',
