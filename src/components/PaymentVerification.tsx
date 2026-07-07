@@ -83,7 +83,7 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
             <div class="logo-text">SALDA APP</div>
             <div class="metadata">
               <p>FECHA: ${new Date().toLocaleDateString('es-MX')}</p>
-              <p>EMISIÓN: Harold Salazar (Admin Supervisor)</p>
+              <p>EMISIÓN: Harold Anguiano (Admin Supervisor)</p>
             </div>
           </div>
           <div class="title">

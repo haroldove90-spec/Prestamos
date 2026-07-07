@@ -531,7 +531,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
     printWindow.document.write(`
       <html>
         <head>
-          <title>Reporte de Cartera Consolidada - Harold Salazar</title>
+          <title>Reporte de Cartera Consolidada - Harold Anguiano</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; padding: 40px; margin: 0; background-color: #ffffff; }
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 30px; }
@@ -552,7 +552,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         <body>
           <div class="header">
             <div>
-              <div class="logo-text">Harold Salazar S.A.</div>
+              <div class="logo-text">Harold Anguiano S.A.</div>
               <div style="font-size: 11px; color: #475569; font-weight: bold;">Plataforma de Finanzas y Préstamos Consolidada</div>
             </div>
             <div class="metadata">
@@ -587,11 +587,11 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
           </table>
 
           <div style="margin-top: 35px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; font-size: 11px; line-height: 1.5;">
-            <strong>Aviso de Confidencialidad y Auditoría Bancaria:</strong> Este documento contiene información financiera confidencial sujeta a secreto bancario bajo la jurisdicción federal de cumplimiento interno en auditoría. Está estrictamente prohibido su intercambio sin la firma autorizada del administrador Harold Salazar.
+            <strong>Aviso de Confidencialidad y Auditoría Bancaria:</strong> Este documento contiene información financiera confidencial sujeta a secreto bancario bajo la jurisdicción federal de cumplimiento interno en auditoría. Está estrictamente prohibido su intercambio sin la firma autorizada del administrador Harold Anguiano.
           </div>
 
           <div class="footer">
-            Consola Central Harold Salazar • Sistema de Seguridad contra Fraude y Administración del Riesgo de Crédito.
+            Consola Central Harold Anguiano • Sistema de Seguridad contra Fraude y Administración del Riesgo de Crédito.
           </div>
 
           <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
@@ -644,7 +644,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
           <table class="header-table" style="width: 100%;">
             <tr>
               <td>
-                <div style="font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #1e1b4b;">Harold Salazar S.A.</div>
+                <div style="font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #1e1b4b;">Harold Anguiano S.A.</div>
                 <div style="font-size: 10.5px; color: #475569; font-weight: bold;">Plataforma de Finanzas y Préstamos Consolidada</div>
               </td>
               <td style="text-align: right; font-size: 10.5px; color: #64748b; line-height: 1.4;">
@@ -710,7 +710,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
             </div>
             <div>
               <div style="height: 45px;"></div>
-              <div class="signature-line">Harold Salazar Salazar</div>
+              <div class="signature-line">Harold Anguiano</div>
               <div style="font-size: 9.5px; color: #94a3b8; text-transform: uppercase;">Sello de Autorización Bancaria</div>
             </div>
           </div>

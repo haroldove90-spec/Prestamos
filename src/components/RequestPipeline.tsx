@@ -89,7 +89,7 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
             <div class="logo-text">SALDA APP</div>
             <div class="metadata">
               <p>FECHA: ${new Date().toLocaleDateString('es-MX')}</p>
-              <p>EMISIÓN: Harold Salazar (Admin)</p>
+              <p>EMISIÓN: Harold Anguiano (Admin)</p>
             </div>
           </div>
           <div class="title">

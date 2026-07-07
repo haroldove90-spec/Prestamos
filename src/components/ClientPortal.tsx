@@ -2415,10 +2415,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <div className="text-center">
                         <p className="text-slate-450 text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold">Por el Acreedor (Salda App)</p>
                         <div className="h-10 flex items-center justify-center italic text-blue-800 font-serif font-black">
-                          Harold Salazar S.
+                          Harold Anguiano S.
                         </div>
                         <div className="border-t border-slate-400 pt-1 text-slate-700">
-                          <strong>LIC. HAROLD SALAZAR RUIZ</strong>
+                          <strong>LIC. HAROLD ANGUIANO</strong>
                           <span className="block text-[8px] text-slate-500 font-mono">Apoderado General de Crédito</span>
                         </div>
                       </div>
@@ -2455,7 +2455,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <div>
                       <h3 className="font-extrabold text-white text-base">Contrato Digital en Trámite</h3>
                       <p className="text-xs text-slate-450 text-slate-400 mt-1 font-sans leading-relaxed">
-                        Tu contrato fiduciario se encuentra en fase de instrumentación legal y validación de firmas por nuestro super administrador <strong className="text-white">Harold Salazar</strong>.
+                        Tu contrato fiduciario se encuentra en fase de instrumentación legal y validación de firmas por nuestro super administrador <strong className="text-white">Harold Anguiano</strong>.
                       </p>
                     </div>
                   </div>

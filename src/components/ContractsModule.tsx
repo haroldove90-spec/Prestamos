@@ -660,10 +660,10 @@ export const ContractsModule: React.FC<ContractsModuleProps> = ({
                   <div className="text-center">
                     <p className="text-slate-450 text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold">Por el Acreedor (Salda App)</p>
                     <div className="h-10 flex items-center justify-center italic text-blue-800 font-serif font-black no-print">
-                      Harold Salazar S.
+                      Harold Anguiano S.
                     </div>
                     <div className="border-t border-slate-400 pt-1 text-slate-700">
-                      <strong>LIC. HAROLD SALAZAR RUIZ</strong>
+                      <strong>LIC. HAROLD ANGUIANO</strong>
                       <span className="block text-[8px] text-slate-500 font-mono">Apoderado General de Crédito</span>
                     </div>
                   </div>

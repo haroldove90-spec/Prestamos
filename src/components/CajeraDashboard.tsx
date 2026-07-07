@@ -174,7 +174,7 @@ export const CajeraDashboard: React.FC<CajeraDashboardProps> = ({
             </div>
             <div>
               <h4 className="text-sm font-bold text-white">@admin_harold</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5 font-sans leading-relaxed">Harold Salazar (Gerente Corporativo)</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 font-sans leading-relaxed">Harold Anguiano (Gerente Corporativo)</p>
             </div>
             <div className="space-y-1 text-[11px] font-mono text-slate-400">
               <div className="flex gap-1.5 items-center">

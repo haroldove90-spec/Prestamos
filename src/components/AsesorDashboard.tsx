@@ -214,7 +214,7 @@ export const AsesorDashboard: React.FC<AsesorDashboardProps> = ({
   const handleSimulateBypass = () => {
     alert(
       "🛑 [ALERTA DE SEGURIDAD PERIMETRAL]\n\n" +
-      "Detectado: Intento ilegal de modificación de estatus de Buró Interno para el cliente Roberto Martínez (CLI-003) sin token criptográfico de Harold Salazar.\n\n" +
+      "Detectado: Intento ilegal de modificación de estatus de Buró Interno para el cliente Roberto Martínez (CLI-003) sin token criptográfico de Harold Anguiano.\n\n" +
       "Acción Automática: Transacción bloqueada. El canal de comunicación móvil ha de reportar esta anomalía a la consola de @admin_harold. Se procedió al bloqueo temporal de tu cuenta operativa."
     );
     

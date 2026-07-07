@@ -101,33 +101,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
         {/* Right Side: Compact controls / Dropdown selector */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {/* Quick Access Switcher (Desktop Only) - ONLY shown for non-client roles */}
-          {!isClientRole && (
-            <div className="hidden xl:flex gap-1 bg-[#0a3a46]/10 p-1 rounded-xl border border-white/15">
-              <button
-                onClick={() => onUserChange('admin_harold')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1 cursor-pointer ${
-                  currentUser === 'admin_harold'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Key className="w-3 h-3 text-[#a3c90e]" />
-                @harold
-              </button>
-              <button
-                onClick={() => onUserChange('cliente_esperanza')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  currentUser === 'cliente_esperanza'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Smartphone className="w-3 h-3 text-[#a3c90e]" />
-                @cliente
-              </button>
-            </div>
-          )}
+          {/* Compact Display of Active User */}
 
           {/* ACTIVE USER DISPLAY NAME BADGE INSTEAD OF THE "RESET" WORD */}
           <div
@@ -210,44 +184,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                   {!isClientRole ? (
                     <>
                       <div className="px-2 py-1 text-[9px] uppercase text-white/50 font-bold tracking-widest border-b border-white/10 mb-1">
-                        Cambiar de Rol
+                        Perfil Activo
                       </div>
-                      
-                      <button
-                        onClick={() => {
-                          onUserChange('admin_harold');
-                          setShowDropdown(false);
-                        }}
-                        className={`w-full px-3 py-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer ${
-                          currentUser === 'admin_harold' 
-                            ? 'bg-[#a3c90e] text-[#0a3a46] font-bold shadow-md' 
-                            : 'hover:bg-white/10 text-white'
-                        }`}
-                      >
-                        <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">AH</div>
-                        <div className="text-left">
-                          <div className="font-bold text-[11px]">@admin_harold</div>
-                          <div className="text-[8px] opacity-80 font-sans">Super Admin</div>
+                      <div className="w-full px-3 py-2 bg-white/10 rounded-xl text-left border border-[#a3c90e]/30 flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">
+                          {getInitials(currentUser)}
                         </div>
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          onUserChange('cliente_esperanza');
-                          setShowDropdown(false);
-                        }}
-                        className={`w-full px-3 py-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer ${
-                          currentUser === 'cliente_esperanza' 
-                            ? 'bg-[#a3c90e] text-[#0a3a46] font-bold shadow-md' 
-                            : 'hover:bg-white/10 text-white'
-                        }`}
-                      >
-                        <div className="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center font-bold text-[10px]">CE</div>
-                        <div className="text-left">
-                          <div className="font-bold text-[11px]">@cliente_esperanza</div>
-                          <div className="text-[8px] opacity-80 font-sans">Portal Cliente Demo</div>
+                        <div className="text-left overflow-hidden">
+                          <div className="font-bold text-[11px] text-[#a3c90e] truncate">@{currentUser}</div>
+                          <div className="text-[8px] opacity-80 font-sans text-white truncate max-w-[110px]">{userDisplayName || getRoleName(currentUser)}</div>
                         </div>
-                      </button>
+                      </div>
                     </>
                   ) : (
                     <>

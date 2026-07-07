@@ -1497,7 +1497,7 @@ export default function App() {
         queriedClientName: payment.clientName,
         requestedBy: currentUser,
         scoreFound: 720,
-        resolution: `✓ COMPROBANTE APROBADO: Abono de $${payment.amount.toLocaleString('es-MX')} aplicado al saldo del expediente ${payment.clientId} por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'}.`
+        resolution: `✓ COMPROBANTE APROBADO: Abono de $${payment.amount.toLocaleString('es-MX')} aplicado al saldo del expediente ${payment.clientId} por ${currentUser === 'admin_harold' ? 'Harold Anguiano' : 'Lucía Lara'}.`
       };
       setQueries(prev => [auditLog, ...prev]);
 
@@ -1519,7 +1519,7 @@ export default function App() {
         queriedClientName: payment.clientName,
         requestedBy: currentUser,
         scoreFound: 350,
-        resolution: `🚫 COMPROBANTE MARCADO COMO RECHAZADO: Ficha de abono ${paymentId} cancelada por ${currentUser === 'admin_harold' ? 'Harold Salazar' : 'Lucía Lara'} (Comprobante inválido o ilegible).`
+        resolution: `🚫 COMPROBANTE MARCADO COMO RECHAZADO: Ficha de abono ${paymentId} cancelada por ${currentUser === 'admin_harold' ? 'Harold Anguiano' : 'Lucía Lara'} (Comprobante inválido o ilegible).`
       };
       setQueries(prev => [auditLog, ...prev]);
 
@@ -1731,7 +1731,7 @@ export default function App() {
       queriedClientName: target ? target.name : `Cliente ${clientId}`,
       requestedBy: currentUser || 'admin_harold',
       scoreFound: target ? target.creditScore : 600,
-      resolution: `⚠️ BAJA DE CARTERA: Expediente ${clientId} eliminado permanentemente de la Consola Central por Harold Salazar.`
+      resolution: `⚠️ BAJA DE CARTERA: Expediente ${clientId} eliminado permanentemente de la Consola Central por Harold Anguiano.`
     };
     setQueries(prev => [newQueryLog, ...prev]);
   };
@@ -2002,7 +2002,7 @@ export default function App() {
         queriedClientName: targetClient.name,
         requestedBy: 'admin_harold',
         scoreFound: targetClient.creditScore,
-        resolution: `MEMBRESÍA ACTUALIZADA: Se asignó plan "${membership}" al expediente ${clientId} por Harold Salazar.`
+        resolution: `MEMBRESÍA ACTUALIZADA: Se asignó plan "${membership}" al expediente ${clientId} por Harold Anguiano.`
       };
       setQueries(prev => [newQueryLog, ...prev]);
     }
@@ -2058,7 +2058,7 @@ export default function App() {
         queriedClientName: 'Roberto Martínez',
         requestedBy: 'admin_harold',
         scoreFound: 320,
-        resolution: `✓ REACTIVACIÓN: El administrador Harold Salazar levantó la suspensión del asesor_juan tras dictamen de seguridad.`
+        resolution: `✓ REACTIVACIÓN: El administrador Harold Anguiano levantó la suspensión del asesor_juan tras dictamen de seguridad.`
       };
       setQueries(prev => [overrideLog, ...prev]);
     } else {
@@ -2071,7 +2071,7 @@ export default function App() {
         queriedClientName: 'Roberto Martínez',
         requestedBy: 'admin_harold',
         scoreFound: 320,
-        resolution: `🚫 SANCIÓN DISCIPLINARIA: Suspensión de asesor_juan ratificada por Harold Salazar. Expediente transferido a Capital Humano y CNBV.`
+        resolution: `🚫 SANCIÓN DISCIPLINARIA: Suspensión de asesor_juan ratificada por Harold Anguiano. Expediente transferido a Capital Humano y CNBV.`
       };
       setQueries(prev => [penalLog, ...prev]);
     }
@@ -2130,7 +2130,7 @@ export default function App() {
                     <h2 className="text-base font-bold text-white tracking-wide font-sans group-hover:text-[#a3c90e] transition-colors duration-200">
                       Administrador
                     </h2>
-                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Harold Salazar</p>
+                    <p className="text-[9px] text-slate-400 font-mono tracking-tight leading-tight">Harold Anguiano</p>
                   </div>
                 </button>
 
@@ -3124,7 +3124,7 @@ export default function App() {
             </div>
             
             <p className="text-[10px] text-slate-400 font-mono tracking-wider mt-2 uppercase">
-              Estableciendo túnel cifrado CNBV • Harold Salazar_
+              Estableciendo túnel cifrado CNBV • Harold Anguiano_
             </p>
             <p className="text-[9px] text-slate-500 mt-2 font-sans opacity-75">
               (Haz clic en cualquier lado para saltar inmediatamente)
@@ -3991,12 +3991,12 @@ export default function App() {
                     </div>
                     <div>
                       <span className="text-slate-500 block">NOTIFICACIÓN DIRECTA AL COLEGIO:</span>
-                      <strong className="text-rose-400">Enviada en tiempo real a Consola de Harold Salazar (@admin_harold).</strong>
+                      <strong className="text-rose-400">Enviada en tiempo real a Consola de Harold Anguiano (@admin_harold).</strong>
                     </div>
                   </div>
 
                   <p className="text-[11px] text-amber-500 font-medium pt-3 leading-snug">
-                     Tus privilegios operativos se mantendrán suspendidos por contingencia operativa. Tu supervisor Harold Salazar ha sido notificado para evaluar el expediente de auditoría y dictaminar la resolución de reactivación o levantamiento sancionatorio.
+                     Tus privilegios operativos se mantendrán suspendidos por contingencia operativa. Tu supervisor Harold Anguiano ha sido notificado para evaluar el expediente de auditoría y dictaminar la resolución de reactivación o levantamiento sancionatorio.
                   </p>
                 </div>
               </div>
@@ -4609,7 +4609,7 @@ export default function App() {
             {/* Bottom active roles guide lines */}
             <div className="p-4 bg-slate-950/40 border-t border-white/10 text-[9px] font-mono text-slate-300 flex flex-col gap-1">
               <span>Filtro de Seguridad: <strong className="text-[#a3c90e] font-bold">Activo</strong></span>
-              <span>Visualizando alertas para: <strong className="text-white font-semibold">{currentUser === 'admin_harold' ? 'Harold Salazar (Super Admin)' : currentUser === 'asesor_juan' ? 'Juan Orozco (Asesor VIP)' : currentUser === 'cajera_lucia' ? 'Lucía Lara (Cajera Express)' : 'Portal del Cliente'}</strong></span>
+              <span>Visualizando alertas para: <strong className="text-white font-semibold">{currentUser === 'admin_harold' ? 'Harold Anguiano (Super Admin)' : currentUser === 'asesor_juan' ? 'Juan Orozco (Asesor VIP)' : currentUser === 'cajera_lucia' ? 'Lucía Lara (Cajera Express)' : 'Portal del Cliente'}</strong></span>
             </div>
           </div>
         </div>
