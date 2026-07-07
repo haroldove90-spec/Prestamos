@@ -15,6 +15,7 @@ interface WebLandingProps {
   onSwitchTab?: (tab: any) => void;
   onGoHome?: () => void;
   onClearDatabase?: () => Promise<boolean>;
+  onShowLogin?: () => void;
 }
 
 export function WebLanding({ 
@@ -24,7 +25,8 @@ export function WebLanding({
   onAddRequest,
   onSwitchTab,
   onGoHome,
-  onClearDatabase
+  onClearDatabase,
+  onShowLogin
 }: WebLandingProps) {
   // Navigation & interaction states
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -526,6 +528,17 @@ export function WebLanding({
                 title="Volver a Consola Principal"
               >
                 ← Consola
+              </button>
+            )}
+
+            {onShowLogin && (
+              <button
+                onClick={onShowLogin}
+                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-650/30 text-indigo-400 border border-indigo-500/20 font-bold text-[10px] uppercase tracking-wide rounded-xl transition cursor-pointer flex items-center gap-1 active:scale-95"
+                title="Iniciar Sesión"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Ingresar
               </button>
             )}
 

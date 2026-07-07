@@ -407,6 +407,25 @@ export const INITIAL_CLIENTS: Client[] = [
     delinquencyDays: 62,
     category: 'Pyme',
     joinDate: '2024-07-04'
+  },
+  {
+    id: 'CLI-260',
+    name: 'Diego Martínez Hernández',
+    rfc: 'MAHD000707TS1',
+    email: 'leonbrito99@gmail.com',
+    phone: '+52 81 2626 2626',
+    creditScore: 780,
+    bureauStatus: 'EXCELENTE',
+    totalCreditGranted: 150000,
+    balanceOwed: 45000,
+    delinquencyDays: 0,
+    category: 'Personal',
+    joinDate: '2026-07-06',
+    username: 'Diego26',
+    password: 'Ariann@89',
+    membership: 'Premium',
+    active: true,
+    profileImage: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&h=256&fit=crop'
   }
 ];
 

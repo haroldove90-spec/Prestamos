@@ -1,5 +1,5 @@
 -- ============================================================================
--- SALDA APP - CONFIGURACIÓN DE TABLAS DE BASE DE DATOS EN SUPABASE
+-- SALDA APP - CONFIGURACIÓN COMPLETA DE TABLAS DE BASE DE DATOS EN SUPABASE
 -- Copia y pega este script en el editor SQL de tu panel de Supabase (SQL Editor)
 -- Proyecto ID: ljtehieijrdsabmvjbcl
 -- ============================================================================
@@ -20,7 +20,11 @@ CREATE TABLE IF NOT EXISTS public.clients (
   "joinDate" TEXT NOT NULL,
   membership TEXT NOT NULL DEFAULT 'Ninguna',
   "facebookProfile" TEXT,
-  "locationLink" TEXT
+  "locationLink" TEXT,
+  username TEXT,
+  password TEXT,
+  "profileImage" TEXT,
+  active BOOLEAN NOT NULL DEFAULT true
 );
 
 -- 2. TABLA: requests
@@ -118,8 +122,29 @@ CREATE TABLE IF NOT EXISTS public.contract_templates (
   clauses TEXT NOT NULL
 );
 
--- Configuración de políticas de seguridad fáciles para el cliente (Anon Key Access)
--- Desactivar RLS o habilitar libre escritura y lectura para que la app cliente funcione de inmediato:
+-- 10. TABLA: terms_conditions (Términos y Condiciones)
+CREATE TABLE IF NOT EXISTS public.terms_conditions (
+  id TEXT PRIMARY KEY, -- 'terms_singleton'
+  content TEXT NOT NULL,
+  "updatedAt" TEXT NOT NULL
+);
+
+-- ============================================================================
+-- MIGRACIÓN DE COLUMNAS DE SEGURIDAD (En caso de que las tablas ya existan)
+-- ============================================================================
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "profileImage" TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
+
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
+
+-- ============================================================================
+-- DESACTIVACIÓN DE ROW LEVEL SECURITY (Para acceso simple con Anon Key)
+-- ============================================================================
 ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.requests DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.queries DISABLE ROW LEVEL SECURITY;
@@ -129,8 +154,9 @@ ALTER TABLE public.client_payments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dossiers DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_notifications DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contract_templates DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.terms_conditions DISABLE ROW LEVEL SECURITY;
 
--- En caso de tener RLS activado por defecto globalmente, creamos políticas permisivas para anon:
+-- Crear políticas permisivas como plan de respaldo por si RLS se mantiene activo
 DO $$
 BEGIN
     -- CLIENTS
@@ -177,32 +203,69 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'contract_templates' AND policyname = 'Allow dynamic anon access') THEN
         CREATE POLICY "Allow dynamic anon access" ON public.contract_templates FOR ALL USING (true) WITH CHECK (true);
     END IF;
-END
-$$;
 
--- ============================================================================
--- MIGRACIÓN ADICIONAL (Para bases de datos ya existentes)
--- Ejecuta estas líneas si ya tenías las tablas consolidadas del sistema anterior:
--- ============================================================================
-ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
-ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
-ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
-ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
-
--- 10. TABLA: terms_conditions (Términos y Condiciones)
-CREATE TABLE IF NOT EXISTS public.terms_conditions (
-  id TEXT PRIMARY KEY, -- 'terms_singleton'
-  content TEXT NOT NULL,
-  "updatedAt" TEXT NOT NULL
-);
-
-ALTER TABLE public.terms_conditions DISABLE ROW LEVEL SECURITY;
-
-DO $$
-BEGIN
+    -- TERMS CONDITIONS
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'terms_conditions' AND policyname = 'Allow dynamic anon access') THEN
         CREATE POLICY "Allow dynamic anon access" ON public.terms_conditions FOR ALL USING (true) WITH CHECK (true);
     END IF;
 END
 $$;
 
+-- ============================================================================
+-- INSERTAR / ACTUALIZAR CREDENCIALES DEL CLIENTE DIEGO MARTÍNEZ HERNÁNDEZ
+-- ============================================================================
+INSERT INTO public.clients (
+  id, 
+  name, 
+  rfc, 
+  email, 
+  phone, 
+  "creditScore", 
+  "bureauStatus", 
+  "totalCreditGranted", 
+  "balanceOwed", 
+  "delinquencyDays", 
+  category, 
+  "joinDate", 
+  membership, 
+  username, 
+  password, 
+  "profileImage",
+  active
+)
+VALUES (
+  'CLI-260', 
+  'Diego Martínez Hernández', 
+  'MAHD990526HDF', 
+  'leonbrito99@gmail.com', 
+  '5512345678', 
+  740, 
+  'BUENO', 
+  15000, 
+  0, 
+  0, 
+  'Excelente', 
+  '2026-07-06', 
+  'Oro', 
+  'Diego26', 
+  'Ariann@89', 
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&h=256&fit=crop',
+  true
+)
+ON CONFLICT (id) DO UPDATE SET 
+  name = EXCLUDED.name,
+  rfc = EXCLUDED.rfc,
+  email = EXCLUDED.email,
+  phone = EXCLUDED.phone,
+  "creditScore" = EXCLUDED."creditScore",
+  "bureauStatus" = EXCLUDED."bureauStatus",
+  "totalCreditGranted" = EXCLUDED."totalCreditGranted",
+  "balanceOwed" = EXCLUDED."balanceOwed",
+  "delinquencyDays" = EXCLUDED."delinquencyDays",
+  category = EXCLUDED.category,
+  "joinDate" = EXCLUDED."joinDate",
+  membership = EXCLUDED.membership,
+  username = EXCLUDED.username,
+  password = EXCLUDED.password,
+  "profileImage" = EXCLUDED."profileImage",
+  active = EXCLUDED.active;

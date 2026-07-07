@@ -4,7 +4,7 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle, Printer, Lock, Percent, Globe, Download
+  PlusCircle, Printer, Lock, Percent, Globe, Download, Edit
 } from 'lucide-react';
 import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract, ContractTemplate, interpolateContractTemplate, TermsConditions } from '../types';
 import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
@@ -123,6 +123,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [tempBirthDate, setTempBirthDate] = useState('');
   const [tempAddress, setTempAddress] = useState('');
   const [tempPassword, setTempPassword] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
   const [tempProfileImage, setTempProfileImage] = useState('');
   const [tempIneFront, setTempIneFront] = useState('');
   const [tempIneBack, setTempIneBack] = useState('');
@@ -798,6 +799,28 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                 <span className="text-xs font-black text-white truncate">Marta Gómez</span>
               </div>
               <span className="text-[9px] font-mono text-slate-400">Préstamo Liquidado ($0)</span>
+            </button>
+
+            {/* PROFILE 5 (Diego Martínez) */}
+            <button
+              onClick={() => {
+                loadTestDataProfile({
+                  id: 'CLI-260',
+                  name: 'Diego Martínez Hernández',
+                  username: 'Diego26',
+                  totalCreditGranted: 150000,
+                  balanceOwed: 45000,
+                  delinquencyDays: 0,
+                  membership: 'Premium'
+                });
+              }}
+              className="p-3 rounded-xl border border-indigo-500/15 hover:border-indigo-500 bg-slate-950/70 hover:bg-slate-950 text-left transition duration-150 transform hover:scale-[1.02] active:scale-95 cursor-pointer flex flex-col gap-1 inline-block"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                <span className="text-xs font-black text-white truncate">Diego Martínez</span>
+              </div>
+              <span className="text-[9px] font-mono text-slate-400">Excelente ($45,000)</span>
             </button>
           </div>
         </div>
@@ -1760,24 +1783,77 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
           {/* 4. VIEW "MI PERFIL" CONTAINER */}
           {portalTab === 'profile' && activeClient && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
-              <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-[#a3c90e]" />
-                  Expediente Digital Verificado
-                </h3>
-                <p className="text-[11px] text-slate-400 font-mono mt-1">
-                  ID de Cliente: {activeClient.id} • Consulta tus registros contractuales y personales protegidos.
-                </p>
-              </div>
-
-              {/* Security Lock Banner */}
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3 text-xs text-amber-400">
-                <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
                 <div>
-                  <span className="font-bold block uppercase tracking-wide mb-0.5">Expediente Certificado y Bloqueado 🔒</span>
-                  Por políticas de seguridad de SALDA APP y cumplimiento legal ante de buró de crédito, toda la información personal, credenciales de acceso y expediente digital quedan bloqueados una vez completado el registro. Solo es posible su visualización. Si requieres alguna rectificación, solicita soporte con un asesor.
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-5 h-5 text-[#a3c90e]" />
+                    Mi Perfil & Expediente Digital
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-1">
+                    ID de Cliente: {activeClient.id} • Administra tu información personal, contraseña de acceso y avatar.
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  {isEditingProfile ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingProfile(false);
+                          setTempName(activeClient.name || '');
+                          setTempRfc(activeClient.rfc || '');
+                          setTempPhone(activeClient.phone || '');
+                          setTempEmail(activeClient.email || '');
+                          setTempPassword(activeClient.password || '');
+                          setTempProfileImage(activeClient.profileImage || '');
+                          setTempFacebookProfile(activeClient.facebookProfile || myDossier?.facebookProfile || '');
+                          setTempLocationLink(activeClient.locationLink || myDossier?.locationLink || '');
+                          if (myDossier) {
+                            setTempBirthDate(myDossier.birthDate || '');
+                            setTempAddress(myDossier.address || '');
+                          }
+                          setProfileErrorMsg(null);
+                        }}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 font-bold text-[11px] uppercase tracking-wide rounded-xl transition cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSaveProfileChanges();
+                          setIsEditingProfile(false);
+                        }}
+                        className="px-4 py-2 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black text-[11px] uppercase tracking-wide rounded-xl transition cursor-pointer shadow-lg shadow-[#a3c90e]/15"
+                      >
+                        Guardar Cambios
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] uppercase tracking-wide rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-indigo-600/15"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      Editar mis datos
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {profileSuccessMsg && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 text-[#a3c90e] text-xs rounded-xl font-medium">
+                  ✓ {profileSuccessMsg}
+                </div>
+              )}
+
+              {profileErrorMsg && (
+                <div className="p-3 bg-red-500/10 border border-red-500/25 text-red-400 text-xs rounded-xl font-medium">
+                  ✕ {profileErrorMsg}
+                </div>
+              )}
 
               {/* Form container divided in responsive columns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1787,7 +1863,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                   <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5 flex justify-between items-center">
                     <span>1. Datos Personales de Identidad</span>
                     <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] px-1.5 py-0.5 rounded uppercase font-mono flex items-center gap-1 font-semibold">
-                      <Lock className="w-2.5 h-2.5" /> BLOQUEADO
+                      {isEditingProfile ? (
+                        <>✏️ EDITANDO</>
+                      ) : (
+                        <><Lock className="w-2.5 h-2.5" /> BLOQUEADO</>
+                      )}
                     </span>
                   </h4>
 
@@ -1795,9 +1875,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Nombre Completo:</label>
                     <input
                       type="text"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1806,9 +1891,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">RFC Oficial:</label>
                     <input
                       type="text"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-slate-400 uppercase cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs font-mono uppercase transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempRfc}
+                      onChange={(e) => setTempRfc(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1817,9 +1907,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Teléfono Móvil:</label>
                     <input
                       type="tel"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempPhone}
+                      onChange={(e) => setTempPhone(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1828,9 +1923,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección de Correo Electrónico:</label>
                     <input
                       type="email"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempEmail}
+                      onChange={(e) => setTempEmail(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1839,9 +1939,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Fecha de Nacimiento:</label>
                     <input
                       type="date"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-300 cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-300 cursor-not-allowed'
+                      }`}
                       value={tempBirthDate}
+                      onChange={(e) => setTempBirthDate(e.target.value)}
                     />
                   </div>
 
@@ -1849,9 +1954,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Dirección Domiciliaria:</label>
                     <textarea
                       rows={2}
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed resize-none"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs resize-none transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempAddress}
+                      onChange={(e) => setTempAddress(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1860,9 +1970,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Perfil de Facebook:</label>
                     <input
                       type="text"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                      }`}
                       value={tempFacebookProfile}
+                      onChange={(e) => setTempFacebookProfile(e.target.value)}
                       placeholder="Sin registrar"
                     />
                   </div>
@@ -1872,9 +1987,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <div className="relative">
                       <input
                         type="text"
-                        disabled
-                        className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed pr-12"
+                        disabled={!isEditingProfile}
+                        className={`w-full rounded-xl px-3 py-2 text-xs pr-12 transition duration-150 ${
+                          isEditingProfile 
+                            ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500' 
+                            : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed'
+                        }`}
                         value={tempLocationLink}
+                        onChange={(e) => setTempLocationLink(e.target.value)}
                         placeholder="Sin registrar"
                       />
                       {tempLocationLink && (
@@ -1896,7 +2016,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                   <h4 className="text-[11px] uppercase font-mono font-bold text-[#a3c90e] border-b border-slate-850 pb-1.5 flex justify-between items-center">
                     <span>2. Contraseña del Sistema</span>
                     <span className="text-[9px] bg-[#a3c90e]/10 text-[#a3c90e] px-1.5 py-0.5 rounded uppercase font-mono flex items-center gap-1 font-semibold">
-                      <Lock className="w-2.5 h-2.5" /> ENCRIPTADO
+                      {isEditingProfile ? <>✏️ EDITABLE</> : <><Lock className="w-2.5 h-2.5" /> ENCRIPTADO</>}
                     </span>
                   </h4>
 
@@ -1914,9 +2034,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso:</label>
                     <input
                       type="text"
-                      disabled
-                      className="w-full bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono text-slate-550 cursor-not-allowed select-all"
+                      disabled={!isEditingProfile}
+                      className={`w-full rounded-xl px-3 py-2 text-xs font-mono transition duration-150 ${
+                        isEditingProfile 
+                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]' 
+                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed select-all'
+                      }`}
                       value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
                       placeholder="Contraseña del cliente"
                     />
                   </div>
@@ -1935,8 +2060,36 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                         )}
                       </div>
 
-                      <div className="flex-1 text-[11px] text-slate-400 leading-normal">
-                        La fotografía de perfil se encuentra locked por seguridad. Si requieres actualizar tu foto, ponte en contacto con administración.
+                      <div className="flex-1 text-[11px] text-slate-400 leading-normal space-y-2">
+                        {isEditingProfile ? (
+                          <>
+                            <p className="text-slate-300">Sube una nueva foto en formato PNG o JPG.</p>
+                            <div className="flex gap-2">
+                              <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-200 rounded-lg text-[10px] font-bold uppercase tracking-wide cursor-pointer transition">
+                                Seleccionar Archivo
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleProfileFileChange('profileImage', e)}
+                                />
+                              </label>
+                              {tempProfileImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearImage('profileImage')}
+                                  className="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-500/25 border border-red-500/20 text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-wide cursor-pointer transition"
+                                >
+                                  Eliminar
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-slate-400">
+                            La fotografía de perfil se encuentra locked por seguridad. Haz clic en "Editar mis datos" para poder actualizarla.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

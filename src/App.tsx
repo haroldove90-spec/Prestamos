@@ -251,12 +251,40 @@ export default function App() {
   });
 
   const [currentUser, setCurrentUser] = useState<string>('admin_harold');
+  const [isPersonalizedRef, setIsPersonalizedRef] = useState<boolean>(false);
+  const [refUsername, setRefUsername] = useState<string>('');
+
+  useEffect(() => {
+    const pathname = window.location.pathname.toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref') || params.get('user') || params.get('view') || '';
+    
+    const isClientRoute = pathname.includes('/clientes') || ref.toLowerCase() === 'clientes';
+    const isWebRoute = pathname.includes('/web') || ref.toLowerCase() === 'web' || ref.toLowerCase() === 'landing';
+    const isDiegoRef = ref.toLowerCase() === 'diego26' || ref.toLowerCase() === 'diego';
+
+    if (isDiegoRef) {
+      setIsPersonalizedRef(true);
+      setRefUsername('Diego26');
+      setCurrentUser('public_visitor');
+      setIsHome(false);
+      setActiveTab('web_landing');
+    } else if (isWebRoute) {
+      setCurrentUser('public_visitor');
+      setIsHome(false);
+      setActiveTab('web_landing');
+    } else if (isClientRoute) {
+      setIsHome(true);
+      setHomeSubView('client_options');
+    }
+  }, []);
 
   const getUserDisplayName = (user: string) => {
     if (user === 'admin_harold') return 'Harold Salazar';
     if (user === 'asesor_juan') return 'Juan Orozco';
     if (user === 'cajera_lucia') return 'Lucía Lara';
     if (user === 'cliente_esperanza') return 'Esperanza Escobedo Guzman';
+    if (user.toLowerCase() === 'diego26' || user.toLowerCase() === 'cliente_diego26') return 'Diego Martínez Hernández';
     if (user.startsWith('cliente_')) {
       const parts = user.replace('cliente_', '').split('_');
       return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
@@ -408,7 +436,7 @@ export default function App() {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [isHome, setIsHome] = useState<boolean>(true);
-  const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register'>('roles');
+  const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register' | 'admin_login'>('roles');
 
   // Client number baseline configuration
   const [nextClientNumberBase, setNextClientNumberBase] = useState<string>(() => {
@@ -424,6 +452,10 @@ export default function App() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  
+  const [adminUsernameState, setAdminUsernameState] = useState('admin_harold');
+  const [adminPasswordState, setAdminPasswordState] = useState('');
+  const [adminLoginError, setAdminLoginError] = useState('');
   
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
@@ -2079,9 +2111,7 @@ export default function App() {
                 {/* ADMIN ACCESS CARD */}
                 <button
                   onClick={() => {
-                    setCurrentUser('admin_harold');
-                    setActiveTab('portfolio');
-                    setIsHome(false);
+                    setHomeSubView('admin_login');
                     playSynthesizedSound('success');
                   }}
                   className="group relative bg-[#0a1f26]/60 hover:bg-[#0f2e38] border border-white/10 hover:border-[#a3c90e]/40 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 text-center overflow-hidden"
@@ -2270,6 +2300,157 @@ export default function App() {
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-500 -rotate-90" />
                 </button>
+              </div>
+
+              <div className="pt-2 text-center">
+                <button
+                  onClick={() => {
+                    if (isPersonalizedRef) {
+                      setCurrentUser('public_visitor');
+                      setActiveTab('web_landing');
+                      setIsHome(false);
+                    } else {
+                      setHomeSubView('roles');
+                    }
+                  }}
+                  className="text-xs text-slate-400 hover:text-white font-mono underline cursor-pointer bg-transparent border-none"
+                  type="button"
+                >
+                  {isPersonalizedRef ? '← Volver al Sitio Web' : '← Regresar al Selector de Roles'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {homeSubView === 'admin_login' && (
+            <div className="w-full max-w-lg bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-[32px] space-y-6 animate-fade-in relative overflow-hidden" id="admin-login-card">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#a3c90e]/5 rounded-full blur-2xl animate-pulse" />
+              
+              <div className="border-b border-slate-800 pb-4 text-center sm:text-left">
+                <span className="text-[9px] font-mono font-black text-[#a3c90e] uppercase tracking-widest block">Acceso Administrativo</span>
+                <h3 className="text-lg font-bold text-white mt-1">Consola del Administrador</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-normal">
+                  Ingresa las credenciales de administración de Salda App para acceder al portafolio, bitácora de eventos y la mesa de cotejo de expedientes.
+                </p>
+              </div>
+
+              {/* Login Form */}
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setAdminLoginError('');
+                  const cleanUsername = adminUsernameState.trim().toLowerCase();
+                  const cleanPassword = adminPasswordState.trim();
+                  
+                  let matchedUser = '';
+                  if (cleanUsername === 'admin_harold' || cleanUsername === 'harold') {
+                    if (cleanPassword === 'admin' || cleanPassword === 'Ariann@89' || cleanPassword === 'SaldaAdmin2026!') {
+                      matchedUser = 'admin_harold';
+                    } else {
+                      setAdminLoginError('Contraseña administrativa incorrecta.');
+                      playSynthesizedSound('warning');
+                      return;
+                    }
+                  } else if (cleanUsername === 'asesor_juan' || cleanUsername === 'juan') {
+                    if (cleanPassword === 'asesor' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
+                      matchedUser = 'asesor_juan';
+                    } else {
+                      setAdminLoginError('Contraseña incorrecta para asesor.');
+                      playSynthesizedSound('warning');
+                      return;
+                    }
+                  } else if (cleanUsername === 'cajera_lucia' || cleanUsername === 'lucia') {
+                    if (cleanPassword === 'caja' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
+                      matchedUser = 'cajera_lucia';
+                    } else {
+                      setAdminLoginError('Contraseña incorrecta para cajera.');
+                      playSynthesizedSound('warning');
+                      return;
+                    }
+                  } else {
+                    setAdminLoginError('El usuario administrativo ingresado no está registrado.');
+                    playSynthesizedSound('warning');
+                    return;
+                  }
+
+                  // Admin Login successful!
+                  setCurrentUser(matchedUser);
+                  if (matchedUser === 'admin_harold') {
+                    setActiveTab('portfolio');
+                  } else if (matchedUser === 'asesor_juan') {
+                    setActiveTab('asesor_dashboard');
+                  } else {
+                    setActiveTab('cajera_dashboard');
+                  }
+                  setIsHome(false);
+                  playSynthesizedSound('success');
+
+                  // Reset fields
+                  setAdminPasswordState('');
+                  setAdminLoginError('');
+                }}
+                className="space-y-4"
+              >
+                {adminLoginError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/25 text-red-500 text-xs rounded-xl flex items-center gap-2 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    <span>{adminLoginError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Usuario Administrativo *:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. admin_harold"
+                    value={adminUsernameState}
+                    onChange={(e) => setAdminUsernameState(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e] font-medium"
+                    id="admin-login-username-input"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso *:</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Ingrese su contraseña"
+                    value={adminPasswordState}
+                    onChange={(e) => setAdminPasswordState(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                    id="admin-login-password-input"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#a3c90e] hover:bg-[#b5dc12] text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-[#a3c90e]/10 active:scale-95 duration-100 mt-2"
+                  id="submit-admin-login-button"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Entrar como Administrador
+                </button>
+              </form>
+
+              {/* Helpful Quick Credentials Information */}
+              <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl space-y-2">
+                <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase tracking-wider">Credenciales de Acceso Rápido:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-slate-400 font-mono">
+                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
+                    <p className="font-bold text-[#a3c90e]">@admin_harold</p>
+                    <p className="text-[9px]">Clave: admin</p>
+                  </div>
+                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
+                    <p className="font-bold text-indigo-400">@asesor_juan</p>
+                    <p className="text-[9px]">Clave: asesor</p>
+                  </div>
+                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
+                    <p className="font-bold text-emerald-400">@cajera_lucia</p>
+                    <p className="text-[9px]">Clave: caja</p>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 text-center">
@@ -2892,6 +3073,20 @@ export default function App() {
   if (!isHome && currentUser === 'public_visitor') {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" id="public-landing-view">
+        {isPersonalizedRef && (
+          <div className="bg-indigo-950/90 backdrop-blur border-b border-indigo-500/30 text-indigo-200 px-4 py-3 text-center text-xs font-medium flex flex-wrap items-center justify-center gap-2 relative z-40 shadow-md">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              ¡Hola <strong>Diego Martínez Hernández</strong>! Bienvenido a tu enlace personalizado. Solicita tu préstamo o ingresa a tu dashboard.
+            </span>
+            <button 
+              onClick={() => { setIsHome(true); setHomeSubView('client_options'); }}
+              className="ml-3 px-3 py-1 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black rounded-lg text-[10px] uppercase tracking-wider transition active:scale-95 shrink-0 cursor-pointer"
+            >
+              Entrar al Dashboard
+            </button>
+          </div>
+        )}
         <WebLanding 
           config={landingConfig}
           onUpdateConfig={handleUpdateLandingConfig}
@@ -2902,7 +3097,11 @@ export default function App() {
               setIsHome(true);
             }
           }}
-          onGoHome={() => setIsHome(true)}
+          onGoHome={isPersonalizedRef ? undefined : () => setIsHome(true)}
+          onShowLogin={() => {
+            setIsHome(true);
+            setHomeSubView('client_options');
+          }}
         />
       </div>
     );
@@ -3015,7 +3214,15 @@ export default function App() {
             onOpenNotifications={() => setIsNotificationTrayOpen(true)}
             isSoundEnabled={isSoundEnabled}
             onToggleSound={toggleSoundSettings}
-            onGoHome={() => setIsHome(true)}
+            onGoHome={() => {
+              if (isPersonalizedRef) {
+                setCurrentUser('public_visitor');
+                setActiveTab('web_landing');
+                setIsHome(false);
+              } else {
+                setIsHome(true);
+              }
+            }}
             userDisplayName={headerDisplayName}
             profileImage={headerProfileImage}
           />
