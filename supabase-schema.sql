@@ -269,3 +269,38 @@ ON CONFLICT (id) DO UPDATE SET
   password = EXCLUDED.password,
   "profileImage" = EXCLUDED."profileImage",
   active = EXCLUDED.active;
+
+-- ============================================================================
+-- 11. TABLA: administrators (Administradores y Personal Operativo)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.administrators (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true
+);
+
+ALTER TABLE public.administrators DISABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'administrators' AND policyname = 'Allow dynamic anon access') THEN
+        CREATE POLICY "Allow dynamic anon access" ON public.administrators FOR ALL USING (true) WITH CHECK (true);
+    END IF;
+END
+$$;
+
+-- INSERTAR / ACTUALIZAR CREDENCIALES ADMINISTRATIVAS
+INSERT INTO public.administrators (id, name, username, password, role, active)
+VALUES 
+  ('admin_harold', 'Harold Anguiano', 'harold_anguiano', 'Chevropar#1970', 'admin', true),
+  ('asesor_juan', 'Juan Orozco', 'asesor_juan', 'asesor', 'asesor', true),
+  ('cajera_lucia', 'Lucía Lara', 'cajera_lucia', 'caja', 'cajera', true)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  username = EXCLUDED.username,
+  password = EXCLUDED.password,
+  role = EXCLUDED.role,
+  active = EXCLUDED.active;

@@ -283,7 +283,7 @@ export default function App() {
   }, []);
 
   const getUserDisplayName = (user: string) => {
-    if (user === 'admin_harold') return 'Harold Salazar';
+    if (user === 'admin_harold' || user === 'harold_anguiano') return 'Harold Anguiano';
     if (user === 'asesor_juan') return 'Juan Orozco';
     if (user === 'cajera_lucia') return 'Lucía Lara';
     if (user === 'cliente_esperanza') return 'Esperanza Escobedo Guzman';
@@ -456,7 +456,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   
-  const [adminUsernameState, setAdminUsernameState] = useState('admin_harold');
+  const [adminUsernameState, setAdminUsernameState] = useState('');
   const [adminPasswordState, setAdminPasswordState] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
   
@@ -2346,8 +2346,8 @@ export default function App() {
                   const cleanPassword = adminPasswordState.trim();
                   
                   let matchedUser = '';
-                  if (cleanUsername === 'admin_harold' || cleanUsername === 'harold') {
-                    if (cleanPassword === 'admin' || cleanPassword === 'Ariann@89' || cleanPassword === 'SaldaAdmin2026!') {
+                  if (cleanUsername === 'harold_anguiano' || cleanUsername === 'admin_harold' || cleanUsername === 'harold') {
+                    if (cleanPassword === 'Chevropar#1970' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89' || cleanPassword === 'SaldaAdmin2026!') {
                       matchedUser = 'admin_harold';
                     } else {
                       setAdminLoginError('Contraseña administrativa incorrecta.');
@@ -2406,7 +2406,7 @@ export default function App() {
                   <input
                     type="text"
                     required
-                    placeholder="Ej. admin_harold"
+                    placeholder="Ingrese su usuario"
                     value={adminUsernameState}
                     onChange={(e) => setAdminUsernameState(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e] font-medium"
@@ -2436,25 +2436,6 @@ export default function App() {
                   Entrar como Administrador
                 </button>
               </form>
-
-              {/* Helpful Quick Credentials Information */}
-              <div className="p-3.5 bg-slate-950/50 border border-slate-800 rounded-2xl space-y-2">
-                <span className="text-[9px] font-mono font-bold text-slate-400 block uppercase tracking-wider">Credenciales de Acceso Rápido:</span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-slate-400 font-mono">
-                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
-                    <p className="font-bold text-[#a3c90e]">@admin_harold</p>
-                    <p className="text-[9px]">Clave: admin</p>
-                  </div>
-                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
-                    <p className="font-bold text-indigo-400">@asesor_juan</p>
-                    <p className="text-[9px]">Clave: asesor</p>
-                  </div>
-                  <div className="p-2 bg-slate-900 border border-slate-800/40 rounded-xl">
-                    <p className="font-bold text-emerald-400">@cajera_lucia</p>
-                    <p className="text-[9px]">Clave: caja</p>
-                  </div>
-                </div>
-              </div>
 
               <div className="pt-2 text-center">
                 <button
