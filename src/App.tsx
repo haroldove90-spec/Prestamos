@@ -256,11 +256,12 @@ export default function App() {
 
   useEffect(() => {
     const pathname = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref') || params.get('user') || params.get('view') || '';
     
-    const isClientRoute = pathname.includes('/clientes') || ref.toLowerCase() === 'clientes';
-    const isWebRoute = pathname.includes('/web') || ref.toLowerCase() === 'web' || ref.toLowerCase() === 'landing';
+    const isClientRoute = pathname.includes('/clientes') || hash.includes('clientes') || ref.toLowerCase() === 'clientes';
+    const isWebRoute = pathname.includes('/web') || hash.includes('web') || ref.toLowerCase() === 'web' || ref.toLowerCase() === 'landing';
     const isDiegoRef = ref.toLowerCase() === 'diego26' || ref.toLowerCase() === 'diego';
 
     if (isDiegoRef) {
@@ -274,6 +275,8 @@ export default function App() {
       setIsHome(false);
       setActiveTab('web_landing');
     } else if (isClientRoute) {
+      // Clear admin session to guarantee client-only access is displayed
+      setCurrentUser('');
       setIsHome(true);
       setHomeSubView('client_options');
     }
@@ -4159,6 +4162,14 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={false}
                     onAddRequest={handleAddRequest}
+                    onGoHome={() => {
+                      setIsHome(true);
+                      setHomeSubView('roles');
+                    }}
+                    onShowLogin={() => {
+                      setIsHome(true);
+                      setHomeSubView('client_options');
+                    }}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('credit_simulation');
@@ -4175,6 +4186,14 @@ export default function App() {
                     onUpdateConfig={handleUpdateLandingConfig}
                     isAdminMode={currentUser === 'admin_harold'}
                     onAddRequest={handleAddRequest}
+                    onGoHome={() => {
+                      setIsHome(true);
+                      setHomeSubView('roles');
+                    }}
+                    onShowLogin={() => {
+                      setIsHome(true);
+                      setHomeSubView('client_options');
+                    }}
                     onSwitchTab={(tab) => {
                       if (tab === 'requests') {
                         setActiveTab('requests');
