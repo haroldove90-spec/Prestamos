@@ -1016,15 +1016,29 @@ export default function App() {
         // 2. Sincronizar clientes
         const cloudClients = await fetchClientsCloud();
         if (cloudClients !== null) {
-          lastClientsSyncRef.current = JSON.stringify(cloudClients);
-          if (cloudClients.length === 0) {
-            if (!isCleanDb) {
-              await bulkInsertClientsCloud(clients);
+          const mergedClients = [...cloudClients];
+          INITIAL_CLIENTS.forEach(initClient => {
+            const idx = mergedClients.findIndex(c => c.id === initClient.id);
+            if (idx !== -1) {
+              // Override/merge critical credentials from INITIAL_CLIENTS to prevent stale database profiles from locking logins
+              mergedClients[idx] = {
+                ...mergedClients[idx],
+                username: initClient.username || mergedClients[idx].username,
+                password: initClient.password || mergedClients[idx].password,
+                active: initClient.active !== undefined ? initClient.active : mergedClients[idx].active,
+                email: initClient.email || mergedClients[idx].email,
+              };
             } else {
-              setClients([]);
+              mergedClients.push(initClient);
             }
-          } else {
-            setClients(cloudClients);
+          });
+
+          lastClientsSyncRef.current = JSON.stringify(mergedClients);
+          setClients(mergedClients);
+
+          // Sync the updated/merged list back to Supabase to update credentials or insert missing records
+          if (mergedClients.length > 0) {
+            await bulkInsertClientsCloud(mergedClients);
           }
         }
 
