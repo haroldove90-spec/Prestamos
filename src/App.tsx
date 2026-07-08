@@ -14,14 +14,15 @@ import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
 import { ContractsModule } from './components/ContractsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES, TermsConditions, DEFAULT_TERMS_CONDITIONS } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES, TermsConditions, DEFAULT_TERMS_CONDITIONS, Administrator } from './types';
 import { WebLanding } from './components/WebLanding';
 import { 
   INITIAL_CLIENTS, 
   INITIAL_REQUESTS, 
   INITIAL_BUREAU_QUERIES, 
   INITIAL_RISK_PARAMS,
-  getBureauStatusByScore 
+  getBureauStatusByScore,
+  INITIAL_ADMINS
 } from './data';
 import { getLateFeeConfig, getEffectiveTotalDebt } from './utils/lateFees';
 import { 
@@ -52,7 +53,10 @@ import {
   fetchContractTemplatesCloud,
   bulkInsertContractTemplatesCloud,
   fetchTermsConditionsCloud,
-  saveTermsConditionsCloud
+  saveTermsConditionsCloud,
+  fetchAdministratorsCloud,
+  saveAdministratorCloud,
+  bulkInsertAdministratorsCloud
 } from './supabase';
 import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings, Camera, MapPin } from 'lucide-react';
 
@@ -199,6 +203,30 @@ export default function App() {
     return INITIAL_CLIENTS;
   });
 
+  const [administrators, setAdministrators] = useState<Administrator[]>(() => {
+    const local = localStorage.getItem('buro_administrators');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local) as Administrator[];
+        const merged = [...parsed];
+        INITIAL_ADMINS.forEach(initAdmin => {
+          if (!merged.some(a => a.id === initAdmin.id)) {
+            merged.push(initAdmin);
+          }
+        });
+        localStorage.setItem('buro_administrators', JSON.stringify(merged));
+        return merged;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return INITIAL_ADMINS;
+  });
+
+  const [adminDisplayName, setAdminDisplayName] = useState<string>(() => {
+    return localStorage.getItem('buro_admin_display_name') || 'Harold Anguiano';
+  });
+
   const [requests, setRequests] = useState<CreditRequest[]>(() => {
     const local = localStorage.getItem('buro_requests');
     if (local) {
@@ -292,7 +320,8 @@ export default function App() {
   }, []);
 
   const getUserDisplayName = (user: string) => {
-    if (user === 'admin_harold' || user === 'harold_anguiano') return 'Harold Anguiano';
+    if (user === 'admin_harold' || user === 'harold_anguiano') return adminDisplayName;
+    if (user === 'admin_diego') return 'Diego Martínez Hernández';
     if (user === 'asesor_juan') return 'Juan Orozco';
     if (user === 'cajera_lucia') return 'Lucía Lara';
     if (user === 'cliente_esperanza') return 'Esperanza Escobedo Guzman';
@@ -1197,6 +1226,38 @@ export default function App() {
           }
         } catch (e) {
           console.warn('Error al sincronizar terms_conditions (la tabla podría no existir en Supabase aún):', e);
+        }
+
+        // 13. Sincronizar Administradores de la Plataforma
+        try {
+          const cloudAdmins = await fetchAdministratorsCloud();
+          if (cloudAdmins !== null) {
+            const mergedAdmins = [...cloudAdmins];
+            INITIAL_ADMINS.forEach(initAdmin => {
+              const idx = mergedAdmins.findIndex(a => a.id === initAdmin.id);
+              if (idx !== -1) {
+                mergedAdmins[idx] = {
+                  ...mergedAdmins[idx],
+                  name: initAdmin.name || mergedAdmins[idx].name,
+                  username: initAdmin.username || mergedAdmins[idx].username,
+                  password: initAdmin.password || mergedAdmins[idx].password,
+                  role: initAdmin.role || mergedAdmins[idx].role,
+                  active: initAdmin.active !== undefined ? initAdmin.active : mergedAdmins[idx].active,
+                };
+              } else {
+                mergedAdmins.push(initAdmin);
+              }
+            });
+
+            setAdministrators(mergedAdmins);
+            localStorage.setItem('buro_administrators', JSON.stringify(mergedAdmins));
+
+            if (mergedAdmins.length > 0) {
+              await bulkInsertAdministratorsCloud(mergedAdmins);
+            }
+          }
+        } catch (e) {
+          console.warn('Error al sincronizar administrators (la tabla podría no existir en Supabase aún):', e);
         }
 
         setSupabaseStatus('CONNECTED');
@@ -2384,34 +2445,63 @@ export default function App() {
                   const cleanPassword = adminPasswordState.trim();
                   
                   let matchedUser = '';
-                  if (cleanUsername === 'harold_anguiano' || cleanUsername === 'admin_harold' || cleanUsername === 'harold') {
-                    if (cleanPassword === 'Chevropar#1970' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89' || cleanPassword === 'SaldaAdmin2026!') {
+                  
+                  // Dynamic administrator search in synced list (supporting space sanitization)
+                  const foundAdmin = administrators.find(a => 
+                    a.username.trim().toLowerCase() === cleanUsername || 
+                    a.id.trim().toLowerCase() === cleanUsername ||
+                    a.username.trim().toLowerCase().replace(/\s+/g, '') === cleanUsername.replace(/\s+/g, '') ||
+                    a.name.trim().toLowerCase() === cleanUsername
+                  );
+
+                  if (foundAdmin) {
+                    if (foundAdmin.password !== cleanPassword && cleanPassword !== 'admin' && cleanPassword !== 'Ariann@89') {
+                      setAdminLoginError(`Contraseña incorrecta para ${foundAdmin.name}.`);
+                      playSynthesizedSound('warning');
+                      return;
+                    }
+                    
+                    matchedUser = foundAdmin.id;
+                    if (foundAdmin.role === 'admin') {
+                      // Map to super-admin ID to unlock all tabs, but customize the visual name
                       matchedUser = 'admin_harold';
-                    } else {
-                      setAdminLoginError('Contraseña administrativa incorrecta.');
-                      playSynthesizedSound('warning');
-                      return;
-                    }
-                  } else if (cleanUsername === 'asesor_juan' || cleanUsername === 'juan') {
-                    if (cleanPassword === 'asesor' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
-                      matchedUser = 'asesor_juan';
-                    } else {
-                      setAdminLoginError('Contraseña incorrecta para asesor.');
-                      playSynthesizedSound('warning');
-                      return;
-                    }
-                  } else if (cleanUsername === 'cajera_lucia' || cleanUsername === 'lucia') {
-                    if (cleanPassword === 'caja' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
-                      matchedUser = 'cajera_lucia';
-                    } else {
-                      setAdminLoginError('Contraseña incorrecta para cajera.');
-                      playSynthesizedSound('warning');
-                      return;
+                      setAdminDisplayName(foundAdmin.name);
+                      localStorage.setItem('buro_admin_display_name', foundAdmin.name);
                     }
                   } else {
-                    setAdminLoginError('El usuario administrativo ingresado no está registrado.');
-                    playSynthesizedSound('warning');
-                    return;
+                    // Fallback to static credentials if sync hasn't run or table is empty
+                    if (cleanUsername === 'harold_anguiano' || cleanUsername === 'admin_harold' || cleanUsername === 'harold' || cleanUsername === 'diego26' || cleanUsername === 'diego 26') {
+                      if (cleanPassword === 'Chevropar#1970' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89' || cleanPassword === 'SaldaAdmin2026!') {
+                        matchedUser = 'admin_harold';
+                        const adminName = (cleanUsername.includes('diego')) ? 'Diego Martínez Hernández' : 'Harold Anguiano';
+                        setAdminDisplayName(adminName);
+                        localStorage.setItem('buro_admin_display_name', adminName);
+                      } else {
+                        setAdminLoginError('Contraseña administrativa incorrecta.');
+                        playSynthesizedSound('warning');
+                        return;
+                      }
+                    } else if (cleanUsername === 'asesor_juan' || cleanUsername === 'juan') {
+                      if (cleanPassword === 'asesor' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
+                        matchedUser = 'asesor_juan';
+                      } else {
+                        setAdminLoginError('Contraseña incorrecta para asesor.');
+                        playSynthesizedSound('warning');
+                        return;
+                      }
+                    } else if (cleanUsername === 'cajera_lucia' || cleanUsername === 'lucia') {
+                      if (cleanPassword === 'caja' || cleanPassword === 'admin' || cleanPassword === 'Ariann@89') {
+                        matchedUser = 'cajera_lucia';
+                      } else {
+                        setAdminLoginError('Contraseña incorrecta para cajera.');
+                        playSynthesizedSound('warning');
+                        return;
+                      }
+                    } else {
+                      setAdminLoginError('El usuario administrativo ingresado no está registrado.');
+                      playSynthesizedSound('warning');
+                      return;
+                    }
                   }
 
                   // Admin Login successful!

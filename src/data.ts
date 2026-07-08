@@ -3,7 +3,7 @@
  * Initial dataset for the client portfolio, bureau queries, and credit requests.
  */
 
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, BureauStatus } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, BureauStatus, Administrator } from './types';
 
 export const getBureauStatusByScore = (score: number, delinquencyDays: number): BureauStatus => {
   if (delinquencyDays > 30) return 'ALERTA';
@@ -496,3 +496,39 @@ export const INITIAL_RISK_PARAMS: RiskParameters = {
   maxDelinquencyDaysAllowed: 30,
   baseInterestRate: 14.5
 };
+
+export const INITIAL_ADMINS: Administrator[] = [
+  {
+    id: 'admin_harold',
+    name: 'Harold Anguiano',
+    username: 'harold_anguiano',
+    password: 'Chevropar#1970',
+    role: 'admin',
+    active: true
+  },
+  {
+    id: 'admin_diego',
+    name: 'Diego Martínez Hernández',
+    username: 'Diego26',
+    password: 'Ariann@89',
+    role: 'admin',
+    active: true
+  },
+  {
+    id: 'asesor_juan',
+    name: 'Juan Orozco',
+    username: 'asesor_juan',
+    password: 'asesor',
+    role: 'asesor',
+    active: true
+  },
+  {
+    id: 'cajera_lucia',
+    name: 'Lucía Lara',
+    username: 'cajera_lucia',
+    password: 'caja',
+    role: 'cajera',
+    active: true
+  }
+];
+

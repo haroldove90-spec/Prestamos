@@ -284,5 +284,15 @@ Al presionar el botón de aceptación o utilizar los servicios de la aplicación
 Nota Legal:
 Este documento sirve como una base estructural y técnica para el funcionamiento de la aplicación móvil Salda App. Se recomienda su revisión periódica ante profesionales legales para su perfecta adecuación con las leyes fintech y de protección al consumidor del territorio correspondiente.`;
 
+export interface Administrator {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  role: string;
+  active: boolean;
+}
+
+
 
 

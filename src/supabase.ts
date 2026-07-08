@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, ContractTemplate, TermsConditions } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, ContractTemplate, TermsConditions, Administrator } from './types';
 import { SecurityIncident } from './components/SecurityAuditModule';
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://ljtehieijrdsabmvjbcl.supabase.co';
@@ -60,11 +60,36 @@ export async function fetchClientsCloud(): Promise<Client[] | null> {
   }
 }
 
+function sanitizeClientForDb(client: Client) {
+  return {
+    id: client.id,
+    name: client.name,
+    rfc: client.rfc,
+    email: client.email,
+    phone: client.phone,
+    creditScore: client.creditScore,
+    bureauStatus: client.bureauStatus,
+    totalCreditGranted: client.totalCreditGranted,
+    balanceOwed: client.balanceOwed,
+    delinquencyDays: client.delinquencyDays,
+    category: client.category,
+    joinDate: client.joinDate,
+    membership: client.membership || 'Ninguna',
+    facebookProfile: client.facebookProfile || null,
+    locationLink: client.locationLink || null,
+    username: client.username || null,
+    password: client.password || null,
+    profileImage: client.profileImage || null,
+    active: client.active !== undefined ? client.active : true
+  };
+}
+
 export async function saveClientCloud(client: Client): Promise<boolean> {
   try {
+    const cleanClient = sanitizeClientForDb(client);
     const { error } = await supabase
       .from('clients')
-      .upsert(client);
+      .upsert(cleanClient);
     if (error) console.error('Error saving client to Supabase:', error);
     return !error;
   } catch (err) {
@@ -75,15 +100,61 @@ export async function saveClientCloud(client: Client): Promise<boolean> {
 
 export async function bulkInsertClientsCloud(clients: Client[]): Promise<boolean> {
   try {
+    const cleanClients = clients.map(sanitizeClientForDb);
     const { error } = await supabase
       .from('clients')
-      .upsert(clients);
+      .upsert(cleanClients);
+    if (error) console.error('Error bulk saving clients to Supabase:', error);
     return !error;
   } catch (err) {
     console.error('Supabase bulk clients save error:', err);
     return false;
   }
 }
+
+export async function fetchAdministratorsCloud(): Promise<Administrator[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('administrators')
+      .select('*')
+      .order('id', { ascending: true });
+    if (error) {
+      console.error('Error fetching administrators from Supabase:', error);
+      return null;
+    }
+    return data as Administrator[];
+  } catch (err) {
+    console.error('Supabase administrators fetch error:', err);
+    return null;
+  }
+}
+
+export async function saveAdministratorCloud(admin: Administrator): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('administrators')
+      .upsert(admin);
+    if (error) console.error('Error saving administrator to Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase administrator save error:', err);
+    return false;
+  }
+}
+
+export async function bulkInsertAdministratorsCloud(admins: Administrator[]): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('administrators')
+      .upsert(admins);
+    if (error) console.error('Error bulk saving administrators to Supabase:', error);
+    return !error;
+  } catch (err) {
+    console.error('Supabase bulk administrators save error:', err);
+    return false;
+  }
+}
+
 
 // REQ
 export async function fetchRequestsCloud(): Promise<CreditRequest[] | null> {
