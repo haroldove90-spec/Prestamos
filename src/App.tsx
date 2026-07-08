@@ -464,10 +464,12 @@ export default function App() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   
   const [adminUsernameState, setAdminUsernameState] = useState('');
   const [adminPasswordState, setAdminPasswordState] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
@@ -2268,15 +2270,28 @@ export default function App() {
 
                 <div className="space-y-1">
                   <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña *:</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Ingrese su contraseña"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    id="login-password-input"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? "text" : "password"}
+                      required
+                      placeholder="Ingrese su contraseña"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                      id="login-password-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                    >
+                      {showLoginPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -2425,15 +2440,28 @@ export default function App() {
 
                 <div className="space-y-1">
                   <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso *:</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Ingrese su contraseña"
-                    value={adminPasswordState}
-                    onChange={(e) => setAdminPasswordState(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
-                    id="admin-login-password-input"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showAdminPassword ? "text" : "password"}
+                      required
+                      placeholder="Ingrese su contraseña"
+                      value={adminPasswordState}
+                      onChange={(e) => setAdminPasswordState(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]"
+                      id="admin-login-password-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#a3c90e] bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                    >
+                      {showAdminPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <button

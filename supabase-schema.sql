@@ -2,6 +2,19 @@
 -- SALDA APP - CONFIGURACIÓN COMPLETA DE TABLAS DE BASE DE DATOS EN SUPABASE
 -- Copia y pega este script en el editor SQL de tu panel de Supabase (SQL Editor)
 -- Proyecto ID: ljtehieijrdsabmvjbcl
+-- 
+-- ⚠️ NOTA IMPORTANTE PARA EVITAR EL ERROR "column active of relation clients does not exist":
+-- PostgreSQL analiza y compila todas las instrucciones del bloque SQL antes de ejecutarlas.
+-- Si tu tabla 'clients' ya existía anteriormente sin la columna 'active', el editor de Supabase
+-- arrojará un error al compilar el bloque de "INSERT" porque la columna 'active' aún no está 
+-- guardada en la base de datos física al momento del análisis.
+-- 
+-- 🚀 SOLUCIÓN EN 2 PASOS SENCILLOS:
+-- PASO 1: Copia, pega y ejecuta primero SOLAMENTE la sección de creación y migración 
+--         (desde el inicio de este archivo hasta la línea 157, es decir, antes de los INSERT).
+--         Esto creará las tablas y agregará la columna 'active' mediante ALTER TABLE.
+-- PASO 2: Ahora sí, ejecuta el resto del script (los INSERT de Diego Martínez y los administradores)
+--         para insertar la información sin ningún error de compilación.
 -- ============================================================================
 
 -- 1. TABLA: clients

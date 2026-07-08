@@ -4,7 +4,7 @@ import {
   ArrowRight, Smartphone, RefreshCw, User, Calendar, 
   ChevronDown, FileImage, Check, FileCheck2, X, Image as ImageIcon,
   Sparkles, CreditCard, Clock, FileText, CheckCircle, ShieldCheck, Zap,
-  PlusCircle, Printer, Lock, Percent, Globe, Download, Edit
+  PlusCircle, Printer, Lock, Percent, Globe, Download, Edit, Eye, EyeOff
 } from 'lucide-react';
 import { Client, ClientPayment, ClientDossier, CreditRequest, PRESTAMOS_FIJOS, ClientContract, ContractTemplate, interpolateContractTemplate, TermsConditions } from '../types';
 import { getLateFeeConfig, getEffectiveTotalDebt } from '../utils/lateFees';
@@ -123,6 +123,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [tempBirthDate, setTempBirthDate] = useState('');
   const [tempAddress, setTempAddress] = useState('');
   const [tempPassword, setTempPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
   const [tempProfileImage, setTempProfileImage] = useState('');
   const [tempIneFront, setTempIneFront] = useState('');
@@ -2032,18 +2033,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
                   <div>
                     <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">Contraseña de Acceso:</label>
-                    <input
-                      type="text"
-                      disabled={!isEditingProfile}
-                      className={`w-full rounded-xl px-3 py-2 text-xs font-mono transition duration-150 ${
-                        isEditingProfile 
-                          ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]' 
-                          : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed select-all'
-                      }`}
-                      value={tempPassword}
-                      onChange={(e) => setTempPassword(e.target.value)}
-                      placeholder="Contraseña del cliente"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        disabled={!isEditingProfile}
+                        className={`w-full rounded-xl pl-3 pr-10 py-2 text-xs font-mono transition duration-150 ${
+                          isEditingProfile 
+                            ? 'bg-slate-950 border border-slate-800 text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e]' 
+                            : 'bg-slate-950/40 border border-slate-850 text-slate-400 cursor-not-allowed select-all'
+                        }`}
+                        value={tempPassword}
+                        onChange={(e) => setTempPassword(e.target.value)}
+                        placeholder="Contraseña del cliente"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#a3c90e] bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Panel For Profile Avatar Upload */}
