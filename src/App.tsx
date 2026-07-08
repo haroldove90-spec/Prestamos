@@ -179,9 +179,18 @@ export default function App() {
     if (local) {
       try {
         const parsed = JSON.parse(local) as Client[];
-        const hasPdfClients = parsed.some(c => c.id.startsWith('PM-'));
+        // Merge INITIAL_CLIENTS into parsed to ensure newly added clients (like Diego) are always available
+        const merged = [...parsed];
+        INITIAL_CLIENTS.forEach(initClient => {
+          if (!merged.some(c => c.id === initClient.id)) {
+            merged.push(initClient);
+          }
+        });
+        const hasPdfClients = merged.some(c => c.id.startsWith('PM-'));
         if (hasPdfClients) {
-          return parsed;
+          // Keep localStorage up-to-date with merged clients
+          localStorage.setItem('buro_clients', JSON.stringify(merged));
+          return merged;
         }
       } catch (e) {
         console.error(e);
