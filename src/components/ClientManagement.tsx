@@ -70,6 +70,7 @@ interface ClientManagementProps {
   nextClientNumberBase: string;
   onUpdateNextClientNumberBase: (val: string) => void;
   onClearDatabase?: () => Promise<boolean>;
+  onLoadDemoData?: () => Promise<boolean>;
 }
 
 export const ClientManagement: React.FC<ClientManagementProps> = ({ 
@@ -80,7 +81,8 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   onDeleteClient,
   nextClientNumberBase,
   onUpdateNextClientNumberBase,
-  onClearDatabase
+  onClearDatabase,
+  onLoadDemoData
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<BureauStatus | 'ALL'>('ALL');
@@ -746,7 +748,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         </div>
         
         <div className="flex gap-2 flex-wrap items-center">
-          {onClearDatabase && (
+          {onClearDatabase && clients.length > 0 && (
             <button
               onClick={() => {
                 if (window.confirm("⚠️ ¿Estás seguro de que deseas limpiar TODOS los registros de la base de datos (Clientes, Solicitudes, Pagos, etc.) para comenzar tus pruebas reales? Esta acción es irreversible.")) {
@@ -764,6 +766,27 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
             >
               <Trash2 className="w-4 h-4" />
               Limpiar BD (Pruebas)
+            </button>
+          )}
+
+          {onLoadDemoData && clients.length === 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm("¿Deseas cargar los registros de demostración (clientes de prueba, solicitudes ficticias y contratos de ejemplo) para probar las capacidades del sistema?")) {
+                  onLoadDemoData().then((success) => {
+                    if (success) {
+                      alert("✓ Datos de demostración cargados.");
+                    } else {
+                      alert("✕ Error al cargar los datos.");
+                    }
+                  });
+                }
+              }}
+              className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition duration-150 flex items-center gap-2 shadow-md cursor-pointer border border-teal-500/30 shrink-0 animate-pulse"
+              title="Cargar registros de prueba fiduciaria"
+            >
+              <Sparkles className="w-4 h-4" />
+              Cargar Datos Demo
             </button>
           )}
 

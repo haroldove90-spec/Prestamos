@@ -179,19 +179,22 @@ export default function App() {
 
   // State initialization with localStorage fallback
   const [clients, setClients] = useState<Client[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_clients');
     if (local) {
       try {
         const parsed = JSON.parse(local) as Client[];
         // Merge INITIAL_CLIENTS into parsed to ensure newly added clients (like Diego) are always available
         const merged = [...parsed];
-        INITIAL_CLIENTS.forEach(initClient => {
-          if (!merged.some(c => c.id === initClient.id)) {
-            merged.push(initClient);
-          }
-        });
+        if (!isCleanDb) {
+          INITIAL_CLIENTS.forEach(initClient => {
+            if (!merged.some(c => c.id === initClient.id)) {
+              merged.push(initClient);
+            }
+          });
+        }
         const hasPdfClients = merged.some(c => c.id.startsWith('PM-'));
-        if (hasPdfClients) {
+        if (hasPdfClients || isCleanDb) {
           // Keep localStorage up-to-date with merged clients
           localStorage.setItem('buro_clients', JSON.stringify(merged));
           return merged;
@@ -200,7 +203,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return INITIAL_CLIENTS;
+    return isCleanDb ? [] : INITIAL_CLIENTS;
   });
 
   const [administrators, setAdministrators] = useState<Administrator[]>(() => {
@@ -228,6 +231,7 @@ export default function App() {
   });
 
   const [requests, setRequests] = useState<CreditRequest[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_requests');
     if (local) {
       try {
@@ -236,10 +240,11 @@ export default function App() {
         console.error('Error parsing buro_requests:', e);
       }
     }
-    return INITIAL_REQUESTS;
+    return isCleanDb ? [] : INITIAL_REQUESTS;
   });
 
   const [queries, setQueries] = useState<BureauQueryLog[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_queries');
     if (local) {
       try {
@@ -248,7 +253,7 @@ export default function App() {
         console.error('Error parsing buro_queries:', e);
       }
     }
-    return INITIAL_BUREAU_QUERIES;
+    return isCleanDb ? [] : INITIAL_BUREAU_QUERIES;
   });
 
   const [riskParams, setRiskParams] = useState<RiskParameters>(() => {
@@ -348,6 +353,7 @@ export default function App() {
   const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts' | 'web_landing' | 'admin_web'>('web_landing');
 
   const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_dossiers');
     if (local) {
       try {
@@ -356,7 +362,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return [
+    return isCleanDb ? [] : [
       {
         id: 'EXP-8801',
         clientName: 'Esperanza Escobedo Guzman',
@@ -374,19 +380,20 @@ export default function App() {
   });
 
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_client_payments');
     if (local) {
       try {
         const parsed = JSON.parse(local) as ClientPayment[];
         const hasPmPayment = parsed.some(p => p.clientId.startsWith('PM-'));
-        if (hasPmPayment) {
+        if (hasPmPayment || isCleanDb) {
           return parsed;
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return [
+    return isCleanDb ? [] : [
       {
         id: 'PAG-4621',
         clientId: 'PM-820399',
@@ -424,6 +431,7 @@ export default function App() {
   });
 
   const [contracts, setContracts] = useState<ClientContract[]>(() => {
+    const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_contracts');
     if (local) {
       try {
@@ -432,7 +440,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return [
+    return isCleanDb ? [] : [
       {
         id: 'CON-298310',
         clientId: 'PM-327072',
@@ -1040,33 +1048,43 @@ export default function App() {
 
         setIsCloudSyncInProgress(true);
 
-        const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
+        let isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
 
         // 2. Sincronizar clientes
         const cloudClients = await fetchClientsCloud();
+        
+        // Auto-detect remote database wipe: if cloudClients is empty,
+        // we automatically treat it as a clean production database.
+        if (cloudClients !== null && cloudClients.length === 0) {
+          isCleanDb = true;
+          localStorage.setItem('buro_database_cleaned_for_prod', 'true');
+        }
+
         if (cloudClients !== null) {
           const mergedClients = [...cloudClients];
-          INITIAL_CLIENTS.forEach(initClient => {
-            const idx = mergedClients.findIndex(c => c.id === initClient.id);
-            if (idx !== -1) {
-              // Override/merge critical credentials from INITIAL_CLIENTS to prevent stale database profiles from locking logins
-              mergedClients[idx] = {
-                ...mergedClients[idx],
-                username: initClient.username || mergedClients[idx].username,
-                password: initClient.password || mergedClients[idx].password,
-                active: initClient.active !== undefined ? initClient.active : mergedClients[idx].active,
-                email: initClient.email || mergedClients[idx].email,
-              };
-            } else {
-              mergedClients.push(initClient);
-            }
-          });
+          if (!isCleanDb) {
+            INITIAL_CLIENTS.forEach(initClient => {
+              const idx = mergedClients.findIndex(c => c.id === initClient.id);
+              if (idx !== -1) {
+                // Override/merge critical credentials from INITIAL_CLIENTS to prevent stale database profiles from locking logins
+                mergedClients[idx] = {
+                  ...mergedClients[idx],
+                  username: initClient.username || mergedClients[idx].username,
+                  password: initClient.password || mergedClients[idx].password,
+                  active: initClient.active !== undefined ? initClient.active : mergedClients[idx].active,
+                  email: initClient.email || mergedClients[idx].email,
+                };
+              } else {
+                mergedClients.push(initClient);
+              }
+            });
+          }
 
           lastClientsSyncRef.current = JSON.stringify(mergedClients);
           setClients(mergedClients);
 
           // Sync the updated/merged list back to Supabase to update credentials or insert missing records
-          if (mergedClients.length > 0) {
+          if (mergedClients.length > 0 && !isCleanDb) {
             await bulkInsertClientsCloud(mergedClients);
           }
         }
@@ -1856,6 +1874,28 @@ export default function App() {
       return success;
     } catch (err) {
       console.error('Error in handleClearDatabase:', err);
+      return false;
+    }
+  };
+
+  const handleLoadDemoData = async (): Promise<boolean> => {
+    try {
+      localStorage.removeItem('buro_database_cleaned_for_prod');
+      localStorage.removeItem('buro_clients');
+      localStorage.removeItem('buro_requests');
+      localStorage.removeItem('buro_queries');
+      localStorage.removeItem('buro_security_alerts');
+      localStorage.removeItem('buro_client_payments');
+      localStorage.removeItem('buro_dossiers');
+      localStorage.removeItem('buro_notifications');
+      localStorage.removeItem('buro_contracts');
+
+      // Reloading will let useState initializers re-initialize everything with default datasets
+      // and let the sync process upload them back to Supabase.
+      window.location.reload();
+      return true;
+    } catch (err) {
+      console.error('Error in handleLoadDemoData:', err);
       return false;
     }
   };
@@ -4153,6 +4193,7 @@ export default function App() {
                     nextClientNumberBase={nextClientNumberBase}
                     onUpdateNextClientNumberBase={handleUpdateNextClientNumberBase}
                     onClearDatabase={handleClearDatabase}
+                    onLoadDemoData={handleLoadDemoData}
                   />
                 )}
 
