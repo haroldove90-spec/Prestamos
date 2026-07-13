@@ -14,7 +14,7 @@ import { PaymentVerification } from './components/PaymentVerification';
 import { ExpedientesModule } from './components/ExpedientesModule';
 import { CreditSimulation } from './components/CreditSimulation';
 import { ContractsModule } from './components/ContractsModule';
-import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES, TermsConditions, DEFAULT_TERMS_CONDITIONS, Administrator } from './types';
+import { Client, CreditRequest, BureauQueryLog, RiskParameters, ClientPayment, ClientDossier, PRESTAMOS_FIJOS, ClientContract, LandingPageConfig, DEFAULT_LANDING_CONFIG, ContractTemplate, DEFAULT_CONTRACT_TEMPLATES, TermsConditions, DEFAULT_TERMS_CONDITIONS, Administrator, calculateTotalPayable } from './types';
 import { WebLanding } from './components/WebLanding';
 import { 
   INITIAL_CLIENTS, 
@@ -1655,18 +1655,25 @@ export default function App() {
     };
     setQueries(prev => [newLog, ...prev]);
 
-    // Push notifications with popup sound confirming submission successfully
-    const isClient = currentUser === 'cliente_esperanza';
+    // Push notification to the client
     addNotificationAndPopup(
-      isClient ? `📄 Documentos Enviados Correctamente` : `🚨 Nueva Solicitud de Crédito (${newDossier.id})`,
-      isClient
-        ? `Tus documentos e identificaciones han sido enviados correctamente. Tu expediente por $${newDossier.requestedAmount.toLocaleString('es-MX')} está siendo analizado por el comité de crédito.`
-        : `El cliente ${newDossier.clientName} ha enviado identificaciones y comprobantes para solicitar una línea de crédito de $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN.`,
-      'info',
+      `📄 Documentos Recibidos`,
+      `Tus documentos e identificaciones para el expediente ${newDossier.id} por $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN han sido recibidos correctamente y están siendo analizados por el comité de crédito.`,
+      'success',
       'submit',
-      'admin_harold,asesor_juan,cliente_esperanza',
-      true, // Show popup for either client or committee instantly
-      isClient ? undefined : { text: 'Cotejar en Expedientes', tab: 'bureau' }
+      currentUser,
+      true
+    );
+
+    // Push high-priority notification to admin & advisor
+    addNotificationAndPopup(
+      `🚨 Nuevo Expediente de Crédito (${newDossier.id})`,
+      `El cliente ${newDossier.clientName} ha enviado sus comprobantes y documentos solicitando una línea de crédito de $${newDossier.requestedAmount.toLocaleString('es-MX')} MXN. Por favor proceda a realizar el cotejo correspondiente.`,
+      'info',
+      'alert',
+      'admin_harold,asesor_juan',
+      true,
+      { text: 'Cotejar en Expedientes', tab: 'dossiers' }
     );
   };
 
@@ -1720,9 +1727,13 @@ export default function App() {
       return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
     };
 
+    const totalPayable = calculateTotalPayable(dossier.requestedAmount, dossier.loanType);
+    let assignedClientId = '';
+
     if (existingClientIndex === -1) {
       // Create new client in app pool
       const newClientId = `PM-${Math.floor(100000 + Math.random() * 900000)}`;
+      assignedClientId = newClientId;
       const newClient: Client = {
         id: newClientId,
         name: dossier.clientName,
@@ -1732,7 +1743,7 @@ export default function App() {
         creditScore: 710,
         bureauStatus: 'EXCELENTE',
         totalCreditGranted: dossier.requestedAmount,
-        balanceOwed: dossier.requestedAmount,
+        balanceOwed: totalPayable,
         delinquencyDays: 0,
         category: 'Personal',
         joinDate: dossier.createdAt,
@@ -1750,11 +1761,12 @@ export default function App() {
       };
       setQueries(prev => [auditLog, ...prev]);
     } else {
+      assignedClientId = clients[existingClientIndex].id;
       // Update existing client balance and limits
       setClients(prev => prev.map((c, idx) => idx === existingClientIndex ? {
         ...c,
         totalCreditGranted: Number(c.totalCreditGranted) + Number(dossier.requestedAmount),
-        balanceOwed: Number(c.balanceOwed) + Number(dossier.requestedAmount)
+        balanceOwed: Number(c.balanceOwed) + totalPayable
       } : c));
 
       const auditLog: BureauQueryLog = {
@@ -1767,6 +1779,21 @@ export default function App() {
       };
       setQueries(prev => [auditLog, ...prev]);
     }
+
+    // Auto-generate contract for the approved client
+    const newContractId = `CON-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newContract: ClientContract = {
+      id: newContractId,
+      clientId: assignedClientId,
+      clientName: dossier.clientName,
+      contractType: dossier.loanType === 'Préstamo Fijo' ? 'Contrato Express' : 'Contrato de préstamo entre particulares',
+      amount: dossier.requestedAmount,
+      paymentReference: assignedClientId,
+      dateGenerated: new Date().toISOString().slice(0, 10),
+      monthlyPlan: dossier.monthlyPlan || `Plan Semanal a 12 semanas con 12 pagos de $${Math.round(totalPayable / 12).toLocaleString('es-MX')} MXN (Total: $${totalPayable.toLocaleString('es-MX')} MXN)`,
+      status: 'ACTIVO'
+    };
+    setContracts(prev => [newContract, ...prev]);
 
     // Register security alert forenses
     const isLocalUser = currentUser || 'admin_harold';
@@ -1785,13 +1812,13 @@ export default function App() {
 
     // Dispatch real-time authorized loan notification with positive chiming sounds
     addNotificationAndPopup(
-      `🌟 ¡PRÉSTAMO AUTORIZADO! ($${dossier.requestedAmount.toLocaleString('es-MX')})`,
-      `Buenas noticias: El expediente ${dossier.id} de ${dossier.clientName} fue autorizado y activado en el sistema por el comité central. ¡Habilitado comercialmente!`,
+      `🌟 ¡PRÉSTAMO AUTORIZADO Y CONTRATO GENERADO! ($${dossier.requestedAmount.toLocaleString('es-MX')})`,
+      `El expediente ${dossier.id} de ${dossier.clientName} fue autorizado. Se generó automáticamente el contrato ${newContractId} con folio de referencia ${assignedClientId}. Puedes imprimirlo o descargarlo desde la pestaña de Contratos.`,
       'success',
       'success',
       'admin_harold,asesor_juan,cajera_lucia,cliente_esperanza',
       true, // Show modal popup immediately
-      { text: 'Ver Portal de Crédito', tab: 'client_portal' }
+      { text: 'Ver Contratos', tab: 'contracts' }
     );
   };
 
@@ -1989,6 +2016,27 @@ export default function App() {
     };
 
     setRequests(prev => [newRequest, ...prev]);
+
+    // Push notification to active client
+    addNotificationAndPopup(
+      `💸 Solicitud de Crédito Enviada`,
+      `Tu solicitud de préstamo por $${newReqData.requestedAmount.toLocaleString('es-MX')} MXN ha sido registrada exitosamente con el Folio ${newId} y enviada para autorización.`,
+      'success',
+      'submit',
+      currentUser,
+      true
+    );
+
+    // Push high-priority notification to admin & advisor
+    addNotificationAndPopup(
+      `🚨 Nueva Solicitud de Préstamo (${newId})`,
+      `El cliente ${newReqData.clientName} ha solicitado una línea de crédito de $${newReqData.requestedAmount.toLocaleString('es-MX')} MXN para: "${newReqData.purpose}". Por favor, revise y autorice la solicitud.`,
+      'info',
+      'alert',
+      'admin_harold,asesor_juan',
+      true,
+      { text: 'Autorizar Crédito', tab: 'requests' }
+    );
   };
 
   // APPROVE CREDIT REQUEST -> PROCESSED AND ADDED TO ACTIVE CLIENTS
@@ -2002,6 +2050,8 @@ export default function App() {
     // 2. Generate custom RFC for Mexico
     const rfcBase = (requestItem.clientName.slice(0, 4).toUpperCase().padEnd(4, 'X') + '850101TS2').replace(/\s+/g, 'A');
 
+    const totalPayable = calculateTotalPayable(requestItem.requestedAmount, requestItem.loanType);
+
     // 3. Create active Client card and append to portfolio
     // The client ID matches the loan request ID EXACTLY (Unified Registration Identifier System!)
     const simulatedClient: Client = {
@@ -2013,7 +2063,7 @@ export default function App() {
       creditScore: requestItem.score,
       bureauStatus: getBureauStatusByScore(requestItem.score, 0),
       totalCreditGranted: requestItem.requestedAmount,
-      balanceOwed: requestItem.requestedAmount,
+      balanceOwed: totalPayable,
       delinquencyDays: 0,
       category: requestItem.category,
       joinDate: new Date().toISOString().slice(0, 10)
@@ -2028,7 +2078,7 @@ export default function App() {
           ? { 
               ...c, 
               totalCreditGranted: c.totalCreditGranted + requestItem.requestedAmount,
-              balanceOwed: c.balanceOwed + requestItem.requestedAmount 
+              balanceOwed: c.balanceOwed + totalPayable 
             } 
           : c
         );
@@ -2213,6 +2263,7 @@ export default function App() {
     const roles = n.targetRoles ? n.targetRoles.split(',').map((r: string) => r.trim()) : [];
     const readUsers = n.readBy ? n.readBy.split(',').map((u: string) => u.trim()) : [];
     const isTarget = roles.includes(currentUser) || 
+      (currentUser.startsWith('admin_') && roles.some(r => r === 'admin_harold' || r.startsWith('admin'))) ||
       (currentUser.startsWith('cliente_') && roles.some(r => r === 'cliente_esperanza' || r.startsWith('cliente_')));
     return isTarget && !readUsers.includes(currentUser);
   }).length;
@@ -2715,8 +2766,8 @@ export default function App() {
                     phone: '811' + Math.floor(1000000 + Math.random() * 9000000),
                     creditScore: 680,
                     bureauStatus: 'REGULAR',
-                    totalCreditGranted: regRequestedAmount,
-                    balanceOwed: regTotalPayable,
+                    totalCreditGranted: 0,
+                    balanceOwed: 0,
                     delinquencyDays: 0,
                     category: 'Personal',
                     joinDate: new Date().toISOString().split('T')[0],
@@ -4701,6 +4752,7 @@ export default function App() {
                 const userNotifications = systemNotifications.filter(notif => {
                   const rolesList = notif.targetRoles ? notif.targetRoles.split(',').map((r: string) => r.trim()) : [];
                   return rolesList.includes(currentUser) || 
+                    (currentUser.startsWith('admin_') && rolesList.some(r => r === 'admin_harold' || r.startsWith('admin'))) ||
                     (currentUser.startsWith('cliente_') && rolesList.some(r => r === 'cliente_esperanza' || r.startsWith('cliente_')));
                 });
 

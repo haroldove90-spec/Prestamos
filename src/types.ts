@@ -116,6 +116,18 @@ export const PRESTAMOS_FIJOS = [
   { capital: 10000, interest: 4000, label: "$10,000 para pagar $14,000" },
 ];
 
+export function calculateTotalPayable(amount: number, loanType?: string): number {
+  const isFixed = loanType?.toLowerCase().includes('fijo') || false;
+  if (isFixed) {
+    const fixedInfo = PRESTAMOS_FIJOS.find(p => p.capital === amount);
+    const interest = fixedInfo ? fixedInfo.interest : Math.round(amount * 0.40);
+    return amount + interest;
+  } else {
+    // 12 weeks loan charging 135 per 1,000 per week
+    return Math.round((amount / 1000) * 135 * 12);
+  }
+}
+
 export interface LandingPageConfig {
   logoUrl: string;
   phone: string;

@@ -64,15 +64,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
   // Active client selection state (defaults to matched profile or Esperanza)
   const [selectedClientId, setSelectedClientId] = useState<string>(() => {
-    if (isCustomUser) {
+    if (currentUser.startsWith('cliente_')) {
+      const targetUser = currentUser.replace('cliente_', '').toLowerCase().trim();
+      if (targetUser === 'esperanza') {
+        return 'PM-327072';
+      }
       const match = clients.find(c => 
-        (c.username && c.username.toLowerCase() === customTargetUsername) ||
-        (c.id.toLowerCase() === customTargetUsername) ||
-        (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === customTargetUsername) ||
-        (c.name.toLowerCase() === customTargetUsername.replace(/_/g, ' '))
+        (c.username && c.username.toLowerCase() === targetUser) ||
+        (c.id.toLowerCase() === targetUser) ||
+        (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === targetUser) ||
+        (c.name.toLowerCase() === targetUser.replace(/_/g, ' '))
       );
-      if (match) return match.id;
+      return match ? match.id : '';
     }
+    // Admin / Advisor can fall back to Esperanza or first client
     const hasEsperanza = clients.some(c => c.id === 'PM-327072');
     if (hasEsperanza) return 'PM-327072';
     return clients[0]?.id || '';
@@ -80,17 +85,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
   // Force sync selection if currentUser changes
   useEffect(() => {
-    if (isCustomUser) {
-      const match = clients.find(c => 
-        (c.username && c.username.toLowerCase() === customTargetUsername) ||
-        (c.id.toLowerCase() === customTargetUsername) ||
-        (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === customTargetUsername) ||
-        (c.name.toLowerCase() === customTargetUsername.replace(/_/g, ' '))
-      );
-      if (match) setSelectedClientId(match.id);
-    } else if (currentUser === 'cliente_esperanza') {
-      const match = clients.find(c => c.id === 'PM-327072');
-      if (match) setSelectedClientId(match.id);
+    if (currentUser.startsWith('cliente_')) {
+      const targetUser = currentUser.replace('cliente_', '').toLowerCase().trim();
+      if (targetUser === 'esperanza') {
+        setSelectedClientId('PM-327072');
+      } else {
+        const match = clients.find(c => 
+          (c.username && c.username.toLowerCase() === targetUser) ||
+          (c.id.toLowerCase() === targetUser) ||
+          (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === targetUser) ||
+          (c.name.toLowerCase() === targetUser.replace(/_/g, ' '))
+        );
+        if (match) setSelectedClientId(match.id);
+        else setSelectedClientId('');
+      }
     }
   }, [currentUser, clients]);
   
@@ -2749,7 +2757,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             </h3>
             
             <div className="space-y-4">
-              {!currentUser.startsWith('cliente_') ? (
+              {currentUser.startsWith('admin_') || currentUser.startsWith('asesor_') || currentUser.startsWith('cajera_') ? (
                 <div>
                   <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1.5">Clientes activos en cartera:</label>
                   <div className="relative">
