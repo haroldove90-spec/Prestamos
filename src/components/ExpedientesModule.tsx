@@ -134,14 +134,16 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
     const finalIneBack = ineBack || 'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?w=800&auto=format&fit=crop&q=80';
     const finalProof = proofOfAddress || 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=800&auto=format&fit=crop&q=80';
 
+    let reqTotalPayable = 0;
     let reqFee = 0;
     if (loanType === 'Préstamo Fijo') {
       const match = PRESTAMOS_FIJOS.find(p => p.capital === requestedAmount);
       reqFee = match ? match.interest : 1200;
+      reqTotalPayable = requestedAmount + reqFee;
     } else {
-      reqFee = Math.round((requestedAmount / 1000) * 135 * 12);
+      reqTotalPayable = Math.round((requestedAmount / 1000) * 135 * 12);
+      reqFee = reqTotalPayable - requestedAmount;
     }
-    const reqTotalPayable = requestedAmount + reqFee;
     let descPlan = '';
 
     if (loanType === 'Préstamo Fijo') {

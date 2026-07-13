@@ -496,14 +496,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
     }
 
     const finalAmount = reqCustomAmount;
+    let reqTotalPayable = 0;
     let reqFee = 0;
     if (reqLoanType === 'Préstamo Fijo') {
       const match = PRESTAMOS_FIJOS.find(p => p.capital === finalAmount);
       reqFee = match ? match.interest : 1200;
+      reqTotalPayable = finalAmount + reqFee;
     } else {
-      reqFee = Math.round((finalAmount / 1000) * 135 * 12);
+      reqTotalPayable = Math.round((finalAmount / 1000) * 135 * 12);
+      reqFee = reqTotalPayable - finalAmount;
     }
-    const reqTotalPayable = finalAmount + reqFee;
     let descPlan = '';
 
     if (reqLoanType === 'Préstamo Fijo') {
@@ -1021,11 +1023,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     const totalWeeks = isFixed ? 4 : 12;
 
                     // Original interest calculated when registering / requesting
-                    const originalInterest = isFixed 
-                      ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                    const originalTotal = isFixed 
+                      ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
                       : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
 
-                    const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                    const originalInterest = isFixed 
+                      ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                      : originalTotal - activeClient.totalCreditGranted;
+
                     const cuotaOriginal = Math.round(originalTotal / totalWeeks);
 
                     // Current remaining balance
@@ -1144,10 +1149,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                     {(() => {
                       const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
                       const totalWeeks = isFixed ? 4 : 12;
+                      const originalTotal = isFixed 
+                        ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                        : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
                       const originalInterest = isFixed 
                         ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
-                        : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
-                      const originalTotal = activeClient.totalCreditGranted + originalInterest;
+                        : originalTotal - activeClient.totalCreditGranted;
                       const cuotaOriginal = Math.round(originalTotal / totalWeeks);
                       const currentBalance = activeClient.balanceOwed;
                       const remainingPayments = Math.ceil(currentBalance / cuotaOriginal);
@@ -2742,23 +2749,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             </h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1.5">Clientes activos en cartera:</label>
-                <div className="relative">
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e] appearance-none cursor-pointer pr-10"
-                  >
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.id})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+              {!currentUser.startsWith('cliente_') ? (
+                <div>
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1.5">Clientes activos en cartera:</label>
+                  <div className="relative">
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:ring-1 focus:ring-[#a3c90e] appearance-none cursor-pointer pr-10"
+                    >
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.id})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1.5">Perfil de Cliente:</label>
+                  <div className="w-full bg-slate-950/50 border border-slate-850/60 rounded-xl px-3 py-2.5 text-xs font-mono font-black text-[#a3c90e]">
+                    {activeClient?.name || 'Cliente'} ({activeClient?.id || 'ID'})
+                  </div>
+                </div>
+              )}
 
               {activeClient && (
                 <div className="bg-slate-950/85 rounded-xl p-4 border border-slate-850 space-y-3 font-mono">
@@ -2782,10 +2798,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <span className="text-slate-200 font-extrabold text-[#38bdf8]">
                         {(() => {
                           const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
-                          const originalInterest = isFixed 
-                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                          const originalTotal = isFixed 
+                            ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
                             : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
-                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
                           const capitalRatio = originalTotal > 0 ? (activeClient.totalCreditGranted / originalTotal) : 0;
                           return formatMXN(Math.round(activeClient.balanceOwed * capitalRatio));
                         })()}
@@ -2796,9 +2811,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <span className="text-slate-400">
                         {(() => {
                           const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
+                          const originalTotal = isFixed 
+                            ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
                           const interest = isFixed 
                             ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
-                            : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
+                            : originalTotal - activeClient.totalCreditGranted;
                           return formatMXN(interest);
                         })()}
                       </span>
@@ -2808,10 +2826,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <span className="text-[#a3c90e] font-bold">
                         {(() => {
                           const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
-                          const originalInterest = isFixed 
-                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                          const originalTotal = isFixed 
+                            ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
                             : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
-                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
                           const capitalRatio = originalTotal > 0 ? (activeClient.totalCreditGranted / originalTotal) : 0;
                           const currentCapitalPending = Math.round(activeClient.balanceOwed * capitalRatio);
                           return formatMXN(Math.max(0, activeClient.balanceOwed - currentCapitalPending));
@@ -2823,10 +2840,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
                       <span className="text-[#38bdf8] font-bold font-sans">
                         {(() => {
                           const isFixed = activeClient.loanType?.toLowerCase().includes('fijo') || activeClient.monthlyPlan?.toLowerCase().includes('fijo');
-                          const originalInterest = isFixed 
-                            ? (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
+                          const originalTotal = isFixed 
+                            ? activeClient.totalCreditGranted + (PRESTAMOS_FIJOS.find(p => p.capital === activeClient.totalCreditGranted)?.interest || Math.round(activeClient.totalCreditGranted * 0.40))
                             : Math.round((activeClient.totalCreditGranted / 1000) * 135 * 12);
-                          const originalTotal = activeClient.totalCreditGranted + originalInterest;
                           const totalWeeks = isFixed ? 4 : 12;
                           const cuotaOriginal = Math.round(originalTotal / totalWeeks);
                           const remainingPayments = Math.ceil(activeClient.balanceOwed / cuotaOriginal);

@@ -2668,14 +2668,16 @@ export default function App() {
                   const finalIneBack = regIneBack;
                   const finalProof = regProofOfAddress;
 
+                  let regTotalPayable = 0;
                   let regFee = 0;
                   if (regLoanType === 'Préstamo Fijo') {
                     const match = PRESTAMOS_FIJOS.find(p => p.capital === regRequestedAmount);
                     regFee = match ? match.interest : 1200;
+                    regTotalPayable = regRequestedAmount + regFee;
                   } else {
-                    regFee = Math.round((regRequestedAmount / 1000) * 135 * 12);
+                    regTotalPayable = Math.round((regRequestedAmount / 1000) * 135 * 12);
+                    regFee = regTotalPayable - regRequestedAmount;
                   }
-                  const regTotalPayable = regRequestedAmount + regFee;
                   let planDesc = '';
                   if (regLoanType === 'Préstamo Fijo') {
                     planDesc = `Préstamo Fijo/Mensual de $${regRequestedAmount.toLocaleString('es-MX')} MXN para pagar $${regTotalPayable.toLocaleString('es-MX')} MXN (Costo: $${regFee.toLocaleString('es-MX')} MXN en 4 semanas)`;
@@ -3046,7 +3048,7 @@ export default function App() {
                             ${(Math.round(
                               regLoanType === 'Préstamo Fijo'
                                 ? (PRESTAMOS_FIJOS.find(p => p.capital === regRequestedAmount)?.interest || 1200)
-                                : ((regRequestedAmount || 0) / 1000) * 135 * 12
+                                : (((regRequestedAmount || 0) / 1000) * 135 * 12) - (regRequestedAmount || 0)
                             )).toLocaleString('es-MX')} MXN
                           </span>
                         </div>
@@ -3061,7 +3063,7 @@ export default function App() {
                         <div className="text-[11px] text-slate-300">
                           <strong>12 pagos semanales</strong> de{" "}
                           <span className="text-white font-bold font-mono">
-                            ${Math.round(Math.round(((regRequestedAmount || 0) / 1000) * 135 * 12) / 12).toLocaleString('es-MX')}
+                            ${Math.round(((regRequestedAmount || 0) / 1000) * 135).toLocaleString('es-MX')}
                           </span>{" "}
                           MXN.
                         </div>
