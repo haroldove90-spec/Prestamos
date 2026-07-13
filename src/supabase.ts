@@ -541,6 +541,58 @@ export async function saveTermsConditionsCloud(terms: TermsConditions): Promise<
   }
 }
 
+export async function deleteClientCloud(clientId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', clientId);
+    return !error;
+  } catch (err) {
+    console.error('Error deleting client in Supabase:', err);
+    return false;
+  }
+}
+
+export async function deleteRequestCloud(requestId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('requests')
+      .delete()
+      .eq('id', requestId);
+    return !error;
+  } catch (err) {
+    console.error('Error deleting request in Supabase:', err);
+    return false;
+  }
+}
+
+export async function deleteDossierCloud(dossierId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('dossiers')
+      .delete()
+      .eq('id', dossierId);
+    return !error;
+  } catch (err) {
+    console.error('Error deleting dossier in Supabase:', err);
+    return false;
+  }
+}
+
+export async function deletePaymentCloud(paymentId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('client_payments')
+      .delete()
+      .eq('id', paymentId);
+    return !error;
+  } catch (err) {
+    console.error('Error deleting payment in Supabase:', err);
+    return false;
+  }
+}
+
 
 
 

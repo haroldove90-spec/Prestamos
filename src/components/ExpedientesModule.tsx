@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, Upload, CheckCircle2, XCircle, AlertCircle, 
   MapPin, Calendar, User, DollarSign, Bell, RefreshCw, 
@@ -15,6 +15,7 @@ interface ExpedientesModuleProps {
   onApproveDossier: (dossier: ClientDossier) => void; // Will register them as approved & create requests/client entry
   onAddSystemAlert?: (alert: { actionBlocked: string; targetClient: string; notes: string }) => void;
   onClearDatabase?: () => Promise<boolean>;
+  onDeleteDossier?: (id: string) => void;
 }
 
 export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
@@ -25,7 +26,8 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
   onUpdateDossier,
   onApproveDossier,
   onAddSystemAlert,
-  onClearDatabase
+  onClearDatabase,
+  onDeleteDossier
 }) => {
   // Client state
   const [clientName, setClientName] = useState('');
@@ -53,6 +55,53 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [viewingDocumentUrl, setViewingDocumentUrl] = useState<{ url: string; title: string } | null>(null);
+
+  // Advanced filtering/sorting states for dossiers
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minAmount, setMinAmount] = useState<number | ''>('');
+  const [maxAmount, setMaxAmount] = useState<number | ''>('');
+  const [sortBy, setSortBy] = useState<'NEWEST' | 'OLDEST' | 'AMOUNT_DESC' | 'AMOUNT_ASC'>('NEWEST');
+
+  const filteredSortedDossiers = useMemo(() => {
+    const filtered = dossiers.filter(d => {
+      const matchesSearch = d.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            d.id.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesMinAmount = minAmount === '' ? true : d.requestedAmount >= minAmount;
+      const matchesMaxAmount = maxAmount === '' ? true : d.requestedAmount <= maxAmount;
+
+      let matchesDate = true;
+      if (startDate) {
+        matchesDate = matchesDate && new Date(d.createdAt) >= new Date(startDate);
+      }
+      if (endDate) {
+        matchesDate = matchesDate && new Date(d.createdAt) <= new Date(endDate + 'T23:59:59');
+      }
+
+      return matchesSearch && matchesMinAmount && matchesMaxAmount && matchesDate;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      if (sortBy === 'NEWEST') {
+        return dateB - dateA;
+      }
+      if (sortBy === 'OLDEST') {
+        return dateA - dateB;
+      }
+      if (sortBy === 'AMOUNT_DESC') {
+        return b.requestedAmount - a.requestedAmount;
+      }
+      if (sortBy === 'AMOUNT_ASC') {
+        return a.requestedAmount - b.requestedAmount;
+      }
+      return 0;
+    });
+  }, [dossiers, searchTerm, startDate, endDate, minAmount, maxAmount, sortBy]);
 
   // Client's own dossier if they are in client view
   // Let's search if current user has an existing dossier
@@ -239,7 +288,7 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
   };
 
   // Active dossier for admin
-  const activeAdminDossier = dossiers.find(d => d.id === selectedDossierId) || dossiers[0];
+  const activeAdminDossier = filteredSortedDossiers.find(d => d.id === selectedDossierId) || filteredSortedDossiers[0];
 
   return (
     <div className="space-y-6">
@@ -792,22 +841,90 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
                     <ShieldCheck className="w-4 h-4 text-[#a3c90e]" />
                     Consola del Administrador: Cotejo del Expedientes
                   </h3>
-                  <p className="text-[9px] text-slate-400">Total presentados por la plataforma: {dossiers.length}</p>
+                  <p className="text-[9px] text-slate-400">Total presentados: {dossiers.length} • Filtrados: {filteredSortedDossiers.length}</p>
                 </div>
                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded text-[8px] font-mono font-bold">
                   SINC REMOTO OK
                 </span>
               </div>
 
+              {/* FILTROS AVANZADOS EXPEDIENTES */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-950/40 p-4 rounded-2xl border border-slate-800">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-slate-500 uppercase">Buscar expediente:</label>
+                  <input
+                    type="text"
+                    placeholder="ID o Nombre del cliente..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-850 rounded-lg bg-slate-950 text-white placeholder-slate-600 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-slate-500 uppercase">Rango Fechas Creación:</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                    />
+                    <span className="text-slate-700 text-xs">-</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-slate-500 uppercase">Monto Solicitado:</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      placeholder="Mín"
+                      value={minAmount === '' ? '' : minAmount}
+                      onChange={(e) => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                    />
+                    <span className="text-slate-700 text-xs">-</span>
+                    <input
+                      type="number"
+                      placeholder="Máx"
+                      value={maxAmount === '' ? '' : maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-slate-500 uppercase">Ordenar por:</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-850 rounded-lg bg-slate-950 text-slate-300 focus:outline-none"
+                  >
+                    <option value="NEWEST">Más recientes primero</option>
+                    <option value="OLDEST">Más antiguos primero</option>
+                    <option value="AMOUNT_DESC">Mayor monto solicitado</option>
+                    <option value="AMOUNT_ASC">Menor monto solicitado</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Dossiers Selection List */}
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {dossiers.length === 0 ? (
+                {filteredSortedDossiers.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 font-mono text-[10px]">
                     <AlertCircle className="w-6 h-6 mx-auto mb-1 text-slate-700" />
-                    No hay solicitudes registradas de momento.
+                    No se encontraron expedientes con los criterios actuales.
                   </div>
                 ) : (
-                  dossiers.map(d => (
+                  filteredSortedDossiers.map(d => (
                     <button
                       key={d.id}
                       onClick={() => {
@@ -933,6 +1050,24 @@ export const ExpedientesModule: React.FC<ExpedientesModuleProps> = ({
                   ) : (
                     <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-center font-mono text-[9px] text-slate-400">
                       Esta solicitud ya fue procesada: Estatus <strong className={activeAdminDossier.status === 'APROBADO' ? 'text-emerald-400' : 'text-red-400'}>{activeAdminDossier.status}</strong>
+                    </div>
+                  )}
+
+                  {onDeleteDossier && (
+                    <div className="pt-2 border-t border-slate-850 flex justify-end">
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el expediente ${activeAdminDossier.id} de ${activeAdminDossier.clientName}? Se borrarán todos sus documentos.`)) {
+                            onDeleteDossier(activeAdminDossier.id);
+                            setSelectedDossierId(null);
+                          }
+                        }}
+                        className="py-1.5 px-3 text-[9px] font-bold uppercase font-mono tracking-tight text-red-400 bg-red-950/20 hover:bg-red-900/30 border border-red-900/40 rounded-lg cursor-pointer transition-all flex items-center gap-1.5"
+                        title="Eliminar Expediente permanentemente"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Eliminar Expediente
+                      </button>
                     </div>
                   )}
 

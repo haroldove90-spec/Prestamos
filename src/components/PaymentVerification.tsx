@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   FileCheck2, XCircle, AlertCircle, Calendar, 
   User, DollarSign, Image as ImageIcon, CheckCircle, 
@@ -11,15 +11,72 @@ interface PaymentVerificationProps {
   onVerifyPayment: (paymentId: string, status: 'PAGO_REALIZADO' | 'RECHAZADO') => void;
   currentUser: string;
   onClearDatabase?: () => Promise<boolean>;
+  onDeletePayment?: (id: string) => void;
 }
 
 export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
   payments,
   onVerifyPayment,
   currentUser,
-  onClearDatabase
+  onClearDatabase,
+  onDeletePayment
 }) => {
   const [filter, setFilter] = useState<'TODOS' | 'PENDIENTE' | 'PAGO_REALIZADO' | 'RECHAZADO'>('PENDIENTE');
+
+  // Advanced filtering/sorting states for payments
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minAmount, setMinAmount] = useState<number | ''>('');
+  const [maxAmount, setMaxAmount] = useState<number | ''>('');
+  const [sortBy, setSortBy] = useState<'NEWEST' | 'OLDEST' | 'AMOUNT_DESC' | 'AMOUNT_ASC'>('NEWEST');
+
+  const filteredSortedPayments = useMemo(() => {
+    const filtered = payments.filter(p => {
+      // Status Tab filter
+      const matchesStatus = filter === 'TODOS' || p.status === filter;
+
+      // Text Search
+      const matchesSearch = p.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (p.reference && p.reference.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      // Amount Rango
+      const matchesMinAmount = minAmount === '' ? true : p.amount >= minAmount;
+      const matchesMaxAmount = maxAmount === '' ? true : p.amount <= maxAmount;
+
+      // Date Rango
+      let matchesDate = true;
+      if (startDate) {
+        matchesDate = matchesDate && new Date(p.dateSubmitted) >= new Date(startDate);
+      }
+      if (endDate) {
+        matchesDate = matchesDate && new Date(p.dateSubmitted) <= new Date(endDate + 'T23:59:59');
+      }
+
+      return matchesStatus && matchesSearch && matchesMinAmount && matchesMaxAmount && matchesDate;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.dateSubmitted ? new Date(a.dateSubmitted).getTime() : 0;
+      const dateB = b.dateSubmitted ? new Date(b.dateSubmitted).getTime() : 0;
+
+      if (sortBy === 'NEWEST') {
+        return dateB - dateA;
+      }
+      if (sortBy === 'OLDEST') {
+        return dateA - dateB;
+      }
+      if (sortBy === 'AMOUNT_DESC') {
+        return b.amount - a.amount;
+      }
+      if (sortBy === 'AMOUNT_ASC') {
+        return a.amount - b.amount;
+      }
+      return 0;
+    });
+  }, [payments, filter, searchTerm, startDate, endDate, minAmount, maxAmount, sortBy]);
+
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
     payments.find(p => p.status === 'PENDIENTE')?.id || payments[0]?.id || null
   );
@@ -118,11 +175,8 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
     printWindow.document.close();
   };
 
-  // Filter payments list
-  const filteredPayments = payments.filter(p => {
-    if (filter === 'TODOS') return true;
-    return p.status === filter;
-  });
+  // Filter and sort payments list using advanced useMemo logic
+  const filteredPayments = filteredSortedPayments;
 
   // Active selected item
   const activePayment = payments.find(p => p.id === selectedPaymentId) || filteredPayments[0];
@@ -227,6 +281,80 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
                 {tab === 'PENDIENTE' ? 'Pnd' : tab === 'PAGO_REALIZADO' ? 'Apr' : tab === 'RECHAZADO' ? 'Rch' : 'Ver Todos'}
               </button>
             ))}
+          </div>
+
+          {/* ADVANCED FILTERS PANEL FOR PAYMENTS */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
+            <span className="text-[10px] font-mono font-black text-[#a3c90e] uppercase tracking-wider block border-b border-slate-800 pb-1">Filtros de Abono</span>
+            
+            {/* Search */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-mono text-slate-500 uppercase block">Buscar por cliente/RFC/ref:</label>
+              <input
+                type="text"
+                placeholder="Nombre, ID, referencia..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-[11px] border border-slate-850 rounded-lg bg-slate-950 text-white placeholder-slate-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Dates */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-mono text-slate-500 uppercase block">Rango de fechas:</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                />
+                <span className="text-slate-750 text-[10px]">-</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Amounts */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-mono text-slate-500 uppercase block">Monto del abono:</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  placeholder="Mín"
+                  value={minAmount === '' ? '' : minAmount}
+                  onChange={(e) => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                />
+                <span className="text-slate-750 text-[10px]">-</span>
+                <input
+                  type="number"
+                  placeholder="Máx"
+                  value={maxAmount === '' ? '' : maxAmount}
+                  onChange={(e) => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="text-[10px] p-1 border border-slate-850 rounded-lg bg-slate-950 text-slate-300 w-full focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Sort */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-mono text-slate-500 uppercase block">Ordenar por:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="w-full px-2 py-1.5 text-[10px] border border-slate-850 rounded-lg bg-slate-950 text-slate-300 focus:outline-none"
+              >
+                <option value="NEWEST">Más recientes primero</option>
+                <option value="OLDEST">Más antiguos primero</option>
+                <option value="AMOUNT_DESC">Mayor monto de abono</option>
+                <option value="AMOUNT_ASC">Menor monto de abono</option>
+              </select>
+            </div>
           </div>
 
           {/* List Content */}
@@ -382,28 +510,47 @@ export const PaymentVerification: React.FC<PaymentVerificationProps> = ({
                 </div>
               </div>
 
-              {/* Interactive verification controls (Only when pending) */}
-              {activePayment.status === 'PENDIENTE' && (
-                <div className="border-t border-slate-850 pt-4 flex gap-3 justify-end">
+              {/* Interactive verification controls */}
+              <div className="border-t border-slate-850 pt-4 flex gap-3 justify-end items-center flex-wrap">
+                {onDeletePayment && (
                   <button
                     type="button"
-                    onClick={() => onVerifyPayment(activePayment.id, 'RECHAZADO')}
-                    className="bg-red-500/15 border border-red-500/35 hover:bg-red-550/30 text-red-400 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer hover:scale-101 active:scale-97"
+                    onClick={() => {
+                      if (window.confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el abono ${activePayment.id} de ${activePayment.clientName}? Esta acción es irreversible.`)) {
+                        onDeletePayment(activePayment.id);
+                        setSelectedPaymentId(null);
+                      }
+                    }}
+                    className="bg-red-950/20 hover:bg-red-900/35 border border-red-900/40 text-red-400 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer hover:scale-101 active:scale-97 mr-auto"
+                    title="Eliminar Registro de Abono"
                   >
-                    <XCircle className="w-4 h-4" />
-                    Rechazar Evidencia (Falsa/Ilegible)
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar Registro
                   </button>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={() => onVerifyPayment(activePayment.id, 'PAGO_REALIZADO')}
-                    className="bg-[#a3c90e] hover:bg-[#acd113] active:scale-97 hover:scale-101 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-lg shadow-[#a3c90e]/10"
-                  >
-                    <FileCheck2 className="w-4 h-4" />
-                    Aprobar Comprobante y Aplicar Abono
-                  </button>
-                </div>
-              )}
+                {activePayment.status === 'PENDIENTE' && (
+                  <React.Fragment>
+                    <button
+                      type="button"
+                      onClick={() => onVerifyPayment(activePayment.id, 'RECHAZADO')}
+                      className="bg-red-500/15 border border-red-500/35 hover:bg-red-550/30 text-red-400 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer hover:scale-101 active:scale-97"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Rechazar Evidencia (Falsa/Ilegible)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onVerifyPayment(activePayment.id, 'PAGO_REALIZADO')}
+                      className="bg-[#a3c90e] hover:bg-[#acd113] active:scale-97 hover:scale-101 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-lg shadow-[#a3c90e]/10"
+                    >
+                      <FileCheck2 className="w-4 h-4" />
+                      Aprobar Comprobante y Aplicar Abono
+                    </button>
+                  </React.Fragment>
+                )}
+              </div>
 
             </div>
           ) : (

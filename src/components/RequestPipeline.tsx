@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight, Sparkles, Trash2 } from 'lucide-react';
+import { UserCheck, UserX, Plus, FileSpreadsheet, Check, CheckCircle, AlertOctagon, HelpCircle, CornerDownRight, ChevronRight, Sparkles, Trash2, Search } from 'lucide-react';
 import { CreditRequest } from '../types';
 
 interface RequestPipelineProps {
@@ -8,6 +8,7 @@ interface RequestPipelineProps {
   onRejectRequest: (id: string) => void;
   onAddRequest: (newReq: Omit<CreditRequest, 'id' | 'dateSubmitted' | 'status'>) => void;
   onClearDatabase?: () => Promise<boolean>;
+  onDeleteRequest?: (id: string) => void;
 }
 
 export const RequestPipeline: React.FC<RequestPipelineProps> = ({
@@ -15,7 +16,8 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
   onApproveRequest,
   onRejectRequest,
   onAddRequest,
-  onClearDatabase
+  onClearDatabase,
+  onDeleteRequest
 }) => {
   const [isSimulatingReq, setIsSimulatingReq] = useState(false);
   
@@ -26,12 +28,64 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
   const [score, setScore] = useState(710);
   const [category, setCategory] = useState<'Comercial' | 'Personal' | 'Pyme' | 'Hipotecario'>('Personal');
 
-  const pendingRequests = requests.filter(r => r.status === 'PENDIENTE');
-  const resolvedRequests = requests.filter(r => r.status !== 'PENDIENTE');
+  // Filtering and sorting state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minAmount, setMinAmount] = useState<number | ''>('');
+  const [maxAmount, setMaxAmount] = useState<number | ''>('');
+  const [sortBy, setSortBy] = useState<'NEWEST' | 'OLDEST' | 'AMOUNT_DESC' | 'AMOUNT_ASC' | 'SCORE_DESC' | 'SCORE_ASC'>('NEWEST');
+
+  const filterAndSortRequests = (reqList: CreditRequest[]) => {
+    const filtered = reqList.filter(r => {
+      const matchesSearch = r.clientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            r.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            r.purpose.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesMinAmount = minAmount === '' ? true : r.requestedAmount >= minAmount;
+      const matchesMaxAmount = maxAmount === '' ? true : r.requestedAmount <= maxAmount;
+
+      let matchesDate = true;
+      if (startDate) {
+        matchesDate = matchesDate && new Date(r.dateSubmitted) >= new Date(startDate);
+      }
+      if (endDate) {
+        matchesDate = matchesDate && new Date(r.dateSubmitted) <= new Date(endDate + 'T23:59:59');
+      }
+
+      return matchesSearch && matchesMinAmount && matchesMaxAmount && matchesDate;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'NEWEST') {
+        return new Date(b.dateSubmitted).getTime() - new Date(a.dateSubmitted).getTime();
+      }
+      if (sortBy === 'OLDEST') {
+        return new Date(a.dateSubmitted).getTime() - new Date(b.dateSubmitted).getTime();
+      }
+      if (sortBy === 'AMOUNT_DESC') {
+        return b.requestedAmount - a.requestedAmount;
+      }
+      if (sortBy === 'AMOUNT_ASC') {
+        return a.requestedAmount - b.requestedAmount;
+      }
+      if (sortBy === 'SCORE_DESC') {
+        return b.score - a.score;
+      }
+      if (sortBy === 'SCORE_ASC') {
+        return a.score - b.score;
+      }
+      return 0;
+    });
+  };
+
+  const pendingRequests = filterAndSortRequests(requests.filter(r => r.status === 'PENDIENTE'));
+  const resolvedRequests = filterAndSortRequests(requests.filter(r => r.status !== 'PENDIENTE'));
 
   const exportRequestsCSV = () => {
     const headers = "ID Solicitud,Solicitante,Monto Solicitado,Proposito,Segmento,Score Consulta,Fecha Envio,Estado Actual\n";
-    const rows = requests.map(r => 
+    const allFilteredSorted = [...pendingRequests, ...resolvedRequests];
+    const rows = allFilteredSorted.map(r => 
       `"${r.id}","${r.clientName}",${r.requestedAmount},"${r.purpose}","${r.category}",${r.score},"${r.dateSubmitted}","${r.status}"`
     ).join('\n');
     
@@ -51,7 +105,8 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
       return;
     }
 
-    const requestRows = requests.map(r => `
+    const allFilteredSorted = [...pendingRequests, ...resolvedRequests];
+    const requestRows = allFilteredSorted.map(r => `
       <tr style="border-bottom: 1px solid #e1e8ed;">
         <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px;">${r.id}</td>
         <td style="padding: 10px 8px;">
@@ -319,6 +374,91 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
         )}
       </div>
 
+      {/* SECCIÓN DE FILTROS AVANZADOS (ADMIN) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl text-left space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+          <span className="text-xs font-mono font-black text-[#a3c90e] uppercase tracking-wider">FILTRAR Y ORDENAR SOLICITUDES</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Buscar */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-500 uppercase">Buscar Solicitante/RFC:</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                <Search className="w-3.5 h-3.5 text-slate-400" />
+              </span>
+              <input
+                type="text"
+                placeholder="Nombre, propósito o folio..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-800 rounded-xl bg-slate-950 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Rango de Fechas */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-500 uppercase">Rango de Fechas:</label>
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="text-xs p-1.5 border border-slate-800 rounded-xl bg-slate-950 text-slate-300 w-full focus:outline-none"
+              />
+              <span className="text-slate-600 text-xs">-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="text-xs p-1.5 border border-slate-800 rounded-xl bg-slate-950 text-slate-300 w-full focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Rango de Montos */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-500 uppercase">Monto Solicitado:</label>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                placeholder="Mín"
+                value={minAmount === '' ? '' : minAmount}
+                onChange={(e) => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                className="text-xs p-1.5 border border-slate-800 rounded-xl bg-slate-950 text-slate-300 w-full focus:outline-none"
+              />
+              <span className="text-slate-600 text-xs">-</span>
+              <input
+                type="number"
+                placeholder="Máx"
+                value={maxAmount === '' ? '' : maxAmount}
+                onChange={(e) => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                className="text-xs p-1.5 border border-slate-800 rounded-xl bg-slate-950 text-slate-300 w-full focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Ordenamiento */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono text-slate-500 uppercase">Ordenar por:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="text-xs p-1.5 border border-slate-800 rounded-xl bg-slate-950 text-slate-300 w-full focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="NEWEST">Más recientes primero</option>
+              <option value="OLDEST">Más antiguos primero</option>
+              <option value="AMOUNT_DESC">Mayor monto solicitado</option>
+              <option value="AMOUNT_ASC">Menor monto solicitado</option>
+              <option value="SCORE_DESC">Mayor Score de buró</option>
+              <option value="SCORE_ASC">Menor Score de buró</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* BANDEJA SOLICITUDES PENDIENTES */}
         <div className="lg:col-span-7 bg-slate-900 rounded-3xl border border-slate-800 p-6 shadow-xl flex flex-col justify-between">
@@ -375,6 +515,19 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
                       </div>
 
                       <div className="flex gap-1.5 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                        {onDeleteRequest && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente la solicitud ${req.id} de ${req.clientName}?`)) {
+                                onDeleteRequest(req.id);
+                              }
+                            }}
+                            className="bg-slate-800 hover:bg-red-950 hover:text-red-400 hover:border-red-500/30 text-slate-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer flex items-center gap-1 justify-center"
+                            title="Eliminar Solicitud"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                         <button
                           onClick={() => onRejectRequest(req.id)}
                           className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-rose-500/20 transition cursor-pointer flex items-center gap-1 sm:w-auto w-1/2 justify-center"
@@ -431,9 +584,24 @@ export const RequestPipeline: React.FC<RequestPipelineProps> = ({
                     <div className="space-y-1 w-full min-w-0">
                       <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold">
                         <span>ID: {req.id}</span>
-                        <span className={`font-bold uppercase ${approved ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {req.status}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-bold uppercase ${approved ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            {req.status}
+                          </span>
+                          {onDeleteRequest && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`¿Deseas eliminar permanentemente la solicitud resuelta ${req.id} de ${req.clientName}?`)) {
+                                  onDeleteRequest(req.id);
+                                }
+                              }}
+                              className="text-slate-500 hover:text-rose-400 transition cursor-pointer border-none bg-transparent p-0 flex items-center"
+                              title="Eliminar del histórico"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <h4 className="font-bold text-xs text-slate-200 truncate">{req.clientName}</h4>

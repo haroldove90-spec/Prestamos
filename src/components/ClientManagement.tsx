@@ -94,6 +94,13 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   const [originalId, setOriginalId] = useState<string>('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // Advanced filters state
+  const [minDebt, setMinDebt] = useState<number | ''>('');
+  const [maxDebt, setMaxDebt] = useState<number | ''>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'NEWEST' | 'OLDEST' | 'DEBT_DESC' | 'DEBT_ASC' | 'SCORE_DESC' | 'SCORE_ASC'>('NEWEST');
+
   // CSV Import State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importedClients, setImportedClients] = useState<any[]>([]);
@@ -143,7 +150,42 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
     const matchesStatus = selectedStatus === 'ALL' || c.bureauStatus === selectedStatus;
     const matchesCategory = selectedCategory === 'ALL' || c.category === selectedCategory;
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    // Filter by Debt amount (balanceOwed)
+    const matchesMinDebt = minDebt === '' ? true : c.balanceOwed >= minDebt;
+    const matchesMaxDebt = maxDebt === '' ? true : c.balanceOwed <= maxDebt;
+
+    // Filter by Join Date
+    let matchesDate = true;
+    if (startDate) {
+      matchesDate = matchesDate && new Date(c.joinDate) >= new Date(startDate);
+    }
+    if (endDate) {
+      matchesDate = matchesDate && new Date(c.joinDate) <= new Date(endDate);
+    }
+
+    return matchesSearch && matchesStatus && matchesCategory && matchesMinDebt && matchesMaxDebt && matchesDate;
+  });
+
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    if (sortBy === 'NEWEST') {
+      return new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime();
+    }
+    if (sortBy === 'OLDEST') {
+      return new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime();
+    }
+    if (sortBy === 'DEBT_DESC') {
+      return b.balanceOwed - a.balanceOwed;
+    }
+    if (sortBy === 'DEBT_ASC') {
+      return a.balanceOwed - b.balanceOwed;
+    }
+    if (sortBy === 'SCORE_DESC') {
+      return b.creditScore - a.creditScore;
+    }
+    if (sortBy === 'SCORE_ASC') {
+      return a.creditScore - b.creditScore;
+    }
+    return 0;
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -487,7 +529,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
   const exportToCSV = () => {
     // Generate simple CSV content and mock download
     const headers = 'ID,Nombre,RFC,Email,Score,Estatus Buro,Credito Otorgado,Saldo Insoluto,Dias Retraso,Categoria\n';
-    const rows = filteredClients.map(c => 
+    const rows = sortedClients.map(c => 
       `"${c.id}","${c.name}","${c.rfc}","${c.email}",${c.creditScore},"${c.bureauStatus}",${c.totalCreditGranted},${c.balanceOwed},${c.delinquencyDays},"${c.category}"`
     ).join('\n');
     
@@ -507,7 +549,7 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
       return;
     }
 
-    const clientRows = filteredClients.map(c => `
+    const clientRows = sortedClients.map(c => `
       <tr style="border-bottom: 1px solid #e1e8ed;">
         <td style="padding: 10px 8px; font-weight: bold; font-family: monospace; font-size: 11px;">${c.id}</td>
         <td style="padding: 10px 8px;">
@@ -978,6 +1020,70 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
         </div>
       </div>
 
+      {/* ADVANCED FILTERS & SORTING ROW */}
+      <div className="p-5 border-b border-slate-800 bg-slate-900/40 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Date Filters */}
+        <div className="flex items-center gap-2 md:col-span-2">
+          <span className="text-xs font-mono text-slate-500 shrink-0">Fecha Registro:</span>
+          <div className="flex items-center gap-1.5 w-full">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 w-full focus:outline-none"
+              title="Fecha inicial"
+            />
+            <span className="text-slate-600 text-xs">-</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 w-full focus:outline-none"
+              title="Fecha final"
+            />
+          </div>
+        </div>
+
+        {/* Debt Filters */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-slate-500 shrink-0">Deuda:</span>
+          <div className="flex items-center gap-1 w-full">
+            <input
+              type="number"
+              placeholder="Mín"
+              value={minDebt === '' ? '' : minDebt}
+              onChange={(e) => setMinDebt(e.target.value === '' ? '' : Number(e.target.value))}
+              className="text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 w-full focus:outline-none"
+            />
+            <span className="text-slate-600 text-xs">-</span>
+            <input
+              type="number"
+              placeholder="Máx"
+              value={maxDebt === '' ? '' : maxDebt}
+              onChange={(e) => setMaxDebt(e.target.value === '' ? '' : Number(e.target.value))}
+              className="text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 w-full focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Sorting Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-slate-500 shrink-0">Ordenar:</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 w-full focus:outline-none"
+          >
+            <option value="NEWEST">Más recientes primero</option>
+            <option value="OLDEST">Más antiguos primero</option>
+            <option value="DEBT_DESC">Mayor saldo deudor</option>
+            <option value="DEBT_ASC">Menor saldo deudor</option>
+            <option value="SCORE_DESC">Mayor Score de buró</option>
+            <option value="SCORE_ASC">Menor Score de buró</option>
+          </select>
+        </div>
+      </div>
+
       {/* MODAL INLINE-FORM TO ADD A CLIENT */}
       {isAdding && (
         <div className="p-6 bg-slate-950/40 border-b border-slate-800 transition-all duration-300">
@@ -1195,8 +1301,8 @@ export const ClientManagement: React.FC<ClientManagementProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-xs text-slate-300">
-            {filteredClients.length > 0 ? (
-              filteredClients.map(c => {
+            {sortedClients.length > 0 ? (
+              sortedClients.map(c => {
                 const getRiskClass = (days: number) => {
                   if (days === 0) return 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20';
                   if (days <= 15) return 'text-amber-400 bg-amber-500/10 border border-amber-500/20';

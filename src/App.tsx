@@ -56,7 +56,11 @@ import {
   saveTermsConditionsCloud,
   fetchAdministratorsCloud,
   saveAdministratorCloud,
-  bulkInsertAdministratorsCloud
+  bulkInsertAdministratorsCloud,
+  deleteClientCloud,
+  deleteRequestCloud,
+  deleteDossierCloud,
+  deletePaymentCloud
 } from './supabase';
 import { Layers, Search, FileSpreadsheet, ShieldCheck, Activity, Users, User, Star, Landmark, Crown, DollarSign, ShieldAlert, Smartphone, Lock, TrendingUp, X, Menu, FileCheck2, Download, FileText, CheckCircle2, AlertCircle, Bell, Volume2, VolumeX, Upload, ChevronDown, Eye, EyeOff, Sparkles, Settings, Camera, MapPin } from 'lucide-react';
 
@@ -181,6 +185,9 @@ export default function App() {
   const [clients, setClients] = useState<Client[]>(() => {
     const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
     const local = localStorage.getItem('buro_clients');
+    const deletedLocal = localStorage.getItem('buro_deleted_clients');
+    const deletedIds: string[] = deletedLocal ? JSON.parse(deletedLocal) : [];
+
     if (local) {
       try {
         const parsed = JSON.parse(local) as Client[];
@@ -188,22 +195,24 @@ export default function App() {
         const merged = [...parsed];
         if (!isCleanDb) {
           INITIAL_CLIENTS.forEach(initClient => {
-            if (!merged.some(c => c.id === initClient.id)) {
+            if (!deletedIds.includes(initClient.id) && !merged.some(c => c.id === initClient.id)) {
               merged.push(initClient);
             }
           });
         }
-        const hasPdfClients = merged.some(c => c.id.startsWith('PM-'));
+        // Filter out deleted clients just in case
+        const filtered = merged.filter(c => !deletedIds.includes(c.id));
+        const hasPdfClients = filtered.some(c => c.id.startsWith('PM-'));
         if (hasPdfClients || isCleanDb) {
           // Keep localStorage up-to-date with merged clients
-          localStorage.setItem('buro_clients', JSON.stringify(merged));
-          return merged;
+          localStorage.setItem('buro_clients', JSON.stringify(filtered));
+          return filtered;
         }
       } catch (e) {
         console.error(e);
       }
     }
-    return isCleanDb ? [] : INITIAL_CLIENTS;
+    return isCleanDb ? [] : INITIAL_CLIENTS.filter(c => !deletedIds.includes(c.id));
   });
 
   const [administrators, setAdministrators] = useState<Administrator[]>(() => {
@@ -1061,9 +1070,13 @@ export default function App() {
         }
 
         if (cloudClients !== null) {
-          const mergedClients = [...cloudClients];
+          const deletedLocal = localStorage.getItem('buro_deleted_clients');
+          const deletedIds: string[] = deletedLocal ? JSON.parse(deletedLocal) : [];
+          
+          let mergedClients = cloudClients.filter(c => !deletedIds.includes(c.id));
           if (!isCleanDb) {
             INITIAL_CLIENTS.forEach(initClient => {
+              if (deletedIds.includes(initClient.id)) return;
               const idx = mergedClients.findIndex(c => c.id === initClient.id);
               if (idx !== -1) {
                 // Override/merge critical credentials from INITIAL_CLIENTS to prevent stale database profiles from locking logins
@@ -1079,6 +1092,9 @@ export default function App() {
               }
             });
           }
+
+          // Make sure we filter out any deleted clients again
+          mergedClients = mergedClients.filter(c => !deletedIds.includes(c.id));
 
           lastClientsSyncRef.current = JSON.stringify(mergedClients);
           setClients(mergedClients);
@@ -1856,6 +1872,23 @@ export default function App() {
     const target = clients.find(c => c.id === clientId);
     setClients(prev => prev.filter(c => c.id !== clientId));
 
+    // Save deleted client ID in localStorage list to prevent re-adding
+    try {
+      const deletedLocal = localStorage.getItem('buro_deleted_clients');
+      const deletedIds: string[] = deletedLocal ? JSON.parse(deletedLocal) : [];
+      if (!deletedIds.includes(clientId)) {
+        deletedIds.push(clientId);
+        localStorage.setItem('buro_deleted_clients', JSON.stringify(deletedIds));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Call Cloud DB delete
+    deleteClientCloud(clientId).catch(err => {
+      console.error("Failed to delete client from cloud DB:", err);
+    });
+
     const newQueryLog: BureauQueryLog = {
       id: `Q-${Math.floor(1000 + Math.random() * 9000)}`,
       timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
@@ -2148,6 +2181,51 @@ export default function App() {
     addNotificationAndPopup(
       '🚫 Contrato Eliminado',
       `Se ha cancelado y retirado la certificación del contrato ${contractId} del sistema central fiduciario.`,
+      'warning',
+      'warning',
+      'admin_harold',
+      true
+    );
+  };
+
+  const handleDeleteRequest = (requestId: string) => {
+    setRequests(prev => prev.filter(r => r.id !== requestId));
+    deleteRequestCloud(requestId).catch(err => {
+      console.error("Failed to delete request from cloud:", err);
+    });
+    addNotificationAndPopup(
+      '🚫 Solicitud de Crédito Eliminada',
+      `La solicitud o préstamo ${requestId} ha sido removida del sistema central.`,
+      'warning',
+      'warning',
+      'admin_harold',
+      true
+    );
+  };
+
+  const handleDeleteDossier = (dossierId: string) => {
+    setDossiers(prev => prev.filter(d => d.id !== dossierId));
+    deleteDossierCloud(dossierId).catch(err => {
+      console.error("Failed to delete dossier from cloud:", err);
+    });
+    addNotificationAndPopup(
+      '🚫 Expediente de Crédito Eliminado',
+      `El expediente ${dossierId} ha sido eliminado permanentemente de la Consola Central.`,
+      'warning',
+      'warning',
+      'admin_harold',
+      true
+    );
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    setClientPayments(prev => prev.filter(p => p.id !== paymentId));
+    deletePaymentCloud(paymentId).catch(err => {
+      console.error("Failed to delete payment from cloud:", err);
+    });
+    addNotificationAndPopup(
+      '🚫 Registro de Abono Eliminado',
+      `El abono o pago ${paymentId} ha sido removido del sistema de conciliación.`,
       'warning',
       'warning',
       'admin_harold',
@@ -4259,6 +4337,7 @@ export default function App() {
                     onRejectRequest={handleRejectRequest} 
                     onAddRequest={handleAddRequest} 
                     onClearDatabase={handleClearDatabase}
+                    onDeleteRequest={handleDeleteRequest}
                   />
                 )}
 
@@ -4329,6 +4408,7 @@ export default function App() {
                     onVerifyPayment={handleVerifyPayment} 
                     currentUser={currentUser}
                     onClearDatabase={handleClearDatabase}
+                    onDeletePayment={handleDeletePayment}
                   />
                 )}
 
@@ -4354,6 +4434,7 @@ export default function App() {
                       setSecurityAlerts(prev => [alertItem, ...prev]);
                     }}
                     onClearDatabase={handleClearDatabase}
+                    onDeleteDossier={handleDeleteDossier}
                   />
                 )}
 
