@@ -140,14 +140,14 @@ export function WebLanding({
   }, [config.sliderImages]);
 
   const presetPlans = [
-    { capital: 3000, total: 3000 + (3000 / 1000) * 135 * 12, interest: (3000 / 1000) * 135 * 12 },
-    { capital: 4000, total: 4000 + (4000 / 1000) * 135 * 12, interest: (4000 / 1000) * 135 * 12 },
-    { capital: 5000, total: 5000 + (5000 / 1000) * 135 * 12, interest: (5000 / 1000) * 135 * 12 },
-    { capital: 6000, total: 6000 + (6000 / 1000) * 135 * 12, interest: (6000 / 1000) * 135 * 12 },
-    { capital: 7000, total: 7000 + (7000 / 1000) * 135 * 12, interest: (7000 / 1000) * 135 * 12 },
-    { capital: 8000, total: 8000 + (8000 / 1000) * 135 * 12, interest: (8000 / 1000) * 135 * 12 },
-    { capital: 9000, total: 9000 + (9000 / 1000) * 135 * 12, interest: (9000 / 1000) * 135 * 12 },
-    { capital: 10000, total: 10000 + (10000 / 1000) * 135 * 12, interest: (10000 / 1000) * 135 * 12 }
+    { capital: 3000, total: (3000 / 1000) * 135 * 12, interest: ((3000 / 1000) * 135 * 12) - 3000 },
+    { capital: 4000, total: (4000 / 1000) * 135 * 12, interest: ((4000 / 1000) * 135 * 12) - 4000 },
+    { capital: 5000, total: (5000 / 1000) * 135 * 12, interest: ((5000 / 1000) * 135 * 12) - 5000 },
+    { capital: 6000, total: (6000 / 1000) * 135 * 12, interest: ((6000 / 1000) * 135 * 12) - 6000 },
+    { capital: 7000, total: (7000 / 1000) * 135 * 12, interest: ((7000 / 1000) * 135 * 12) - 7000 },
+    { capital: 8000, total: (8000 / 1000) * 135 * 12, interest: ((8000 / 1000) * 135 * 12) - 8000 },
+    { capital: 9000, total: (9000 / 1000) * 135 * 12, interest: ((9000 / 1000) * 135 * 12) - 9000 },
+    { capital: 10000, total: (10000 / 1000) * 135 * 12, interest: ((10000 / 1000) * 135 * 12) - 10000 }
   ];
 
   const handleOpenApplication = (monto: number) => {

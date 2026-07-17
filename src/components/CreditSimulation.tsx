@@ -36,6 +36,10 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
           }))
     : null;
 
+  const allowedClients = isClient
+    ? (currentClientProfile ? [currentClientProfile] : [])
+    : clients;
+
   // Input states
   const [amount, setAmount] = useState<number>(10000);
   const [rate, setRate] = useState<number>(14.5);
@@ -59,7 +63,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
   // Prefill simulator based on selected existing client score & membership
   useEffect(() => {
     if (selectedClientId && !isClient) {
-      const client = clients.find(c => c.id === selectedClientId);
+      const client = allowedClients.find(c => c.id === selectedClientId);
       if (client) {
         // Suggested values based on real client stats
         setAmount(Math.min(50000, Math.max(10000, client.totalCreditGranted || 10000)));
@@ -140,7 +144,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
 
   const handleSaveSimulation = () => {
     const clientName = selectedClientId 
-      ? clients.find(c => c.id === selectedClientId)?.name || 'Anónimo'
+      ? allowedClients.find(c => c.id === selectedClientId)?.name || 'Anónimo'
       : 'Prospecto Nuevo';
       
     const newSim = {
@@ -168,7 +172,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
 
   const handleExportCSV = () => {
     const clientName = selectedClientId 
-      ? clients.find(c => c.id === selectedClientId)?.name || 'Prospecto Unificado'
+      ? allowedClients.find(c => c.id === selectedClientId)?.name || 'Prospecto Unificado'
       : 'Prospecto General';
       
     const headers = "Periodo,Fecha de Vencimiento,Cuota Total (MXN),Abono a Capital (MXN),Intereses Ordinarios (MXN),Saldo Insoluto Restante (MXN)\n";
@@ -187,11 +191,11 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
 
   const handleExportPDF = () => {
     const clientName = selectedClientId 
-      ? clients.find(c => c.id === selectedClientId)?.name || 'Prospecto Unificado'
+      ? allowedClients.find(c => c.id === selectedClientId)?.name || 'Prospecto Unificado'
       : 'Prospecto General';
       
     const clientRfc = selectedClientId 
-      ? clients.find(c => c.id === selectedClientId)?.rfc || 'XAXX010101000'
+      ? allowedClients.find(c => c.id === selectedClientId)?.rfc || 'XAXX010101000'
       : 'XAXX010101000';
 
     const printWindow = window.open('', '_blank');
@@ -366,7 +370,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
                   className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 cursor-pointer text-left"
                 >
                   <option value="">-- Prospecto Nuevo (Sin expediente central) --</option>
-                  {clients.map(c => (
+                  {allowedClients.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.membership === 'Premium' ? '⭐ VIP' : c.membership === 'Básica' ? '✓ Básica' : 'Regular'}, Score: {c.creditScore})
                     </option>
