@@ -49,7 +49,11 @@ CREATE TABLE IF NOT EXISTS public.requests (
   score INT NOT NULL,
   category TEXT NOT NULL,
   "dateSubmitted" TEXT NOT NULL,
-  status TEXT NOT NULL
+  status TEXT NOT NULL,
+  "loanType" TEXT,
+  "monthlyPlan" TEXT,
+  "approvedAmount" NUMERIC,
+  "rejectionReason" TEXT
 );
 
 -- 3. TABLA: queries
@@ -110,7 +114,9 @@ CREATE TABLE IF NOT EXISTS public.dossiers (
   "adminNotes" TEXT,
   "notificationDismissed" BOOLEAN NOT NULL DEFAULT false,
   "facebookProfile" TEXT,
-  "locationLink" TEXT
+  "locationLink" TEXT,
+  "loanType" TEXT,
+  "monthlyPlan" TEXT
 );
 
 -- 8. TABLA: system_notifications
@@ -154,6 +160,13 @@ ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
 
 ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "facebookProfile" TEXT;
 ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "locationLink" TEXT;
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "loanType" TEXT;
+ALTER TABLE public.dossiers ADD COLUMN IF NOT EXISTS "monthlyPlan" TEXT;
+
+ALTER TABLE public.requests ADD COLUMN IF NOT EXISTS "loanType" TEXT;
+ALTER TABLE public.requests ADD COLUMN IF NOT EXISTS "monthlyPlan" TEXT;
+ALTER TABLE public.requests ADD COLUMN IF NOT EXISTS "approvedAmount" NUMERIC;
+ALTER TABLE public.requests ADD COLUMN IF NOT EXISTS "rejectionReason" TEXT;
 
 -- ============================================================================
 -- DESACTIVACIÓN DE ROW LEVEL SECURITY (Para acceso simple con Anon Key)

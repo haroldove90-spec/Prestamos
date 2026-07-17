@@ -84,6 +84,38 @@ function sanitizeClientForDb(client: Client) {
   };
 }
 
+function sanitizeRequestForDb(request: CreditRequest) {
+  return {
+    id: request.id,
+    clientName: request.clientName,
+    requestedAmount: request.requestedAmount,
+    purpose: request.purpose,
+    score: request.score,
+    category: request.category,
+    dateSubmitted: request.dateSubmitted,
+    status: request.status
+  };
+}
+
+function sanitizeDossierForDb(dossier: ClientDossier) {
+  return {
+    id: dossier.id,
+    clientName: dossier.clientName,
+    address: dossier.address,
+    birthDate: dossier.birthDate,
+    ineFront: dossier.ineFront,
+    ineBack: dossier.ineBack,
+    proofOfAddress: dossier.proofOfAddress,
+    requestedAmount: dossier.requestedAmount,
+    status: dossier.status,
+    createdAt: dossier.createdAt,
+    adminNotes: dossier.adminNotes || null,
+    notificationDismissed: dossier.notificationDismissed || false,
+    facebookProfile: dossier.facebookProfile || null,
+    locationLink: dossier.locationLink || null
+  };
+}
+
 export async function saveClientCloud(client: Client): Promise<boolean> {
   try {
     const cleanClient = sanitizeClientForDb(client);
@@ -163,9 +195,13 @@ export async function fetchRequestsCloud(): Promise<CreditRequest[] | null> {
       .from('requests')
       .select('*')
       .order('id', { ascending: true });
-    if (error) return null;
+    if (error) {
+      console.error('Error fetching requests from Supabase:', error);
+      return null;
+    }
     return data as CreditRequest[];
-  } catch {
+  } catch (err) {
+    console.error('Supabase fetchRequests exception:', err);
     return null;
   }
 }
@@ -175,8 +211,20 @@ export async function saveRequestCloud(request: CreditRequest): Promise<boolean>
     const { error } = await supabase
       .from('requests')
       .upsert(request);
-    return !error;
-  } catch {
+    if (error) {
+      console.warn('Error saving full request to Supabase. Attempting fallback sanitize:', error);
+      const { error: fallbackError } = await supabase
+        .from('requests')
+        .upsert(sanitizeRequestForDb(request));
+      if (fallbackError) {
+        console.error('Failed request save even with fallback sanitize:', fallbackError);
+        return false;
+      }
+      return true;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase saveRequest exception:', err);
     return false;
   }
 }
@@ -184,8 +232,21 @@ export async function saveRequestCloud(request: CreditRequest): Promise<boolean>
 export async function bulkInsertRequestsCloud(reqs: CreditRequest[]): Promise<boolean> {
   try {
     const { error } = await supabase.from('requests').upsert(reqs);
-    return !error;
-  } catch {
+    if (error) {
+      console.warn('Error bulk saving full requests to Supabase. Attempting fallback sanitize:', error);
+      const sanitized = reqs.map(sanitizeRequestForDb);
+      const { error: fallbackError } = await supabase
+        .from('requests')
+        .upsert(sanitized);
+      if (fallbackError) {
+        console.error('Failed bulk requests save even with fallback sanitize:', fallbackError);
+        return false;
+      }
+      return true;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase bulkInsertRequests exception:', err);
     return false;
   }
 }
@@ -386,8 +447,18 @@ export async function saveDossierCloud(dossier: ClientDossier): Promise<boolean>
     const { error } = await supabase
       .from('dossiers')
       .upsert(dossier);
-    if (error) console.error('Error saving dossier to Supabase:', error);
-    return !error;
+    if (error) {
+      console.warn('Error saving full dossier to Supabase. Attempting fallback sanitize:', error);
+      const { error: fallbackError } = await supabase
+        .from('dossiers')
+        .upsert(sanitizeDossierForDb(dossier));
+      if (fallbackError) {
+        console.error('Failed dossier save even with fallback sanitize:', fallbackError);
+        return false;
+      }
+      return true;
+    }
+    return true;
   } catch (err) {
     console.error('Supabase exception saving dossier:', err);
     return false;
@@ -399,8 +470,19 @@ export async function bulkInsertDossiersCloud(dossiers: ClientDossier[]): Promis
     const { error } = await supabase
       .from('dossiers')
       .upsert(dossiers);
-    if (error) console.error('Error bulk saving dossiers in Supabase:', error);
-    return !error;
+    if (error) {
+      console.warn('Error bulk saving full dossiers in Supabase. Attempting fallback sanitize:', error);
+      const sanitized = dossiers.map(sanitizeDossierForDb);
+      const { error: fallbackError } = await supabase
+        .from('dossiers')
+        .upsert(sanitized);
+      if (fallbackError) {
+        console.error('Failed bulk dossiers save even with fallback sanitize:', fallbackError);
+        return false;
+      }
+      return true;
+    }
+    return true;
   } catch (err) {
     console.error('Supabase exception bulk saving dossiers:', err);
     return false;
