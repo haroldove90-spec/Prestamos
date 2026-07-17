@@ -301,7 +301,11 @@ export default function App() {
     return [];
   });
 
-  const [currentUser, setCurrentUser] = useState<string>('admin_harold');
+  const [currentUser, setCurrentUser] = useState<string>(() => {
+    return localStorage.getItem('buro_current_user') !== null 
+      ? localStorage.getItem('buro_current_user') as string 
+      : 'admin_harold';
+  });
   const [isPersonalizedRef, setIsPersonalizedRef] = useState<boolean>(false);
   const [refUsername, setRefUsername] = useState<string>('');
 
@@ -359,7 +363,9 @@ export default function App() {
     return DEFAULT_LANDING_CONFIG;
   });
 
-  const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts' | 'web_landing' | 'admin_web'>('web_landing');
+  const [activeTab, setActiveTab ] = useState<'portfolio' | 'bureau' | 'requests' | 'memberships' | 'asesor_dashboard' | 'cajera_dashboard' | 'security_center' | 'financial_metrics' | 'client_portal' | 'payment_verification' | 'dossiers' | 'credit_simulation' | 'contracts' | 'web_landing' | 'admin_web'>(() => {
+    return (localStorage.getItem('buro_active_tab') as any) || 'web_landing';
+  });
 
   const [dossiers, setDossiers] = useState<ClientDossier[]>(() => {
     const isCleanDb = localStorage.getItem('buro_database_cleaned_for_prod') === 'true';
@@ -493,8 +499,29 @@ export default function App() {
   });
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
-  const [isHome, setIsHome] = useState<boolean>(true);
-  const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register' | 'admin_login'>('roles');
+  const [isHome, setIsHome] = useState<boolean>(() => {
+    const saved = localStorage.getItem('buro_is_home');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [homeSubView, setHomeSubView] = useState<'roles' | 'client_options' | 'client_register' | 'admin_login'>(() => {
+    return (localStorage.getItem('buro_home_subview') as any) || 'roles';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('buro_current_user', currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_is_home', String(isHome));
+  }, [isHome]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_active_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem('buro_home_subview', homeSubView);
+  }, [homeSubView]);
 
   // Client number baseline configuration
   const [nextClientNumberBase, setNextClientNumberBase] = useState<string>(() => {
