@@ -21,6 +21,21 @@ interface AmortizationRow {
 }
 
 export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, currentUser }) => {
+  const isClient = currentUser.startsWith('cliente_') || currentUser === 'cliente_esperanza';
+
+  // Find current client profile if user is a client
+  const currentClientProfile = isClient 
+    ? (currentUser === 'cliente_esperanza' 
+        ? clients.find(c => c.id === 'PM-327072') 
+        : clients.find(c => {
+            const targetUser = currentUser.replace('cliente_', '').toLowerCase().trim();
+            return (c.username && c.username.toLowerCase() === targetUser) ||
+                   (c.id.toLowerCase() === targetUser) ||
+                   (c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === targetUser) ||
+                   (c.name.toLowerCase() === targetUser.replace(/_/g, ' '));
+          }))
+    : null;
+
   // Input states
   const [amount, setAmount] = useState<number>(10000);
   const [rate, setRate] = useState<number>(14.5);
@@ -34,9 +49,16 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
   const [amortizationSchedule, setAmortizationSchedule] = useState<AmortizationRow[]>([]);
   const [savedSimulations, setSavedSimulations] = useState<any[]>([]);
 
+  // Auto-select client profile if logged in as a client
+  useEffect(() => {
+    if (isClient && currentClientProfile) {
+      setSelectedClientId(currentClientProfile.id);
+    }
+  }, [isClient, currentClientProfile]);
+
   // Prefill simulator based on selected existing client score & membership
   useEffect(() => {
-    if (selectedClientId) {
+    if (selectedClientId && !isClient) {
       const client = clients.find(c => c.id === selectedClientId);
       if (client) {
         // Suggested values based on real client stats
@@ -50,11 +72,10 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
         setRate(baseRate);
       }
     }
-  }, [selectedClientId, clients]);
+  }, [selectedClientId, clients, isClient]);
 
   const calculateAmortization = () => {
     const P = amount;
-    const annualRate = rate / 100;
     
     // Set frequency factors
     let periodsPerYear = 12;
@@ -62,27 +83,29 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
     else if (frequency === 'Semanal') periodsPerYear = 52;
     
     const totalPeriods = Math.round((months / 12) * periodsPerYear);
-    const periodicRate = annualRate / periodsPerYear;
     
-    // PMT formula: P * r * (1+r)^n / ((1+r)^n - 1)
+    // Flat rate formula: se cobra $135 pesos por cada $1,000 de préstamo por semana
     let pmt = 0;
-    if (periodicRate === 0) {
-      pmt = P / totalPeriods;
-    } else {
-      pmt = P * (periodicRate * Math.pow(1 + periodicRate, totalPeriods)) / (Math.pow(1 + periodicRate, totalPeriods) - 1);
+    if (frequency === 'Semanal') {
+      pmt = (P / 1000) * 135;
+    } else if (frequency === 'Quincenal') {
+      pmt = (P / 1000) * 135 * 2;
+    } else { // Mensual
+      pmt = (P / 1000) * 135 * 4;
     }
     
     setPeriodicPayment(pmt);
     
-    // Construct schedule with declining balance
+    // Construct schedule with straight line amortization of capital
     let remainingBalance = P;
     const schedule: AmortizationRow[] = [];
     let accumInterest = 0;
     const startDate = new Date();
     
+    const capitalPayment = P / totalPeriods;
+    const interestPayment = pmt - capitalPayment;
+    
     for (let i = 1; i <= totalPeriods; i++) {
-      const interestPayment = remainingBalance * periodicRate;
-      const capitalPayment = pmt - interestPayment;
       remainingBalance = Math.max(0, remainingBalance - capitalPayment);
       accumInterest += interestPayment;
       
@@ -317,8 +340,8 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
           <div className="bg-slate-950 px-4 py-2 border border-slate-800 rounded-2xl flex items-center gap-3 font-mono text-[10px]">
             <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
             <div>
-              <span className="text-slate-500 uppercase block leading-none">Interés Base</span>
-              <strong className="text-slate-200 text-xs mt-0.5 block">14.5% Anual</strong>
+              <span className="text-slate-500 uppercase block leading-none">Esquema Especial</span>
+              <strong className="text-slate-200 text-xs mt-0.5 block">$135 sem. x cada $1,000</strong>
             </div>
           </div>
         </div>
@@ -334,26 +357,28 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
             </h4>
 
             {/* Link Client */}
-            <div className="space-y-1.5">
-              <label className="block text-[10px] uppercase font-mono font-bold text-slate-500">Filtrar por Cliente Existente</label>
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 cursor-pointer text-left"
-              >
-                <option value="">-- Prospecto Nuevo (Sin expediente central) --</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.membership === 'Premium' ? '⭐ VIP' : c.membership === 'Básica' ? '✓ Básica' : 'Regular'}, Score: {c.creditScore})
-                  </option>
-                ))}
-              </select>
-              {selectedClientId && (
-                <p className="text-[9px] text-[#a3c90e] font-mono">
-                  ✓ Configuración auto-ajustada al perfil del expediente de riesgo.
-                </p>
-              )}
-            </div>
+            {!isClient && (
+              <div className="space-y-1.5">
+                <label className="block text-[10px] uppercase font-mono font-bold text-slate-500">Filtrar por Cliente Existente</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 cursor-pointer text-left"
+                >
+                  <option value="">-- Prospecto Nuevo (Sin expediente central) --</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.membership === 'Premium' ? '⭐ VIP' : c.membership === 'Básica' ? '✓ Básica' : 'Regular'}, Score: {c.creditScore})
+                    </option>
+                  ))}
+                </select>
+                {selectedClientId && (
+                  <p className="text-[9px] text-[#a3c90e] font-mono">
+                    ✓ Configuración auto-ajustada al perfil del expediente de riesgo.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Mount Slider */}
             <div className="space-y-1.5">
@@ -516,7 +541,7 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
                 <span className="text-[9px] text-[#a3c90e] font-mono uppercase font-black">{frequency}</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
-                Proyección compuesta sobre saldo capital amortizado de {formatMXN(amount)} con interés del {rate}% CAT.
+                Proyección de pagos aplicando la fórmula de $135 pesos semanales por cada $1,000 de préstamo sobre {formatMXN(amount)}.
               </p>
             </div>
 

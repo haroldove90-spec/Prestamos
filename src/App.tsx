@@ -31,6 +31,7 @@ import {
   fetchClientsCloud,
   bulkInsertClientsCloud,
   fetchRequestsCloud,
+  saveRequestCloud,
   bulkInsertRequestsCloud,
   fetchQueriesCloud,
   bulkInsertQueriesCloud,
@@ -41,6 +42,7 @@ import {
   clearSecurityAlertsCloud,
   clearAllDatabaseTablesCloud,
   fetchPaymentsCloud,
+  savePaymentCloud,
   bulkInsertPaymentsCloud,
   fetchDossiersCloud,
   saveDossierCloud,
@@ -1565,6 +1567,9 @@ export default function App() {
   // REGISTER CLIENT ACTIVE PAYMENT ACTIVITY
   const handleRegisterClientPayment = (newPayment: ClientPayment) => {
     setClientPayments(prev => [newPayment, ...prev]);
+    savePaymentCloud(newPayment).catch(err => {
+      console.error("Failed to save payment to cloud:", err);
+    });
 
     // Add general transaction query log for real-time compliance review
     const newLog: BureauQueryLog = {
@@ -1604,6 +1609,10 @@ export default function App() {
     // Find the payment object
     const payment = clientPayments.find(p => p.id === paymentId);
     if (!payment) return;
+
+    savePaymentCloud({ ...payment, status: newStatus }).catch(err => {
+      console.error("Failed to update payment status in cloud:", err);
+    });
 
     if (newStatus === 'PAGO_REALIZADO') {
       // Apply payment deduction from balanceOwed with smart late fee allocation
@@ -1686,6 +1695,9 @@ export default function App() {
   // EXPEDIENTES (DOSSIERS) ACTIONS AND PIPELINE MUTATIONS
   const handleAddDossier = (newDossier: ClientDossier) => {
     setDossiers(prev => [newDossier, ...prev]);
+    saveDossierCloud(newDossier).catch(err => {
+      console.error("Failed to save dossier to cloud:", err);
+    });
 
     // Create a transaction query log entry indicating receipt/analyzing status
     const newLog: BureauQueryLog = {
@@ -2076,6 +2088,9 @@ export default function App() {
     };
 
     setRequests(prev => [newRequest, ...prev]);
+    saveRequestCloud(newRequest).catch(err => {
+      console.error("Failed to save credit request to cloud:", err);
+    });
 
     // Push notification to active client
     addNotificationAndPopup(
@@ -2106,6 +2121,9 @@ export default function App() {
 
     // 1. Update request status to approved
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APROBADO' } : r));
+    saveRequestCloud({ ...requestItem, status: 'APROBADO' }).catch(err => {
+      console.error("Failed to update approved request in cloud:", err);
+    });
 
     // 2. Generate custom RFC for Mexico
     const rfcBase = (requestItem.clientName.slice(0, 4).toUpperCase().padEnd(4, 'X') + '850101TS2').replace(/\s+/g, 'A');
@@ -2165,6 +2183,9 @@ export default function App() {
 
     // 1. Update request status to rejected
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'RECHAZADO' } : r));
+    saveRequestCloud({ ...requestItem, status: 'RECHAZADO' }).catch(err => {
+      console.error("Failed to update rejected request in cloud:", err);
+    });
 
     // 2. Log resolution decline
     const newLog: BureauQueryLog = {

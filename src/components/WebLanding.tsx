@@ -31,6 +31,7 @@ export function WebLanding({
   // Navigation & interaction states
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedMonto, setSelectedMonto] = useState<number | null>(null);
+  const [calcAmount, setCalcAmount] = useState<number>(5000);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'general' | 'hero' | 'benefits' | 'how' | 'slides'>('general');
 
@@ -139,14 +140,14 @@ export function WebLanding({
   }, [config.sliderImages]);
 
   const presetPlans = [
-    { capital: 3000, total: 4200, interest: 1200 },
-    { capital: 4000, total: 5600, interest: 1600 },
-    { capital: 5000, total: 7000, interest: 2000 },
-    { capital: 6000, total: 8400, interest: 2400 },
-    { capital: 7000, total: 9800, interest: 2800 },
-    { capital: 8000, total: 11200, interest: 3200 },
-    { capital: 9000, total: 12600, interest: 3600 },
-    { capital: 10000, total: 14000, interest: 4000 }
+    { capital: 3000, total: 3000 + (3000 / 1000) * 135 * 12, interest: (3000 / 1000) * 135 * 12 },
+    { capital: 4000, total: 4000 + (4000 / 1000) * 135 * 12, interest: (4000 / 1000) * 135 * 12 },
+    { capital: 5000, total: 5000 + (5000 / 1000) * 135 * 12, interest: (5000 / 1000) * 135 * 12 },
+    { capital: 6000, total: 6000 + (6000 / 1000) * 135 * 12, interest: (6000 / 1000) * 135 * 12 },
+    { capital: 7000, total: 7000 + (7000 / 1000) * 135 * 12, interest: (7000 / 1000) * 135 * 12 },
+    { capital: 8000, total: 8000 + (8000 / 1000) * 135 * 12, interest: (8000 / 1000) * 135 * 12 },
+    { capital: 9000, total: 9000 + (9000 / 1000) * 135 * 12, interest: (9000 / 1000) * 135 * 12 },
+    { capital: 10000, total: 10000 + (10000 / 1000) * 135 * 12, interest: (10000 / 1000) * 135 * 12 }
   ];
 
   const handleOpenApplication = (monto: number) => {
@@ -631,14 +632,19 @@ export function WebLanding({
               <div>
                 <div className="flex justify-between text-xs text-slate-400 mb-1.5 font-sans font-medium">
                   <span>¿Cuánto dinero necesitas?</span>
-                  <span className="text-white font-extrabold font-mono text-sm">$5,000 MXN</span>
+                  <span className="text-white font-extrabold font-mono text-sm">${calcAmount.toLocaleString('es-MX')} MXN</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[3000, 5000, 7000, 10000].map((m) => (
                     <button
                       key={m}
-                      onClick={() => handleOpenApplication(m)}
-                      className="px-2.5 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-center text-[11.5px] font-mono font-bold hover:border-[#a3c90e] transition text-slate-200"
+                      type="button"
+                      onClick={() => setCalcAmount(m)}
+                      className={`px-2.5 py-2 rounded-xl text-center text-[11.5px] font-mono font-bold border transition cursor-pointer ${
+                        calcAmount === m 
+                          ? 'bg-[#a3c90e] border-[#a3c90e] text-slate-950 font-black'
+                          : 'bg-slate-900 hover:bg-slate-850 border-slate-800 hover:border-slate-700 text-slate-200'
+                      }`}
                     >
                       ${m.toLocaleString('es-MX')}
                     </button>
@@ -649,20 +655,20 @@ export function WebLanding({
               <div className="bg-[#0284c7]/5 border border-[#0284c7]/15 rounded-xl p-3.5 space-y-2">
                 <div className="flex justify-between text-[11px] font-sans font-medium">
                   <span className="text-slate-400">Plazo preferido:</span>
-                  <span className="text-white font-bold">Mensual (4 Semanas)</span>
+                  <span className="text-white font-bold">12 Semanas (Esquema Semanal)</span>
                 </div>
                 <div className="flex justify-between text-[11px] font-sans font-medium">
-                  <span className="text-slate-400">Esquema de pago:</span>
-                  <span className="text-emerald-400 font-bold">Amortización Fija</span>
+                  <span className="text-slate-400">Pago semanal:</span>
+                  <span className="text-emerald-400 font-bold font-mono">${((calcAmount / 1000) * 135).toLocaleString('es-MX')} MXN</span>
                 </div>
                 <div className="flex justify-between text-[11.5px] font-sans font-medium border-t border-slate-800/60 pt-2">
                   <span className="text-slate-300 font-bold">Total estimado a liquidar:</span>
-                  <span className="text-[#a3c90e] font-mono font-black text-sm">$7,000 MXN</span>
+                  <span className="text-[#a3c90e] font-mono font-black text-sm">${((calcAmount / 1000) * 135 * 12).toLocaleString('es-MX')} MXN</span>
                 </div>
               </div>
 
               <button
-                onClick={() => handleOpenApplication(5000)}
+                onClick={() => handleOpenApplication(calcAmount)}
                 className="w-full py-3 bg-[#a3c90e] hover:bg-[#b8e014] text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-xl transition cursor-pointer text-center"
               >
                 Solicitar Simulación
@@ -719,13 +725,13 @@ export function WebLanding({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
           <div className="max-w-3xl mx-auto space-y-3">
             <span className="text-[10px] font-mono font-bold text-[#38bdf8] uppercase tracking-widest bg-[#38bdf8]/5 border border-[#38bdf8]/10 px-2.5 py-1 rounded-full">
-              SQUEMA DE PAGOS CLAROS
+              ESQUEMA DE PAGOS CLAROS
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Nuestros Préstamos Mensuales
+              Nuestros Préstamos Semanales a 12 Semanas
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm">
-              Encuentra el monto ideal para tus metas o emergencias. Así de claro es nuestro esquema:
+              Encuentra el monto ideal para tus metas o emergencias. Así de claro es nuestro esquema ($135 pesos sem. por cada $1,000):
             </p>
           </div>
 

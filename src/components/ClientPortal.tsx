@@ -709,7 +709,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       {/* -------------------------------------------------------------
           TEST DATA PANEL ("Datos de Prueba" simulator block)
           ------------------------------------------------------------- */}
-      {setClients && (
+      {setClients && currentUser === 'admin_harold' && (
         <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 text-left relative overflow-hidden shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#a3c90e]/5 rounded-full blur-xl" />
           
