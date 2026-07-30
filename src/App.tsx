@@ -238,7 +238,7 @@ export default function App() {
   });
 
   const [adminDisplayName, setAdminDisplayName] = useState<string>(() => {
-    return localStorage.getItem('buro_admin_display_name') || 'Harold Anguiano';
+    return localStorage.getItem('buro_admin_display_name') || 'Mayra Marín Allinar';
   });
 
   const [requests, setRequests] = useState<CreditRequest[]>(() => {

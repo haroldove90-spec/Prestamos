@@ -500,7 +500,7 @@ export const INITIAL_RISK_PARAMS: RiskParameters = {
 export const INITIAL_ADMINS: Administrator[] = [
   {
     id: 'admin_harold',
-    name: 'Harold Anguiano',
+    name: 'Mayra Marín Allinar',
     username: 'harold_anguiano',
     password: 'Chevropar#1970',
     role: 'admin',
