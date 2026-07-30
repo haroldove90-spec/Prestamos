@@ -81,12 +81,12 @@ export const CreditSimulation: React.FC<CreditSimulationProps> = ({ clients, cur
   const calculateAmortization = () => {
     const P = amount;
     
-    // Set frequency factors
+    // Set frequency factors (4 semanas por mes = 48 semanas por año para préstamos de 12 semanas por cada 3 meses)
     let periodsPerYear = 12;
     if (frequency === 'Quincenal') periodsPerYear = 24;
-    else if (frequency === 'Semanal') periodsPerYear = 52;
+    else if (frequency === 'Semanal') periodsPerYear = 48;
     
-    const totalPeriods = Math.round((months / 12) * periodsPerYear);
+    const totalPeriods = frequency === 'Semanal' ? Math.round(months * 4) : Math.round((months / 12) * periodsPerYear);
     
     // Flat rate formula: se cobra $135 pesos por cada $1,000 de préstamo por semana
     let pmt = 0;
